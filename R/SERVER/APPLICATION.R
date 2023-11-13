@@ -22,4 +22,4 @@ source("SERVER.R")
 ##### APPLICATION #####
 #######################
 
-shinyApp(ui = uiFPNAV, server = serverWR)
+shinyApp(ui = uiFPNAV, server = serverWGS84)

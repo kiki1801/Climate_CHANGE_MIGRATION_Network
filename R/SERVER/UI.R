@@ -10,8 +10,10 @@
 ###########################
 
 library(shiny)
+library(shinyjs)
 library(shinydashboard)
 library(leaflet)
+library(plotly)
 
 ##############
 ##### UI #####
@@ -25,6 +27,7 @@ uiFPC <- fluidPage(
     sidebarPanel(
       selectInput(inputId = "area", "Classification:",
                   choices = c("Continental Regions",
+                              "Continental Sub-Regions",
                               "Geographic Regions (SDG)",
                               "Development Levels",
                               "Income Levels"),
@@ -44,6 +47,13 @@ uiFPI <- fluidPage(
 )
 
 uiFPNAV <- fluidPage(
+  useShinyjs(),
+  
+  tags$style(type="text/css",
+             ".shiny-output-error { visibility: hidden; }",
+             ".shiny-output-error:before { visibility: hidden; }"),
+  
+  
   navbarPage(
     title = "Climate Change Migration Network", 
     tabPanel("Migration",
@@ -53,10 +63,24 @@ uiFPNAV <- fluidPage(
                           style = "margin-top: 10px;",
                           actionButton("countries", "Countries"),
                           actionButton("regions", "Regions"),
-                          tags$div(HTML("<br>")),
-                          leafletOutput("world_map", width = "100%", height = 400), 
+                          conditionalPanel(
+                            style = "margin-top: 10px;",
+                            condition = "input.regions >= 1",
+                            radioButtons(inputId = "region_choice", NULL,
+                                         choices = c("Continental Regions",
+                                                     "Continental Sub-Regions",
+                                                     "Geographic Regions (SDG)",
+                                                     "Income Levels"),
+                                         selected = "Continental Regions",
+                                         inline = TRUE)),
+                          leafletOutput("world_map", width = "100%", height = 475), 
                           tags$div(style = "height: 10px;"),
-                          textOutput("selected_residence")
+                          textOutput("selected_residence"), 
+                          uiOutput("birth_view_choice"),
+                          tags$div(style = "height: 10px;"),
+                          uiOutput("birth_view_region_choice"),
+                          tags$div(style = "height: 10px;"),
+                          plotlyOutput ("stacked_barplot_share", width = "100%", height = "400px")
                           )
                         ),
                tabPanel("Birth",
