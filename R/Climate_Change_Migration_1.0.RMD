@@ -70,7 +70,7 @@ datatable(LibrariesVersions,
           formatStyle(columns = 2, textAlign = "center")
 ```
 
-# Clarification on ISO3 and M49 Codes
+# ISO and M49 Codes
 
 ISO 3166-1 is an international standard from [International Organization for Standardization (ISO)](https://www.iso.org/obp/ui/#search), with 3 codes:
 
@@ -87,7 +87,11 @@ There are more ISO.NUM/M49 codes (249) than countries recognized by the UN (198,
 
 # Data
 
+Stock data are different from flow data. The first one corresponds to the number of people in a country, while the second one is the number of people crossing a country's borders.
+
 International migrant stock data (2020) are taken from the United Nations ([ONU | Population Division](https://www.un.org/development/desa/pd/content/international-migrant-stock)). The estimates of the number (or "stock") of international migrants (1990-2020) are available for 232 countries/areas of the world. 
+
+The international migrant population corresponds to the total number of migrants present in a given country at a given moment in time (foreign-born). Tourists are not counted among migrants.
 
 Data are organized by residence-birth pairs according to certain classifications or countries/areas:
 
@@ -230,6 +234,13 @@ datatable(WAB_NoGeo %>% group_by(Region) %>% summarise(Count = n()),
           formatStyle(columns = 1, textAlign = "left") %>% 
           formatStyle(columns = 2, textAlign = "center")
 ```
+
+Some changes are made in `Region` for South Sudan to match with UNSD information used later.
+
+```{r}
+WAB[which(WAB$ISO3 == "SSD"), "Region"] <- "Eastern Africa"
+```
+
 
 We would like to be able to represent every `Residence` that is in migration stock data.
 
@@ -413,7 +424,7 @@ HelenaBarthMartin <- HelenaBarthMartin %>%
          ColorCode = c("MAF", "BLM", "SHN"), 
          Name = c("Saint Martin (French part)", "Saint Barthélemy", "Saint Helena"),
          Continent = c("Americas", "Americas", "Africa"), 
-         Region = c("Caribbean", "Caribbean", "Middle Africa"), 
+         Region = c("Caribbean", "Caribbean", "Western Africa"), 
          ISO2 = c("MF", "BL", "SH"), 
          FName = c("Saint-Martin (partie française)", "Saint-Barthélemy", "Sainte-Hélène")) %>%
   select(-1, everything())
@@ -848,7 +859,7 @@ RIMS_WAB_UNSD[which(RIMS_WAB_UNSD$Residence == "Heard Island and McDonald Island
 RIMS_WAB_UNSD[which(RIMS_WAB_UNSD$Residence == "Heard Island and McDonald Islands"), "Region"] <- "Australia and New Zealand"
 RIMS_WAB_UNSD[which(RIMS_WAB_UNSD$Residence == "Cocos (Keeling) Islands"), "Continent"] <- "Oceania"
 RIMS_WAB_UNSD[which(RIMS_WAB_UNSD$Residence == "Cocos (Keeling) Islands"), "Region"] <- "Australia and New Zealand"
-RIMS_WAB_UNSD[which(RIMS_WAB_UNSD$Residence == "Cocos (Keeling) Islands"), "ContinentCode"] <- 142
+RIMS_WAB_UNSD[which(RIMS_WAB_UNSD$Residence == "Cocos (Keeling) Islands"), "ContinentCode"] <- 9
 RIMS_WAB_UNSD[which(RIMS_WAB_UNSD$Residence == "South Georgia & the South Sandwich Islands"), "Continent"] <- "Americas"
 RIMS_WAB_UNSD[which(RIMS_WAB_UNSD$Residence == "United States Minor Outlying Islands"), "Continent"] <- "Oceania"
 RIMS_WAB_UNSD[which(RIMS_WAB_UNSD$Residence == "United States Minor Outlying Islands"), "Region"] <- "Micronesia"
@@ -1432,12 +1443,13 @@ datatable(LibrariesComparison, options = list(scrollX = TRUE, autoWidth = TRUE),
           caption = "Graphics' Libraries Comparison")
 ```
 
+## Stacked Barplots
 
-## Stacked Barplots (IMS in Million)
+### IMS in Million
 
-Line Plot is not the only way to represent the evolution of IMS. WE can aslo make a stacked barplot in Million instead of in %.
+Line Plot is not the only way to represent the evolution of IMS. We can aslo make a stacked barplot in Million instead of in %.
 
-### PLOTLY
+#### PLOTLY
 
 ```{r, fig.width=10}
 PLOTLY_SBARM <- plot_ly(data = imsfltpltoly, x = ~Year, y = ~IMST, 
@@ -1453,9 +1465,7 @@ PLOTLY_SBARM <- plot_ly(data = imsfltpltoly, x = ~Year, y = ~IMST,
 PLOTLY_SBARM
 ```
 
-
-
-### GGIRAPH
+#### GGIRAPH
 
 ```{r, fig.width=10}
 GGIRAPH_SBARM <- ggplot(imsflt) + 
