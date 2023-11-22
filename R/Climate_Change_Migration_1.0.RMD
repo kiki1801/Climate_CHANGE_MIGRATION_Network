@@ -2,7 +2,7 @@
 title: "Climate Change Migration Network"
 subtitle: "Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques"
 author: "Kyllian James"
-date: "2023-10-16"
+date: "`r paste('Creation Date:', as.Date(file.info('Climate_Change_Migration_1.0.RMD')$ctime), '|', 'Last Modified Date:', as.Date(file.info('Climate_Change_Migration_1.0.RMD')$mtime))`"
 output: 
   html_document:
     toc: yes
@@ -26,7 +26,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Load Librairies
 
-```{r, message=FALSE, results="asis"}
+```{r, message=FALSE, warning=FALSE, results="asis"}
 library(knitr)
 library(readxl)
 library(dplyr)
@@ -41,11 +41,14 @@ library(rnaturalearthhires) #GitHub: ropensci/rnaturalearthhires
 library(leaflet)
 library(plotly)
 library(ggiraph)
+library(openxlsx)
+library(DescTools)
 
 LibrariesVersions <- data.frame(
   LIBRARY = c("KNITR", "READXL", "DPLYR", "TIDYR", "DT", 
               "SF", "GGPLOT2", "GGSPATIAL", "GRIDEXTRA", "RNATURALEARTH",
-              "RNATURALEARTHHIRES", "LEAFLET", "PLOTLY", "GGIRAPH"),
+              "RNATURALEARTHHIRES", "LEAFLET", "PLOTLY", "GGIRAPH", "OPENXLSX", 
+              "DESCTOOLS"),
   VERSION = c(as.character(packageVersion("knitr")),
               as.character(packageVersion("readxl")),
               as.character(packageVersion("dplyr")), 
@@ -59,7 +62,9 @@ LibrariesVersions <- data.frame(
               as.character(packageVersion("rnaturalearthhires")),
               as.character(packageVersion("leaflet")),
               as.character(packageVersion("plotly")),
-              as.character(packageVersion("ggiraph"))))
+              as.character(packageVersion("ggiraph")), 
+              as.character(packageVersion("openxlsx")), 
+              as.character(packageVersion("DescTools"))))
 
 datatable(LibrariesVersions, 
           options = list(scrollX = TRUE, autoWidth = TRUE), 
@@ -74,14 +79,14 @@ datatable(LibrariesVersions,
 
 ISO 3166-1 is an international standard from [International Organization for Standardization (ISO)](https://www.iso.org/obp/ui/#search), with 3 codes:
 
-* ISO2
-* ISO3
-* ISO.NUMERIC
+-   ISO2
+-   ISO3
+-   ISO.NUMERIC
 
 ISO.NUMERIC codes are identical to M49 codes from UNSD. M49 geographical entities are not all in ISO codes. ISO 3166-1 is only available for autonomous, but not necessarily independent, countries or territories. In addition, M49 codes are defined for the world, continents and geographical groupings. How to get a code?
 
-* Being a UN member state
-* Be a member of one of the UN's specialized agencies (e.g. FAO | ILO | IMF| UNESCO | World Bank | WHO | ...)
+-   Being a UN member state
+-   Be a member of one of the UN's specialized agencies (e.g. FAO \| ILO \| IMF\| UNESCO \| World Bank \| WHO \| ...)
 
 There are more ISO.NUM/M49 codes (249) than countries recognized by the UN (198, including 193 member states and 5 observer or associate states).
 
@@ -89,55 +94,55 @@ There are more ISO.NUM/M49 codes (249) than countries recognized by the UN (198,
 
 Stock data are different from flow data. The first one corresponds to the number of people in a country, while the second one is the number of people crossing a country's borders.
 
-International migrant stock data (2020) are taken from the United Nations ([ONU | Population Division](https://www.un.org/development/desa/pd/content/international-migrant-stock)). The estimates of the number (or "stock") of international migrants (1990-2020) are available for 232 countries/areas of the world. 
+International migrant stock data (2020) are taken from the United Nations ([ONU \| Population Division](https://www.un.org/development/desa/pd/content/international-migrant-stock)). The estimates of the number (or "stock") of international migrants (1990-2020) are available for 232 countries/areas of the world.
 
 The international migrant population corresponds to the total number of migrants present in a given country at a given moment in time (foreign-born). Tourists are not counted among migrants.
 
 Data are organized by residence-birth pairs according to certain classifications or countries/areas:
 
-* [6 Continental Regions](https://unstats.un.org/unsd/methodology/m49/) (M49 | ISO3) with Sub-Regions and Intermediate Regions:
-  * Africa
-  * Asia
-  * Europe
-  * Latin America and the Caribbean
-  * Northern America
-  * Oceania
-* 8 Geographic Regions based on the [Sustainable Development Goals (SDG) Classification (UN)](https://unstats.un.org/sdgs/indicators/regional-groups/):
-  * Sub-Saharan Africa
-  * Northern Africa and Western Asia
-  * Central and Southern Asia
-  * Eastern and South-Eastern Asia
-  * Latin America and the Caribbean
-  * Oceania (excluding Australia and New Zealand)
-  * Australia and New Zealand
-  * Europe and Northern America
-* 2 Development Levels:
-  * More Developed Regions:
-    * Europe
-    * Northern America
-    * Australia and New Zealand and Japan
-  * Less Developed Regions: 
-    * Africa
-    * Asia (excluding Japan)
-    * Latin America and the Caribbean
-    * Oceania (excluding Australia and New Zealand)
-* 3 Development Levels (137/232):
-  * Least Developed Countries (LDCs | 47) 
-  * Land-Locked Developing Countries (LLDCs | 32)
-  * Small Island Developing States (SIDS | 58)
-* 3/4 Income Levels based on Gross National Income (GNI | [World Bank 2020](https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups)):
-  * High-Income
-  * Middle-Income
-    * Upper-Middle-Income
-    * Lower-Middle-Income
-  * Low-Income
+-   [6 Continental Regions](https://unstats.un.org/unsd/methodology/m49/) (M49 \| ISO3) with Sub-Regions and Intermediate Regions:
+    -   Africa
+    -   Asia
+    -   Europe
+    -   Latin America and the Caribbean
+    -   Northern America
+    -   Oceania
+-   8 Geographic Regions based on the [Sustainable Development Goals (SDG) Classification (UN)](https://unstats.un.org/sdgs/indicators/regional-groups/):
+    -   Sub-Saharan Africa
+    -   Northern Africa and Western Asia
+    -   Central and Southern Asia
+    -   Eastern and South-Eastern Asia
+    -   Latin America and the Caribbean
+    -   Oceania (excluding Australia and New Zealand)
+    -   Australia and New Zealand
+    -   Europe and Northern America
+-   2 Development Levels:
+    -   More Developed Regions:
+        -   Europe
+        -   Northern America
+        -   Australia and New Zealand and Japan
+    -   Less Developed Regions:
+        -   Africa
+        -   Asia (excluding Japan)
+        -   Latin America and the Caribbean
+        -   Oceania (excluding Australia and New Zealand)
+-   3 Development Levels (137/232):
+    -   Least Developed Countries (LDCs \| 47)
+    -   Land-Locked Developing Countries (LLDCs \| 32)
+    -   Small Island Developing States (SIDS \| 58)
+-   3/4 Income Levels based on Gross National Income (GNI \| [World Bank 2020](https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups)):
+    -   High-Income
+    -   Middle-Income
+        -   Upper-Middle-Income
+        -   Lower-Middle-Income
+    -   Low-Income
 
 These income groups are not available for all countries/areas.
 
 `ResidenceCode`:
 
-* M49: Regions 
-* ISO.NUMERIC: Countries
+-   M49: Regions
+-   ISO.NUMERIC: Countries
 
 ## Migration Stock Data
 
@@ -204,16 +209,16 @@ GGPLOT_WAB <- ggplot() +
 GGPLOT_WAB
 ```
 
-There are 256 `Name` | 237 `ISO3` | 207 `ColorCode`. 
+There are 256 `Name` \| 237 `ISO3` \| 207 `ColorCode`.
 
 There is a variable `Continent`:
 
-* Africa
-* Americas
-* Antartica
-* Asia
-* Europe
-* Oceania
+-   Africa
+-   Americas
+-   Antartica
+-   Asia
+-   Europe
+-   Oceania
 
 There is also variable `Region`:
 
@@ -241,7 +246,6 @@ Some changes are made in `Region` for South Sudan to match with UNSD information
 WAB[which(WAB$ISO3 == "SSD"), "Region"] <- "Eastern Africa"
 ```
 
-
 We would like to be able to represent every `Residence` that is in migration stock data.
 
 ```{r}
@@ -255,7 +259,7 @@ datatable(ResidencesIMS, options = list(scrollX = TRUE, autoWidth = TRUE),
           formatStyle(columns = 2, textAlign = "center")
 ```
 
-There are 235 `Residence` ($\ne$ 256 `Name` in WAB | $\simeq$ 237 `ISO3` in WAB).
+There are 235 `Residence` ($\ne$ 256 `Name` in WAB \| $\simeq$ 237 `ISO3` in WAB).
 
 ```{r}
 datatable(WAB_NoGeo %>% group_by(Status) %>% summarise(Count = n()), 
@@ -308,20 +312,20 @@ datatable(WAB_RIMS_NoGeo[is.na(WAB_RIMS_NoGeo$ResidenceCode), ][ , c(4, 9)],
 `Residence` $\neq$ `Name` causes lines-matching problems, we need to change `Residence` in ResidencesIMS or `Name` in WAB. Jersey and Guernsey in WAB correspond to the Channel Islands in ResidencesIMS, while West Bank and Gaza Strip correspond to State of Palestine.
 
 Netherlands Antilles in WAB includes Bonaire and Curaçao. There are 3 `Residence` in ResidencesIMS:
- 
-* Bonaire, Sint Eustatius and Saba
-* Sint Marteen (Dutch Part)
-* Curaçao
+
+-   Bonaire, Sint Eustatius and Saba
+-   Sint Marteen (Dutch Part)
+-   Curaçao
 
 We find missing geometries in `rnaturalearth`: Saba, Sint Eustatius and Sint Marteen.
 
 There are 5 `Residence` in ResidencesIMS without geometries in WAB:
 
-*	Saint Helena
-*	Saint Barthélemy
-*	Saint Martin (French Part)
-*	Saint Pierre and Miquelon
-*	Wallis and Futuna Islands
+-   Saint Helena
+-   Saint Barthélemy
+-   Saint Martin (French Part)
+-   Saint Pierre and Miquelon
+-   Wallis and Futuna Islands
 
 We find these missing geometries also in `rnaturalearth`.
 
@@ -522,13 +526,12 @@ datatable(WAB_NoGeo[1:4][is.na(WAB_NoGeo[1:4]$ISO3), ],
           formatStyle(columns = c(1, 3), textAlign = "center")
 ```
 
+There are 4 areas with $XXX$ \| $XXY$ \| $XXZ$ as `ColorCode`:
 
-There are 4 areas with $XXX$ | $XXY$ | $XXZ$ as `ColorCode`: 
-
-* Paracel Islands are de facto controlled by China, but claimed by Taiwan and Vietnam.
-* Spratly Islands are occupied by military forces from Brunei, China, Malaysia, Philippines, Taiwan and Vietnam.
-* Aksai Chin is a region controlled by China but claimed by India.
-* Jammu-Kashmir is a region administered by India.
+-   Paracel Islands are de facto controlled by China, but claimed by Taiwan and Vietnam.
+-   Spratly Islands are occupied by military forces from Brunei, China, Malaysia, Philippines, Taiwan and Vietnam.
+-   Aksai Chin is a region controlled by China but claimed by India.
+-   Jammu-Kashmir is a region administered by India.
 
 Sovereignty is unsettled for these 4 areas. We decided to keep missing values in `ISO3`, to replace `ColorCode` by missing values and to add them to ResidencesIMS with missing values in `ResidenceCode`.
 
@@ -569,44 +572,44 @@ datatable(NA_in_ISO3_Region,
 
 There are 3 areas with missing value in `Region`:
 
-* French Southern and Antarctic Territories
-* Bouvet Island
-* Heard Island and McDonald Islands
+-   French Southern and Antarctic Territories
+-   Bouvet Island
+-   Heard Island and McDonald Islands
 
 We can combine their geometries with those of their respective countries (sovereign state or administrator state) but as these zones have a [numeric iso code](https://www.iso.org/obp/ui/#search), we decided to keep the missing values in `Region` (located in Antarctica continent) and add them to ResidencesIMS with their respective `ResidenceCode` values.
 
 There are 11 areas with missing value in `ISO3`:
 
-* Kuril Islands are located between Japan and Russia.
-* Ma'tan al-Sarra is a military base between Egypt and Sudan.
-* Glorioso Islands are located between Mayotte and Madagascar.
-* Ilemi Triangle is a disputed area claimed by South Sudan and Kenya.
-* Arunachal Pradesh is an Indian state.
-* Guantanamo is an U.S. military detention center.
-* Jarvis and Midway Islands are part of the United States Minor Outlying Islands.
-* South Georgia & the South Sandwich Islands have an `ISO3`.
-* Hala'ib Triangle is a disputed area claimed by Egypt and Sudan
-* Madeira Islands are portuguese islands.
+-   Kuril Islands are located between Japan and Russia.
+-   Ma'tan al-Sarra is a military base between Egypt and Sudan.
+-   Glorioso Islands are located between Mayotte and Madagascar.
+-   Ilemi Triangle is a disputed area claimed by South Sudan and Kenya.
+-   Arunachal Pradesh is an Indian state.
+-   Guantanamo is an U.S. military detention center.
+-   Jarvis and Midway Islands are part of the United States Minor Outlying Islands.
+-   South Georgia & the South Sandwich Islands have an `ISO3`.
+-   Hala'ib Triangle is a disputed area claimed by Egypt and Sudan
+-   Madeira Islands are portuguese islands.
 
-South Georgia & the South Sandwich Islands (ISO3 = SGS | ISO2 = GS) is located in  Antarctica continent. We keep missing value in `Region` and add it to ResidencesIMS with `ResidenceCode` = 239.
+South Georgia & the South Sandwich Islands (ISO3 = SGS \| ISO2 = GS) is located in Antarctica continent. We keep missing value in `Region` and add it to ResidencesIMS with `ResidenceCode` = 239.
 
 We decided to keep missing values in `ISO3` and `ISO2` and to add some areas to ResidencesIMS with missing values in `ResidenceCode`:
 
-* Ma'tan al-Sarra
-* Ilemi Triangle
-* Guantanamo
-* Hala'ib Triangle
+-   Ma'tan al-Sarra
+-   Ilemi Triangle
+-   Guantanamo
+-   Hala'ib Triangle
 
 We decided to combine some geometries with their respective member states:
 
-* Kuril Islands with Russian Federation
-* Glorioso Islands with France
-* Arunachal Pradesh with India
-* Madeira Islands with Portugal
+-   Kuril Islands with Russian Federation
+-   Glorioso Islands with France
+-   Arunachal Pradesh with India
+-   Madeira Islands with Portugal
 
 For statistical purposes, certain areas are often grouped together. We will combine their geometries and add them to ResidencesIMS:
 
-* Jarvis and Midway Islands with `ISO3` = UMI | `ISO2` = UM | `ResidenceCode` = 581
+-   Jarvis and Midway Islands with `ISO3` = UMI \| `ISO2` = UM \| `ResidenceCode` = 581
 
 Then, we combine again ResidencesIMS and WAB according to `Residence` and `Name` to see if there are still any matching problems.
 
@@ -722,7 +725,7 @@ GGPLOT_RIMS_WAB <- ggplot() +
 GGPLOT_RIMS_WAB
 ```
 
-There are 255 `Residence` | 247 `ResidenceCode` | 247 `ISO3` | 246 `ISO2`. 
+There are 255 `Residence` \| 247 `ResidenceCode` \| 247 `ISO3` \| 246 `ISO2`.
 
 We have more `Residence` than in initial migrant stock data which was 235.
 
@@ -761,11 +764,11 @@ UNSD <- UNSD[!is.na(UNSD$`Region Name`), ]
 
 There is a variable `Region Name`:
 
-* Africa
-* Americas
-* Asia
-* Europe
-* Oceania
+-   Africa
+-   Americas
+-   Asia
+-   Europe
+-   Oceania
 
 There are also variables `SubRegionName` and `Intermediate Region Name`:
 
@@ -780,13 +783,13 @@ kable(UNSD %>% group_by(`Intermediate Region Name`) %>% summarise(Count = n()),
       align = c("l", "c"))
 ```
 
-There are 247 `Area` | 247 `M49 Code` | 247 `ISO3`.
+There are 247 `Area` \| 247 `M49 Code` \| 247 `ISO3`.
 
 There are also 3 variables corresponding to the 3 Development Levels:
 
-* Least Developed Countries (LDCs) 
-* Land-Locked Developing Countries (LLDCs)
-* Small Island Developing States (SIDS)
+-   Least Developed Countries (LDCs)
+-   Land-Locked Developing Countries (LLDCs)
+-   Small Island Developing States (SIDS)
 
 There is a small cross (x) if the area is part of one level (an area can belong to 2 levels at once).
 
@@ -820,10 +823,9 @@ kable(UNSD_RIMS_WAB_NoGeo[is.na(UNSD_RIMS_WAB_NoGeo$Residence), ][, c(7, 10, 14)
       caption = "Non-Matching Rows from RIMS_WAB (R) in UNSD (L)")
 ```
 
-The Åland Islands are included in Finland in RIMS_WAB. We can remove them from 
-UNSD.
+The Åland Islands are included in Finland in RIMS_WAB. We can remove them from UNSD.
 
-Isle of Man have two distinct ISO3: IMY (in RIMS_WAB) | IMN (in UNSD). The correct one is IMN.
+Isle of Man have two distinct ISO3: IMY (in RIMS_WAB) \| IMN (in UNSD). The correct one is IMN.
 
 Jersey and Guernsey have been grouped together as Channel Islands in RIMS_WAB, so we're doing the same thing in UNSD.
 
@@ -831,10 +833,10 @@ For the others, we will need to replace missing values where possible.
 
 We can also delete certain columns because same information is duplicated in another column:
 
-* We have two `ISO2` columns.
-* `Residence` = `Area`.
-* `ResidenceCode` = `M49Code`.
-* `Continent` = `Region Name`.
+-   We have two `ISO2` columns.
+-   `Residence` = `Area`.
+-   `ResidenceCode` = `M49Code`.
+-   `Continent` = `Region Name`.
 
 Some changes are made in `Continent` and `Region` for certain islands to match with UNSD information.
 
@@ -902,13 +904,13 @@ WorldBank <- WorldBank[7:224, c(1, 2, 35)] %>% rename(ISO3 = 1, NameWB = 2, Inco
 
 There is a variable `IncomeLevel` corresponding to the 3/4 Income Levels:
 
-* High-Income (H)
-* Middle-Income
-  * Upper-Middle-Income (UM)
-  * Lower-Middle-Income (LM)
-* Low-Income (L)
+-   High-Income (H)
+-   Middle-Income
+    -   Upper-Middle-Income (UM)
+    -   Lower-Middle-Income (LM)
+-   Low-Income (L)
 
-There are 218 `NameWB` | 218 `ISO3`.
+There are 218 `NameWB` \| 218 `ISO3`.
 
 ```{r}
 RIMS_WAB_UNSD_WorldBank <- left_join(RIMS_WAB_UNSD, WorldBank, by = "ISO3")
@@ -945,7 +947,7 @@ datatable(WorldBank_RIMS_WAB_UNSD[is.na(WorldBank_RIMS_WAB_UNSD$Residence), ][ ,
           formatStyle(columns = c(1, 3:4), textAlign = "center")
 ```
 
-Channel Islands have two distinct `ISO3`: CHA (in RIMS_WAB_UNSD) | CHI (in World Bank). There isn't official ISO3 for Channel Islands and GB-CHA was Channel Islands ISO2 until 2007. We decided to keep CHI as ISO3 for Channel Islands (Abel and Cohen | 2019).
+Channel Islands have two distinct `ISO3`: CHA (in RIMS_WAB_UNSD) \| CHI (in World Bank). There isn't official ISO3 for Channel Islands and GB-CHA was Channel Islands ISO2 until 2007. We decided to keep CHI as ISO3 for Channel Islands (Abel and Cohen \| 2019).
 
 Kosovo declared independence from Serbia in 2008. Kosovo does is not a UN member and has no official iso code. Kosovo is included in Serbia in RIMS_WAB_UNSD. Kosovo geo is available in `rnaturalearth`.
 
@@ -1099,7 +1101,7 @@ DevtLevels <- ggplot() +
 DevtLevels
 ```
 
-Make one map for each (LDC | LLDC | SIDS)...
+Make one map for each (LDC \| LLDC \| SIDS)...
 
 ```{r, fig.width=12}
 IncomeLevels <- ggplot() + 
@@ -1198,7 +1200,7 @@ The share of IMS in the World born in Europe and NA is decreasing, from 33% in 1
 
 ## Visualization
 
-To visualize `IMST_SHARE` we will use 3 libraries (`ggplot2` | `plotly` | `ggiraph`). A stacked barplot is used to represent the share of international migrant stocks in a residence area from $n$ birth area, while a line plot will show the evolution of IMS from 1990 to 2020.
+To visualize `IMST_SHARE` we will use 3 libraries (`ggplot2` \| `plotly` \| `ggiraph`). A stacked barplot is used to represent the share of international migrant stocks in a residence area from $n$ birth area, while a line plot will show the evolution of IMS from 1990 to 2020.
 
 ### GGPLOT2
 
@@ -1273,7 +1275,7 @@ kable(imsfltpltoly[1:9, 1:4], row.names = FALSE,
       digits = c(0, 0, 0, 3))
 ```
 
-Here we need to have data for a given year and all `Residence`-`Birth` pairs in a row which is the contrary of the data used with `ggplot` where we have data for a given `Residence`-`Birth` pair and all years in a row. 
+Here we need to have data for a given year and all `Residence`-`Birth` pairs in a row which is the contrary of the data used with `ggplot` where we have data for a given `Residence`-`Birth` pair and all years in a row.
 
 ```{r}
 PLOTLY_SBAR <- plot_ly(data = imsfltpltoly, x = ~Year, y = ~IMST_SHARE, 
@@ -1289,7 +1291,7 @@ PLOTLY_SBAR <- plot_ly(data = imsfltpltoly, x = ~Year, y = ~IMST_SHARE,
 PLOTLY_SBAR
 ```
 
-There is a download button which is something we want to save the plot as png in the shiny app. We can have all the information we want by simply moving the mouse on the plot: Residence | Birth | Year | %. But the information are displayed in a vector so we need to manually change the hover text.
+There is a download button which is something we want to save the plot as png in the shiny app. We can have all the information we want by simply moving the mouse on the plot: Residence \| Birth \| Year \| %. But the information are displayed in a vector so we need to manually change the hover text.
 
 Birth regions are displayed in Z-A order, which is the opposite of `ggplot`.
 
@@ -1313,7 +1315,7 @@ PLOTLY_LINE <- plot_ly(data = imss, x = ~Year, y=~IMSTWW, type = 'scatter', mode
 PLOTLY_LINE
 ```
 
-We don't need to rescale numbers to get "M" suffix on the y-axis but we need to do it for the hover text. Furthermore, the legend isn't movable as in `ggplot2`. 
+We don't need to rescale numbers to get "M" suffix on the y-axis but we need to do it for the hover text. Furthermore, the legend isn't movable as in `ggplot2`.
 
 ```{r, fig.width=10, fig.height=6}
 PLOTLY_SBAR <- PLOTLY_SBAR %>%
@@ -1330,7 +1332,7 @@ PLOTLY <- subplot(PLOTLY_SBAR, PLOTLY_LINE, nrows = 2, heights = c(0.65, 0.35),
 PLOTLY
 ```
 
-It’s also easy to combine the stacked barplot and the line plot together thanks to `subplot()`. One positive point is the possibility of having a share x-axis easily.
+It's also easy to combine the stacked barplot and the line plot together thanks to `subplot()`. One positive point is the possibility of having a share x-axis easily.
 
 There is some negative points, we can't have two distinct legends in `plotly`, we also have to force to have the y-axis title for both plots. It automatically keep legend position and title of the last plot as the title of the whole subplot, so we have to manage it.
 
@@ -1484,3 +1486,358 @@ GGIRAPH_SBARM <- ggplot(imsflt) +
   theme(legend.position = "right")
 girafe(ggobj = GGIRAPH_SBARM)
 ```
+
+# Application
+
+Version 1.0 :
+
+* Some data manipulations take time (e.g. calculation of migrant shares | ...)
+* Some data manipulations are unnecessary in ui/server (e.g. | ...)
+
+Need to do it to avoid long update/load times on client/server side.
+
+## IMS.DATA
+
+* Income Levels with uppercase in `Residence` and `Birth`
+* Calculation of variables to be used in the application:
+  * Share of international migrant stock (x3)
+
+```{r}
+IMS.DATA <- ims %>%
+  mutate(
+    Residence = case_when(
+      Residence == "High-income countries" ~ "High-Income Countries",
+      Residence == "Upper-middle-income countries" ~ "Upper-Middle-Income Countries",
+      Residence == "Lower-middle-income countries" ~ "Lower-Middle-Income Countries",
+      Residence == "Low-income countries" ~ "Low-Income Countries",
+      TRUE ~ Residence), 
+    Birth = case_when(
+      Birth == "High-income countries" ~ "High-Income Countries",
+      Birth == "Upper-middle-income countries" ~ "Upper-Middle-Income Countries",
+      Birth == "Lower-middle-income countries" ~ "Lower-Middle-Income Countries",
+      Birth == "Low-income countries" ~ "Low-Income Countries",
+      TRUE ~ Birth)
+    )
+
+IMS.DATA.SHARE <- data.frame(
+  Residence = character(0),
+  ResidenceCode = numeric(0),
+  Birth = character(0),
+  BirthCode = numeric(0),
+  Year = character(0),
+  IMST = numeric(0),
+  IMSM = numeric(0),
+  IMSF = numeric(0),
+  IMST_SHARE = numeric(0),
+  IMSM_SHARE = numeric(0),
+  IMSF_SHARE = numeric(0),
+  stringsAsFactors = FALSE
+)  
+
+SHAREs <- function(DATA, FDATA, VARIABLE) {
+  SValues <- list()
+  for (ROw in 1:nrow(FDATA)) {
+    YYYY <- FDATA$Year[ROw]
+    IMSS <- unique(DATA[DATA$ResidenceCode == SelectedRCode & 
+                          DATA$BirthCode == 900 & DATA$Year == YYYY, VARIABLE])
+    SHARE <- (FDATA[[VARIABLE]][ROw]/IMSS) * 100
+    SValues[[ROw]] <- SHARE
+  }
+  return(SValues)
+}
+
+OTHERs <- function(DATA, iMSSC, YEAR, VARIABLE, SVARIABLE, NROW) {
+  IMSS <- DATA[DATA$ResidenceCode == SelectedRCode &
+                 DATA$BirthCode == 900 & DATA$Year == YEAR, VARIABLE]
+  IMS.OTHER <- IMSS[[1]] - iMSSC[[SVARIABLE]][NROW]
+  return(IMS.OTHER)
+}
+
+# for (ROW in 1:nrow(IMS.DATA)) {
+#   SelectedRCode <- IMS.DATA$ResidenceCode[ROW]
+#   if (SelectedRCode %in% IMS.DATA.SHARE$ResidenceCode) {
+#       # print("Done!")
+#   } else {
+#     IMS.FDATA <- IMS.DATA %>% 
+#         filter(ResidenceCode == SelectedRCode,
+#                Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>%
+#         distinct(BirthCode, Year, .keep_all = TRUE)
+#     if (SelectedRCode < 900) {
+#       print(paste("PROGRESSION:", ROW, "/", nrow(IMS.DATA)))
+#       
+#       SValues.IMST <- SHAREs(DATA = IMS.DATA, FDATA = IMS.FDATA, VARIABLE = "IMST")
+#       IMS.FDATA$IMST_SHARE <- unlist(SValues.IMST)
+#       
+#       SValues.IMSM <- SHAREs(DATA = IMS.DATA, FDATA = IMS.FDATA, VARIABLE = "IMSM")
+#       IMS.FDATA$IMSM_SHARE <- unlist(SValues.IMSM)
+#       
+#       SValues.IMSF <- SHAREs(DATA = IMS.DATA, FDATA = IMS.FDATA, VARIABLE = "IMSF")
+#       IMS.FDATA$IMSF_SHARE <- unlist(SValues.IMSF)
+#       
+#       IMS.DATA.SHARE <- rbind(IMS.DATA.SHARE, IMS.FDATA)
+#     } else {
+#       print(paste("PROGRESSION:", ROW, "/", nrow(IMS.DATA)))
+#       
+#       fDATA <- IMS.FDATA %>% 
+#         filter(BirthCode < 900, 
+#                Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>% 
+#         distinct(BirthCode, Year, .keep_all = TRUE)
+#       
+#       IMSSC <- fDATA %>% 
+#         group_by(Year) %>% 
+#         summarize(IMSTSUM = sum(IMST), IMSMSUM = sum (IMSM), IMSFSUM = sum(IMSF))
+#       for (Row in 1:nrow(IMSSC)) {
+#         YYYY <- IMSSC$Year[Row]
+#         
+#         IMST.OTHER <- OTHERs(DATA = IMS.DATA, iMSSC = IMSSC, YEAR = YYYY, 
+#                              VARIABLE = "IMST", SVARIABLE = "IMSTSUM", NROW = Row)
+#         IMSM.OTHER <- OTHERs(DATA = IMS.DATA, iMSSC = IMSSC, YEAR = YYYY, 
+#                              VARIABLE = "IMSM",SVARIABLE = "IMSMSUM", NROW = Row)
+#         IMSF.OTHER <- OTHERs(DATA = IMS.DATA, iMSSC = IMSSC, YEAR = YYYY,
+#                              VARIABLE = "IMSF",SVARIABLE = "IMSFSUM", NROW = Row)
+#         
+#         IMS.FDATA <- rbind(IMS.FDATA, list(unique(IMS.FDATA$Residence), 
+#                                            SelectedRCode, "Other", 2003, 
+#                                            YYYY, IMST.OTHER, IMSM.OTHER, IMSF.OTHER))
+#       }
+#       SValues.IMST <- SHAREs(DATA = IMS.DATA, FDATA = IMS.FDATA, VARIABLE = "IMST")
+#       IMS.FDATA$IMST_SHARE <- unlist(SValues.IMST)
+#       
+#       SValues.IMSM <- SHAREs(DATA = IMS.DATA, FDATA = IMS.FDATA, VARIABLE = "IMSM")
+#       IMS.FDATA$IMSM_SHARE <- unlist(SValues.IMSM)
+#       
+#       SValues.IMSF <- SHAREs(DATA = IMS.DATA, FDATA = IMS.FDATA, VARIABLE = "IMSF")
+#       IMS.FDATA$IMSF_SHARE <- unlist(SValues.IMSF)
+#       
+#       IMS.DATA.SHARE <- rbind(IMS.DATA.SHARE, IMS.FDATA)
+#     }
+#   }
+# }
+```
+
+## GeoDATA
+
+* `Region` becomes `SIRegion` in `GeoDATA`
+* `SIRegionCode` based on `SubRegionCode` and `IntermediateRegionCode` in `GeoDATA`
+* Combine countries/territories geometries into areas :
+  * Continental Regions
+  * Continental Sub-Regions
+  * Geographic Regions (SDG)
+  * Income Levels
+* `Label`|`LabelR` will be hover text used on `leaflet` maps
+
+We assign a color code (`CLRCode`) to regions :
+
+* Continental Sub-Regions colors are based on Continental Regions ones
+* Geographic Regions (SDG) colors come from UN
+* Income Levels colors come from World Bank
+
+Factor levels will be set in `DATA.R` because not saved when `st_write()`. 
+
+We also assign `CLRCode` to countries based on Continental Regions colors, except for territories without a `ResidenceCode`.
+
+```{r}
+GeoDATA <- RIMS_WAB_UNSD_WorldBank %>% 
+  rename(SIRegion = Region) %>%
+  mutate(
+    SIRegionCode = ifelse(is.na(IntermediateRegionCode), SubRegionCode, IntermediateRegionCode),
+    Label = paste0("<b>Name: </b>", Residence, "<br>",
+                   "<b>ISO Num.: </b>", ResidenceCode, "<br>",
+                   "<b>ISO2: </b>", ISO2, "<br>",
+                   "<b>ISO3: </b>", ISO3)) %>%
+  select(1:2, 4, 3, 5:7, 24, 12:15, 20:23, 25, 19)
+
+GeoRDATA.CRs <- GeoDATA %>%
+  group_by(ContinentalRegion) %>%
+  summarize(
+    Continent = Mode(Continent),
+    ContinentCode = Mode(ContinentCode),
+    geometry = st_combine(geometry)) %>%
+  mutate(
+    Residence = case_when(
+      ContinentalRegion == "Africa" ~ "AFRICA",
+      ContinentalRegion == "Asia" ~ "ASIA",
+      ContinentalRegion == "Europe" ~ "EUROPE",
+      ContinentalRegion == "Latin America and the Caribbean" ~ "LATIN AMERICA AND THE CARIBBEAN",
+      ContinentalRegion == "Northern America" ~ "NORTHERN AMERICA",
+      ContinentalRegion == "Oceania" ~ "OCEANIA"
+    ), 
+    ResidenceCode = case_when(
+      ContinentalRegion == "Africa" ~ 903,
+      ContinentalRegion == "Asia" ~ 935,
+      ContinentalRegion == "Europe" ~ 908,
+      ContinentalRegion == "Latin America and the Caribbean" ~ 904,
+      ContinentalRegion == "Northern America" ~ 905,
+      ContinentalRegion == "Oceania" ~ 909
+    ),
+    LabelR = paste0("<b>Continental Region: </b>", Residence, "<br>", 
+                    "<b>Continent: </b>", Continent,"<br>",
+                    "<b>M49 Code: </b>", ContinentCode,"<br>"), 
+    CLRCode = c("#339900", "#FF9900", "#003366", "#FF0000", "#663399", "#FFCC00")) %>%
+  select(1, 5:6, 2:3, 7:8, 4)
+
+RDATA.CRs <- GeoRDATA.CRs %>% st_drop_geometry()
+
+GeoRDATA.CSRs <- GeoDATA %>%
+  group_by(SIRegion) %>%
+  summarize(
+    SIRegionCode = Mode(SIRegionCode),
+    Continent = Mode(Continent),
+    ContinentCode = Mode(ContinentCode),
+    geometry = st_combine(geometry)) %>% 
+  mutate(
+    ResidenceCode = case_when(
+      SIRegionCode == 53 ~ 927,
+      SIRegionCode == 29 ~ 915,
+      SIRegionCode == 13 ~ 916,
+      SIRegionCode == 143 ~ 5500,
+      SIRegionCode == 14 ~ 910,
+      SIRegionCode == 30 ~ 906,
+      SIRegionCode == 151 ~ 923,
+      SIRegionCode == 54 ~ 928,
+      SIRegionCode == 57 ~ 954,
+      SIRegionCode == 17 ~ 911,
+      SIRegionCode == 15 ~ 912,
+      SIRegionCode == 21 ~ 905,
+      SIRegionCode == 154 ~ 924,
+      SIRegionCode == 61 ~ 957,
+      SIRegionCode == 5 ~ 931,
+      SIRegionCode == 35 ~ 920,
+      SIRegionCode == 18 ~ 913,
+      SIRegionCode == 34 ~ 5501,
+      SIRegionCode == 39 ~ 925,
+      SIRegionCode == 11 ~ 914,
+      SIRegionCode == 145 ~ 922,
+      SIRegionCode == 155 ~ 926
+    ), 
+    LabelR = paste0("<b>Continental Sub-Region: </b>", SIRegion, "<br>",
+                    "<b>M49 Code: </b>", SIRegionCode,"<br>"), 
+    # CLRCode => Latin America
+    # SR <- c("Caribbean", "Central America", "South America")
+    # colorRampPalette(c("#FF0000", "#660000"))(length(SR))
+    CLRCode = c("#FFCC00", "#FF0000", "#B20000", "#FFCC99", "#CCFF33",
+                "#CC9966", "#33CCFF", "#FFFF00", "#FFFF99", "#99CC33", 
+                "#66CC33", "#663399", "#3399CC", "#FFFFCC", "#660000", 
+                "#996600", "#339900", "#FF9900", "#006699", "#336600", 
+                "#FF6600", "#003366")) %>%
+  select(1:2, 6, 3:4, 7:8, 5)
+
+RDATA.CSRs <- GeoRDATA.CSRs %>% st_drop_geometry()
+
+GeoRDATA.GRSDG <- GeoDATA %>%
+  group_by(ClasseSDG) %>%
+  summarize(geometry = st_combine(geometry)) %>%
+  mutate(ResidenceCode = case_when(
+    ClasseSDG == "Australia and New Zealand" ~ 927,
+    ClasseSDG == "Central and Southern Asia" ~ 921,
+    ClasseSDG == "Eastern and South-Eastern Asia" ~ 1832,
+    ClasseSDG == "Europe and Northern America" ~ 1829,
+    ClasseSDG == "Latin America and the Caribbean" ~ 1830,
+    ClasseSDG == "Northern Africa and Western Asia" ~ 1833, 
+    ClasseSDG == "Oceania*" ~ 1835, 
+    ClasseSDG == "Sub-Saharan Africa" ~ 947,
+  ), 
+  LabelR = paste0("<b>Geographic Region: </b>", ClasseSDG), 
+  CLRCode = c("#FF0000", "#FF6600", "#339900", "#003366", 
+              "#33CCFF", "#FF9900", "#CC0000", "#FF3399")) %>%
+  select(1, 3:5, 2)
+
+RDATA.GRSDG <- GeoRDATA.GRSDG %>% st_drop_geometry()
+
+GeoRDATA.IncomeLevel <- GeoDATA %>%
+  group_by(IncomeLevel) %>%
+  summarize(geometry = st_combine(geometry)) %>%
+  mutate(
+    Residence = case_when(
+      IncomeLevel == "H" ~ "High-Income Countries",
+      IncomeLevel == "L" ~ "Low-Income Countries",
+      IncomeLevel == "LM" ~ "Lower-Middle-Income Countries",
+      IncomeLevel == "UM" ~ "Upper-Middle-Income Countries",
+      is.na(IncomeLevel) ~ "Not Available"
+    ),
+    ResidenceCode = case_when(
+      IncomeLevel == "H" ~ 1503,
+      IncomeLevel == "L" ~ 1500,
+      IncomeLevel == "LM" ~ 1501,
+      IncomeLevel == "UM" ~ 1502,
+      IncomeLevel == NA ~ NA
+    ), 
+    LabelR = paste0("<b>Income Level (2020): </b>", Residence), 
+    CLRCode = c("#339900", "#663399", "#CC99FF", "#99FF66", "#999999")) %>%
+  select(3:6, 2) %>%
+  arrange(desc(ResidenceCode))
+
+RDATA.IncomeLevel <- GeoRDATA.IncomeLevel %>% st_drop_geometry()
+
+CRs <- unique(GeoDATA$ContinentalRegion)
+CCodes <- data.frame(Residence = character(), CLRCode = character())
+for (CR in CRs) {
+  if (CR == "Africa") {
+    C0 <- "#CCFF33"
+    C1 <- "#336600"
+  }
+  else if (CR == "Asia") {
+    C0 <- c("#FF9900", "#FFCC99")
+    C1 <- c("#FF6600", "#996600")
+    L0 <- c(1, 26)
+    L1 <- c(25, 51)
+  }
+  else if (CR == "Europe") {
+    C0 <- "#33CCFF"
+    C1 <- "#003366"
+  }
+  else if (CR == "Latin America and the Caribbean") {
+    C0 <- "#FF0000"
+    C1 <- "#660000"    
+  }
+  else if (CR == "Northern America") {
+    C0 <- "#CC99FF"
+    C1 <- "#663399"
+  }
+  else if (CR == "Oceania") {
+    C0 <- "#FFCC00"
+    C1 <- "#FFFFCC"    
+  }  
+  Countries <- GeoDATA$Residence[which(GeoDATA$ContinentalRegion == CR & !is.na(GeoDATA$ResidenceCode))[order(GeoDATA$Residence[which(GeoDATA$ContinentalRegion == CR & !is.na(GeoDATA$ResidenceCode))])]]
+  if (CR == "Asia") {
+    ColorCodes <- unlist(sapply(1:2, 
+                         function(i) colorRampPalette(c(C0[i], C1[i]))(length(Countries[L0[i]:L1[i]]))))
+  } else {
+    ColorCodes <- colorRampPalette(c(C0, C1))(length(Countries))
+  }
+  CCodes <- rbind(CCodes, data.frame(Residence = Countries, CLRCode = ColorCodes))
+}
+GeoDATA <- merge(GeoDATA, CCodes, by = "Residence", all.x = TRUE)
+GeoDATA$CLRCode <- ifelse(is.na(GeoDATA$CLRCode), "#666666", GeoDATA$CLRCode)
+
+DATA <- GeoDATA %>% st_drop_geometry()
+```
+
+## WRITE
+
+```{r}
+# write.xlsx(IMS.DATA.SHARE, "SERVER+/VERSION.1.1/Données/IMS.xlsx")
+# 
+# st_write(GeoDATA, "SERVER+/VERSION.1.1/Données/Geo/Countries/RIMS_WAB_UNSD_WorldBank.geojson",
+#          driver = "GeoJSON")
+# write.xlsx(DATA, "SERVER+/VERSION.1.1/Données/Geo/Countries/DATA.xlsx")
+# 
+# st_write(GeoRDATA.CRs, "SERVER+/VERSION.1.1/Données/Geo/Regions/CRs/GeoRDATA.CRs.geojson",
+#          driver = "GeoJSON")
+# write.xlsx(RDATA.CRs, "SERVER+/VERSION.1.1/Données/Geo/Regions/CRs/RDATA.CRs.xlsx")
+# 
+# st_write(GeoRDATA.CSRs, "SERVER+/VERSION.1.1/Données/Geo/Regions/CSRs/GeoRDATA.CSRs.geojson",
+#          driver = "GeoJSON")
+# write.xlsx(RDATA.CSRs, "SERVER+/VERSION.1.1/Données/Geo/Regions/CSRs/RDATA.CSRs.xlsx")
+# 
+# st_write(GeoRDATA.GRSDG, "SERVER+/VERSION.1.1/Données/Geo/Regions/GRSDG/GeoRDATA.GRSDG.geojson",
+#          driver = "GeoJSON")
+# write.xlsx(RDATA.GRSDG, "SERVER+/VERSION.1.1/Données/Geo/Regions/GRSDG/RDATA.GRSDG.xlsx")
+# 
+# st_write(GeoRDATA.IncomeLevel,
+#          "SERVER+/VERSION.1.1/Données/Geo/Regions/IncomeLevel/GeoRDATA.IncomeLevel.geojson",
+#          driver = "GeoJSON")
+# write.xlsx(RDATA.IncomeLevel,
+#            "SERVER+/VERSION.1.1/Données/Geo/Regions/IncomeLevel/RDATA.IncomeLevel.xlsx")
+```
+
