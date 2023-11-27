@@ -2,7 +2,7 @@
 #####                Climate Change Migration Network                #####
 ##### Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques #####
 #####                   Kyllian James | 2023-11-14                   #####
-#####                        Mod.: 2023-11-20                        #####
+#####                        Mod.: 2023-11-24                        #####
 #####                             SERVER                             #####
 ##########################################################################
 
@@ -13,6 +13,8 @@
 library(shiny)
 library(shinyjs)
 library(leaflet)
+library(dplyr)
+library(DescTools)
 library(plotly)
 
 #####################
@@ -35,6 +37,7 @@ server <- function(input, output, session) {
     MRAction = NULL, 
     BVC = FALSE,
     BVRC = FALSE,
+    IMS = TRUE
     )
 
   observeEvent(input$mr_countries, {
@@ -48,7 +51,7 @@ server <- function(input, output, session) {
     RV$BVC <- FALSE
     
     RV$BVRC <- FALSE
-    
+
     if (!RV$TilesLoaded) {
       output$mr_world_map <- renderLeaflet({
         leaflet() %>%
@@ -272,19 +275,36 @@ server <- function(input, output, session) {
     if (RV$BVC){
       fluidRow(
         column(
-          width = 3, 
+          width = 2, 
           offset = 0,
           selectInput(
             inputId = "mr_birth_view_choice",
             label = "Birth View",
             choices = c("Countries", "Regions"),
             selected = "Countries",
-            multiple = FALSE
+            multiple = FALSE,
+            width = "100%"
             )
           ), 
         column(
-          width = 3, 
-          offset= 0, 
+          width = 4, 
+          offset = 0,
+          selectInput(
+            inputId = "mr_variable_choice", 
+            label = "Choose a Variable",
+            choices = c(
+              "International Migrant Stock - Both Sexes Combined (%)" = "IMST_SHARE", 
+              "International Migrant Stock - Males (%)" = "IMSM_SHARE", 
+              "International Migrant Stock - Females (%)" = "IMSF_SHARE"
+              ),
+            selected = "International Migrant Stock - Both Sexes Combined (%)",
+            multiple = FALSE,
+            width = "100%"
+            )
+          ),
+        column(
+          width = 2, 
+          offset = 0, 
           sliderInput(
             inputId = "mr_decimal_choice", 
             label = "Decimal Choice", 
@@ -292,7 +312,8 @@ server <- function(input, output, session) {
             max = 5,
             value = 2,
             step = 1,
-            ticks = FALSE
+            ticks = FALSE, 
+            width = "100%"
             )
           )
         )
@@ -328,6 +349,18 @@ server <- function(input, output, session) {
       
     })
   
+  SelectedVariable <- eventReactive(input$mr_variable_choice, {
+    
+    SVariable <- input$mr_variable_choice
+    
+  })
+  
+  DeciChoice <- eventReactive(input$mr_decimal_choice, {
+    
+    DecimalC <- input$mr_decimal_choice
+    
+  })
+  
   SelectedBvRC <- eventReactive(input$mr_birth_view_region_choice, {
 
     SBvRC <- input$mr_birth_view_region_choice
@@ -338,6 +371,18 @@ server <- function(input, output, session) {
     
     if (RV$BVC) {
       SelectedR <- SelectedResidence()
+      
+      VARIABLE <- SelectedVariable()
+      
+      if (VARIABLE == "IMST_SHARE")  {
+        SEX <- "Both Sexes Combined"
+        }
+      else if (VARIABLE == "IMSM_SHARE") {
+        SEX <- "Males"
+        }
+      else if (VARIABLE == "IMSF_SHARE") {
+        SEX <- "Females"
+        }
       if (!RV$BVRC) {
         CountriesLVsCLR <- IMS.DATA %>% 
           distinct(Residence, ResidenceCode) %>% 
@@ -383,18 +428,39 @@ server <- function(input, output, session) {
                 }
               SelectedRCode <- GeoRDATA$ResidenceCode[which(GeoRDATA[[RESIDENCE]] == SelectedR)]
               }
-        IMS.FDATA <- IMS.DATA %>% 
-          filter(
-            ResidenceCode == SelectedRCode, 
-            BirthCode < 900 | BirthCode == 2003,
-            Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)
-            ) %>%
-          distinct(BirthCode, Year, .keep_all = TRUE)
+        
+        ##### !IMS.DATA #####
+
+        if (!(SelectedRCode %in% IMS.DATA$ResidenceCode)) {
+          RV$BVC <- FALSE
+          RV$BVRC <- FALSE
+          RV$IMS <- FALSE
+          } else {RV$IMS <- TRUE}
+        
+        #####################
+        
+        if (RV$IMS) {
+          IMS.FDATA <- IMS.DATA %>% 
+            filter(
+              ResidenceCode == SelectedRCode, 
+              BirthCode < 900 | BirthCode == 2003,
+              Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)
+              ) %>%
+            distinct(BirthCode, Year, .keep_all = TRUE)
+        
+          X <- Mode((
+            IMS.FDATA %>%
+              group_by(Year) %>%
+              summarize(Count = n_distinct(BirthCode)))$Count)
+        
+          X <- paste(X, "Countries")
+          }
         } else {
           if (SelectedBvRC() == "Continental Regions") {
             SBirthCodes = c(903, 935, 908, 904, 905, 909)
-            LVs <- c(levels(GeoRDATA.CRs.WGS84$Residence), 'Other')
+            LVs <- c(levels(GeoRDATA.CRs.WGS84$Residence), 'OTHER')
             CLR <- c(GeoRDATA.CRs.WGS84$CLRCode, "#999999")
+            X <- "6 Continental Regions"
             }
           else if (SelectedBvRC() == "Continental Sub-Regions") {
             SBirthCodes = c(927, 915, 916, 5500, 910, 906,
@@ -402,21 +468,21 @@ server <- function(input, output, session) {
                             924, 957, 931, 920, 913, 5501,
                             925, 914, 922, 926)
             LVs <- c(levels(GeoRDATA.CSRs.WGS84$SIRegion), 'Other')
-            LVs <- gsub("Polynesia", "Polynesia*", LVs)
-            LVs <- gsub("Northern America", "NORTHERN AMERICA", LVs)
             CLR <- c(GeoRDATA.CSRs.WGS84$CLRCode[order(GeoRDATA.CSRs.WGS84$SIRegion)], "#999999")
+            X <- "22 Continental Sub-Regions"
             }
           else if (SelectedBvRC() == "Geographic Regions (SDG)") {
             SBirthCodes = c(927, 921, 1832, 1829, 1830, 1833, 1835, 947)
             LVs <- c(levels(GeoRDATA.GRSDG.WGS84$ClasseSDG), 'Other')
-            LVs <- gsub("Oceania\\*", "Oceania (excluding Australia and New Zealand)", LVs)
             CLR <- c(GeoRDATA.GRSDG.WGS84$CLRCode, "#999999")
+            X <- "8 Geographic Regions"
           }
           else if (SelectedBvRC() == "Income Levels") {
             SBirthCodes = c(1503, 1500, 1501, 1502)
             LVs <- c(levels(GeoRDATA.IncomeLevel.WGS84$Residence), 'Other')
             LVs <- LVs[LVs != 'Not Available']
             CLR <- c(GeoRDATA.IncomeLevel.WGS84$CLRCode)
+            X <- "4 Income Levels"
             }
           if (RV$MRAction == "COUNTRIES") {
             #COUNTRIEs-REGIONs
@@ -442,50 +508,77 @@ server <- function(input, output, session) {
                   }
                 SelectedRCode <- GeoRDATA$ResidenceCode[which(GeoRDATA[[RESIDENCE]] == SelectedR)]
                 } 
-          IMS.FDATA <- IMS.DATA %>% 
-            filter(
-              ResidenceCode == SelectedRCode,
-              BirthCode %in% SBirthCodes | BirthCode == 2003,
-              Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)
-              ) %>% 
-            distinct(BirthCode, Year, .keep_all = TRUE)
+          
+          ##### !IMS.DATA #####
+
+          if (!(SelectedRCode %in% IMS.DATA$ResidenceCode)) {
+            RV$BVC <- FALSE
+            RV$BVRC <- FALSE
+            RV$IMS <- FALSE
+            } else {RV$IMS <- TRUE}
+          
+          #####################
+          
+          if (RV$IMS) {
+            IMS.FDATA <- IMS.DATA %>% 
+              filter(
+                ResidenceCode == SelectedRCode,
+                BirthCode %in% SBirthCodes | BirthCode == 2003,
+                Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)
+                ) %>% 
+              distinct(BirthCode, Year, .keep_all = TRUE)
+            }
+          if (SelectedBvRC() == "Continental Regions") {
+            IMS.FDATA$Birth <- gsub(pattern = "Other", replacement = "OTHER", x = IMS.FDATA$Birth)
+            }
+          else if (SelectedBvRC() == "Continental Sub-Regions") {
+            IMS.FDATA$Birth <- gsub(pattern = "NORTHERN AMERICA", replacement = "Northern America", x = IMS.FDATA$Birth)
+            IMS.FDATA$Birth <- gsub(pattern = "Polynesia\\*", replacement = "Polynesia", x = IMS.FDATA$Birth)
+            }
+          else if (SelectedBvRC() == "Geographic Regions (SDG)") {
+            IMS.FDATA$Birth <- gsub(pattern = "Oceania \\(excluding Australia and New Zealand\\)", replacement = "Oceania*", x = IMS.FDATA$Birth)
+            }
           }
-      IMS.FDATA <- IMS.FDATA %>%
-        group_by(Year, Residence, ResidenceCode, Birth, BirthCode) %>%
-        summarise(IMST, IMSM, IMSF, IMST_SHARE, IMSM_SHARE, IMSF_SHARE)
+      if (RV$IMS) {
+        IMS.FDATA <- IMS.FDATA %>%
+          group_by(Year, Residence, ResidenceCode, Birth, BirthCode) %>%
+          summarise(IMST, IMSM, IMSF, IMST_SHARE, IMSM_SHARE, IMSF_SHARE)
       
-      IMS.FDATA$Birth <- factor(x = IMS.FDATA$Birth, levels = rev(LVs))
+        IMS.FDATA$Birth <- factor(x = IMS.FDATA$Birth, levels = rev(LVs))
       
-      DeciChoice <- input$mr_decimal_choice
-      
-      plot_ly(
-        data = IMS.FDATA, x = ~Year, y = ~IMST_SHARE, 
-        type = "bar", 
-        color = ~Birth, colors = rev(CLR), 
-        legendgroup = 'Birth',
-        text = with(
-          data = IMS.FDATA, 
-          expr = paste(
-            " Residence:", Residence, "<br>",
-            "Birth:", Birth, "<br>",
-            "Year:", Year, "<br>",
-            "International Migrant Stock:", round(IMST_SHARE, DeciChoice), "%"
+        plot_ly(
+          data = IMS.FDATA, x = ~Year, y = as.formula(paste0("~", SelectedVariable())), 
+          type = "bar", 
+          color = ~Birth, colors = rev(CLR), 
+          legendgroup = 'Birth',
+          text = with(
+            data = IMS.FDATA, 
+            expr = paste(
+              " Residence:", Residence, "<br>",
+              "Birth:", Birth, "<br>",
+              "Year:", Year, "<br>",
+              "International Migrant Stock:", round(IMS.FDATA[[SelectedVariable()]], DeciChoice()), "%"
+              )
             )
+          ) %>%
+          style(textposition = "none", hoverinfo = "text") %>%
+          layout(
+            barmode = "stack",
+            title = paste("Share of International Migrant Stocks in", SelectedR, "from", X, "(1990-2020)"),
+            yaxis = list(title = paste("International Migrant Stock -", SEX, "(%)")),
+            legend = list(title = list(text='<b> Birth </b>'), x=1, y=0.5), 
+            margin = list(t = 30)
           )
-        ) %>%
-        style(textposition = "none", hoverinfo = "text") %>%
-        layout(
-          barmode = "stack",
-          title = paste("..."),
-          yaxis = list(title = "International Migrant Stock (%)"),
-          legend = list(title = list(text='<b> Birth </b>'), x=1, y=0.5)
-          )
+        }
       }
     
     })
   
+  output$mr_data_not_available <- renderText({
+    
+    if (!RV$IMS) {HTML("<b>Data Not Available. Please Choose Another Residence.</b>")}
+
+    })
+  
+  
   }
-
-
-
-

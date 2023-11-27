@@ -2,7 +2,7 @@
 #####                Climate Change Migration Network                #####
 ##### Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques #####
 #####                   Kyllian James | 2023-11-14                   #####
-#####                        Mod.: 2023-11-20                        #####
+#####                        Mod.: 2023-11-24                        #####
 #####                               UI                               #####
 ##########################################################################
 
@@ -63,7 +63,9 @@ ui <- fluidPage(
           tags$div(style = "margin-top: 10px;"),
           uiOutput("mr_birth_view_region_choice"),
           tags$div(style = "margin-top: 10px;"),
-          plotlyOutput("mr_stacked_barplot_share", width = "100%", height = "400px")
+          htmlOutput("mr_data_not_available"),          
+          tags$div(style = "margin-top: 10px;"),
+          plotlyOutput("mr_stacked_barplot_share", width = "100%", height = "425px")
           ),
         tabPanel(
           title = "Birth",
