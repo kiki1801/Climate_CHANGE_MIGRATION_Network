@@ -1619,11 +1619,16 @@ OTHERs <- function(DATA, iMSSC, YEAR, VARIABLE, SVARIABLE, NROW) {
 
 * `Region` becomes `SIRegion` in `GeoDATA`
 * `SIRegionCode` based on `SubRegionCode` and `IntermediateRegionCode` in `GeoDATA`
+* `MoreLessLeast` based on `MoreLess` and `Least Developed Countries (LDC)`
 * Combine countries/territories geometries into areas :
   * Continental Regions
   * Continental Sub-Regions
   * Geographic Regions (SDG)
   * Income Levels
+  * 3 Development Levels :
+    * More Developed Regions | Less Developed Regions
+    * LDC | LDC/LLDC | LDC/SIDS | LLDC | SIDS | NA
+    * More Developed Regions | Less Developed Regions | Least Developed Regions
 * `Label`|`LabelR` will be hover text used on `leaflet` maps
 
 We assign a color code (`CLRCode`) to regions :
@@ -1641,11 +1646,18 @@ GeoDATA <- RIMS_WAB_UNSD_WorldBank %>%
   rename(SIRegion = Region) %>%
   mutate(
     SIRegionCode = ifelse(is.na(IntermediateRegionCode), SubRegionCode, IntermediateRegionCode),
+    MoreLessLeast = case_when(
+      `Least Developed Countries (LDC)` == "x" ~ "Least Developed",
+      TRUE ~ MoreLess),
+    MoreLessLeast = case_when(
+      MoreLessLeast == "Less Developed" ~ "Less Developed*",
+      TRUE ~ MoreLessLeast
+      ),
     Label = paste0("<b>Name: </b>", Residence, "<br>",
                    "<b>ISO Num.: </b>", ResidenceCode, "<br>",
                    "<b>ISO2: </b>", ISO2, "<br>",
                    "<b>ISO3: </b>", ISO3)) %>%
-  select(1:2, 4, 3, 5:7, 24, 12:15, 20:23, 25, 19)
+  select(1:2, 4, 3, 5:7, 24, 12:15, 20:22, 25, 23, 26, 19)
 
 GeoRDATA.CRs <- GeoDATA %>%
   group_by(ContinentalRegion) %>%
@@ -1672,7 +1684,7 @@ GeoRDATA.CRs <- GeoDATA %>%
     ),
     LabelR = paste0("<b>Continental Region: </b>", Residence, "<br>", 
                     "<b>Continent: </b>", Continent,"<br>",
-                    "<b>M49 Code: </b>", ContinentCode,"<br>"), 
+                    "<b>M49 Code: </b>", ContinentCode), 
     CLRCode = c("#339900", "#FF9900", "#003366", "#FF0000", "#663399", "#FFCC00")) %>%
   select(1, 5:6, 2:3, 7:8, 4)
 
@@ -1711,7 +1723,7 @@ GeoRDATA.CSRs <- GeoDATA %>%
       SIRegionCode == 155 ~ 926
     ), 
     LabelR = paste0("<b>Continental Sub-Region: </b>", SIRegion, "<br>",
-                    "<b>M49 Code: </b>", SIRegionCode,"<br>"), 
+                    "<b>M49 Code: </b>", SIRegionCode), 
     # CLRCode => Latin America
     # SR <- c("Caribbean", "Central America", "South America")
     # colorRampPalette(c("#FF0000", "#660000"))(length(SR))
@@ -1768,6 +1780,76 @@ GeoRDATA.IncomeLevel <- GeoDATA %>%
   arrange(desc(ResidenceCode))
 
 RDATA.IncomeLevel <- GeoRDATA.IncomeLevel %>% st_drop_geometry()
+
+GeoRDATA.MoreLess <- GeoDATA %>%
+  group_by(MoreLess) %>%
+  summarize(geometry = st_combine(geometry)) %>%
+  mutate(
+    ResidenceCode = case_when(
+      MoreLess == "More Developed" ~ 901,
+      MoreLess == "Less Developed" ~ 902
+      ),
+    LabelR = paste0("<b>Development Level: </b>", MoreLess), 
+    CLRCode = c("#FFCC00", "#339900")
+    ) %>%
+  select(1, 3:5, 2) %>%
+  arrange(ResidenceCode)
+
+RDATA.MoreLess <- GeoRDATA.MoreLess %>% st_drop_geometry()
+
+GeoRDATA.MoreLessLeast <- GeoDATA %>%
+  group_by(MoreLessLeast) %>%
+  summarize(geometry = st_combine(geometry)) %>%
+  mutate(
+    ResidenceCode = case_when(
+      MoreLessLeast == "More Developed" ~ 901,
+      MoreLessLeast == "Less Developed*" ~ 934,
+      MoreLessLeast == "Least Developed" ~ 941
+      ),
+    LabelR = paste0("<b>Development Level: </b>", MoreLessLeast),
+  CLRCode = c("#FF9900", "#FFCC00", "#339900")
+    ) %>%
+  select(1, 3:5, 2) %>%
+  arrange(ResidenceCode)
+
+RDATA.MoreLessLeast <- GeoRDATA.MoreLessLeast %>% st_drop_geometry()
+
+GeoRDATA.DevtLevel <- GeoDATA %>%
+  group_by(DevtLevel) %>%
+  summarize(geometry = st_combine(geometry)) %>%
+  mutate(
+   DevtLevel = case_when(
+    is.na(DevtLevel) ~ "Not Available",
+    TRUE ~ DevtLevel
+    ),
+   DevtLevelCode = case_when(
+    DevtLevel == "LDC" ~ "199",
+    DevtLevel == "LLDC" ~ "432",
+    DevtLevel == "LDC | LLDC" ~ "199 | 432",
+    DevtLevel == "LDC | SIDS" ~ "199 | 722",
+    DevtLevel == "SIDS" ~ "722"
+    ),
+   Residence = case_when(
+    DevtLevel == "LDC" ~ "Least Developed Coutries (LDC)",
+    DevtLevel == "LLDC" ~ "Land Locked Developing Countries (LLDC)",
+    DevtLevel == "SIDS" ~ "Small Island Developing States (SIDS)",
+    TRUE ~ DevtLevel
+    ),
+   ResidenceCode = case_when(
+    DevtLevel == "LDC" ~ "941",
+    DevtLevel == "LLDC" ~ "1636",
+    DevtLevel == "LDC | LLDC" ~ "941 | 1636",
+    DevtLevel == "LDC | SIDS" ~ "941 | 1637",
+    DevtLevel == "SIDS" ~ "1637"
+     ),
+   LabelR = paste0("<b>Development Level: </b>", Residence, "<br>",
+                   "<b>M49 Code: </b>", DevtLevelCode),
+   CLRCode = c("#FF0000", "#FFCC00", "#CC99FF", "#339900", "#33CCFF", "#999999")
+   ) %>% 
+  select(1, 3:7, 2) %>%
+  slice(c(1, 4, 5, 2, 3, 6))
+  
+RDATA.DevtLevel <- GeoRDATA.DevtLevel %>% st_drop_geometry()
 
 CRs <- unique(GeoDATA$ContinentalRegion)
 CCodes <- data.frame(Residence = character(), CLRCode = character())
@@ -1839,5 +1921,23 @@ DATA <- GeoDATA %>% st_drop_geometry()
 #          driver = "GeoJSON")
 # write.xlsx(RDATA.IncomeLevel,
 #            "SERVER+/VERSION.1.1/Données/Geo/Regions/IncomeLevel/RDATA.IncomeLevel.xlsx")
+# 
+# st_write(GeoRDATA.MoreLess,
+#          "SERVER+/VERSION.1.1/Données/Geo/Regions/DevtLevel/MoreLess/GeoRDATA.MoreLess.geojson",
+#          driver = "GeoJSON")
+# write.xlsx(RDATA.MoreLess,
+#            "SERVER+/VERSION.1.1/Données/Geo/Regions/DevtLevel/MoreLess/RDATA.MoreLess.xlsx")
+# 
+# st_write(GeoRDATA.MoreLessLeast,
+#          "SERVER+/VERSION.1.1/Données/Geo/Regions/DevtLevel/MoreLessLeast/GeoRDATA.MoreLessLeast.geojson",
+#          driver = "GeoJSON")
+# write.xlsx(RDATA.MoreLessLeast,
+#            "SERVER+/VERSION.1.1/Données/Geo/Regions/DevtLevel/MoreLessLeast/RDATA.MoreLessLeast.xlsx")
+# 
+# st_write(GeoRDATA.DevtLevel,
+#          "SERVER+/VERSION.1.1/Données/Geo/Regions/DevtLevel/DevtLevel/GeoRDATA.DevtLevel.geojson",
+#          driver = "GeoJSON")
+# write.xlsx(RDATA.DevtLevel,
+#            "SERVER+/VERSION.1.1/Données/Geo/Regions/DevtLevel/DevtLevel/RDATA.DevtLevel.xlsx")
 ```
 
