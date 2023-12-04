@@ -1814,7 +1814,7 @@ GeoRDATA.MoreLessLeast <- GeoDATA %>%
 
 RDATA.MoreLessLeast <- GeoRDATA.MoreLessLeast %>% st_drop_geometry()
 
-GeoRDATA.DevtLevel <- GeoDATA %>%
+GeoRDATA.LDC_LLDC_SIDS <- GeoDATA %>%
   group_by(DevtLevel) %>%
   summarize(geometry = st_combine(geometry)) %>%
   mutate(
@@ -1849,7 +1849,7 @@ GeoRDATA.DevtLevel <- GeoDATA %>%
   select(1, 3:7, 2) %>%
   slice(c(1, 4, 5, 2, 3, 6))
   
-RDATA.DevtLevel <- GeoRDATA.DevtLevel %>% st_drop_geometry()
+RDATA.LDC_LLDC_SIDS <- GeoRDATA.LDC_LLDC_SIDS %>% st_drop_geometry()
 
 CRs <- unique(GeoDATA$ContinentalRegion)
 CCodes <- data.frame(Residence = character(), CLRCode = character())
@@ -1934,10 +1934,10 @@ DATA <- GeoDATA %>% st_drop_geometry()
 # write.xlsx(RDATA.MoreLessLeast,
 #            "SERVER+/VERSION.1.1/Données/Geo/Regions/DevtLevel/MoreLessLeast/RDATA.MoreLessLeast.xlsx")
 # 
-# st_write(GeoRDATA.DevtLevel,
-#          "SERVER+/VERSION.1.1/Données/Geo/Regions/DevtLevel/DevtLevel/GeoRDATA.DevtLevel.geojson",
+# st_write(GeoRDATA.LDC_LLDC_SIDS,
+#          "SERVER+/VERSION.1.1/Données/Geo/Regions/DevtLevel/LDC_LLDC_SIDS/GeoRDATA.LDC_LLDC_SIDS.geojson",
 #          driver = "GeoJSON")
-# write.xlsx(RDATA.DevtLevel,
-#            "SERVER+/VERSION.1.1/Données/Geo/Regions/DevtLevel/DevtLevel/RDATA.DevtLevel.xlsx")
+# write.xlsx(RDATA.LDC_LLDC_SIDS,
+#            "SERVER+/VERSION.1.1/Données/Geo/Regions/DevtLevel/LDC_LLDC_SIDS/RDATA.LDC_LLDC_SIDS.xlsx")
 ```
 
