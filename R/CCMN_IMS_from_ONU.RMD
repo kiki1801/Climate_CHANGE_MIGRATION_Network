@@ -1,0 +1,913 @@
+---
+title: "Climate ChanGe MiGration Network"
+subtitle: "International MiGration Stock Data"
+author: "KYLLIAN JAMES | Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques"
+date: "`r paste('Creation Date:', '2023-10-16', '|', 'Last Modified Date:', as.Date(file.info('CCMN_IMS_from_ONU.RMD')$mtime))`"
+output: 
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: yes
+    number_subsections: yes
+    always_allow_html: true
+    code_folding: "hide"
+---
+
+```{=html}
+<style>body{text-align: justify}</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Libraries
+
+```{r, message=FALSE, warning=FALSE, results="asis"}
+library(knitr)
+library(readxl)
+library(openxlsx)
+library(dplyr)
+library(tidyr)
+library(DescTools)
+library(DT)
+library(ggplot2)
+library(ggiraph)
+library(gridExtra)
+library(plotly)
+
+LibrariesVersions <- data.frame(
+  LIBRARY = c("KNITR", "READXL", "OPENXLSX", "DPLYR", "TIDYR", 
+              "DESCTOOLS", "DT", "GGPLOT2", "GGIRAPH", "GRIDEXTRA", "PLOTLY"), 
+  VERSION = c(as.character(packageVersion("knitr")), as.character(packageVersion("readxl")), 
+              as.character(packageVersion("openxlsx")), as.character(packageVersion("dplyr")), 
+              as.character(packageVersion("tidyr")), as.character(packageVersion("DescTools")), 
+              as.character(packageVersion("DT")), as.character(packageVersion("ggplot2")), 
+              as.character(packageVersion("ggiraph")), as.character(packageVersion("gridExtra")), 
+              as.character(packageVersion("plotly"))))
+
+datatable(LibrariesVersions, options = list(scrollX = TRUE, autoWidth = TRUE), 
+          caption = paste("Libraries Versions | R",  
+                          gsub("^R version\\s*|\\s*\\(\\d{4}-\\d{2}-\\d{2} ucrt\\)", "", R.version.string)),
+          style = "bootstrap", rownames = FALSE) %>%
+          formatStyle(columns = 1, textAlign = "left") %>% formatStyle(columns = 2, textAlign = "center")
+```
+
+# ISO 3166-1 and M49 Codes
+
+ISO 3166-1 is an international standard from [International OrGanization for Standardization (ISO)](https://www.iso.org/obp/ui/#search), with 3 codes:
+
+-   ALPHA-2 CODE (ISO2)
+-   ALPHA-3 CODE (ISO3)
+-   NUMERIC CODE
+
+NUMERIC CODE $\equiv$ M49 CODE from [United Nations Statistic Division (UNSD)](https://unstats.un.org/unsd/methodology/m49/). ISO 3166-1 is available for autonomous countries or territories, while M49 is also available for world or continents.
+
+How to obtain a code? Be a United Nations (UN) or a UN Specialized AGencies (FAO \| World Bank \| WHO \| ...) Member State.
+
+There are more NUMERIC/M49 CODE (249) than countries in UN (198).
+
+# International MiGration Stock Data
+
+Data are taken from [UN \| PoPulation Division](https://www.un.org/development/desa/pd/content/international-migrant-stock). Estimates of the number (or "stock") of international miGrants (1990-2020) are available for 235 countries/areas of the world. The international miGrant population corresponds to the total number of miGrants present in a Given countrY at a Given moment in time (foreiGn-born). Tourists are not counted amonG miGrants.
+
+Data are orGanized on the basis of `Residence`-`Birth` pairs accordinG to certain classifications or countries/areas:
+
+-   [6 Continental REGIONs](https://unstats.un.org/unsd/methodology/m49/) with 22 Sub-REGIONs and Intermediate REGIONs:
+    -   Africa
+    -   Asia
+    -   Europe
+    -   Latin America and the Caribbean
+    -   Northern America
+    -   Oceania
+-   8 GeoGraphic REGIONs based on the [Sustainable Development Goals (SDG) Classification from UN](https://unstats.un.org/sdgs/indicators/regional-groups/):
+    -   Australia and New Zealand
+    -   Central and Southern Asia
+    -   Eastern and South-Eastern Asia
+    -   Europe and Northern America
+    -   Latin America and the Caribbean
+    -   Northern Africa and Western Asia
+    -   Oceania (Australia and New Zealand excluded)
+    -   Sub-Saharan Africa
+-   2 Development Levels:
+    -   More Developed REGIONs:
+        -   Australia and New Zealand and Japan
+        -   Europe
+        -   Northern America
+    -   Less Developed REGIONs:
+        -   Africa
+        -   Asia (Japan excluded)
+        -   Latin America and the Caribbean
+        -   Oceania (Australia and New Zealand excluded)
+-   3 Development Levels (137/232) from [OHRLLS](https://www.un.org/ohrlls/):
+    -   Least Developed Countries (LDC \| 47)
+    -   Land-Locked DevelopinG Countries (LLDC \| 32)
+    -   Small Island DevelopinG States (SIDS \| 58)
+-   3/4 Income Levels based on Gross National Income (GNI \| [World Bank 2020](https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups)):
+    -   HiGh-Income Countries
+    -   Middle-Income Countries
+        -   Upper-Middle-Income Countries
+        -   Lower-Middle-Income Countries
+    -   Low-Income Countries
+
+Remark: Income Levels are not available for all countries/areas.
+
+## Data Exploration
+
+International MiGrant Stocks (IMS) in the World (`Residence`) born in Europe and Northern America (`Birth`) are shown in this table. We have estimates from 1990 to 2020 (`Year`). 
+
+```{r, warning=FALSE, message=FALSE}
+#Load XLSX File
+IMS_Total <- read_xlsx(
+  "../Données/IMS_from_ONU/ims_sex_residence_and_birth_2020.xlsx", sheet = "Table 1", skip = 8) %>%
+  select(2, 4, 6:14) %>%
+  rename(Residence = 1, ResidenceCode = 2, Birth = 3, BirthCode = 4, 
+         `1990` = 5, `1995` = 6, `2000` = 7, `2005` = 8, `2010` = 9, `2015` = 10, `2020` = 11)
+#One line (with all Years) for each Residence-Birth to one line/Year for each Residence-Birth
+IMS_Total <- pivot_longer(IMS_Total, cols = 5:11) %>% rename(Year = 5, IMS_Total = 6)
+
+#IMS_Male
+IMS_Male <- read_xlsx(
+  "../Données/IMS_from_ONU/ims_sex_residence_and_birth_2020.xlsx", sheet = "Table 1", skip = 8) %>% 
+  select(2, 4, 6:7, 15:21) %>% 
+  rename(Residence = 1, ResidenceCode = 2, Birth = 3, BirthCode = 4, 
+         `1990` = 5, `1995` = 6, `2000` = 7, `2005` = 8, `2010` = 9, `2015` = 10, `2020` = 11)
+IMS_Male <- pivot_longer(IMS_Male, cols = 5:11) %>% rename(Year = 5, IMS_Male = 6)
+
+#IMS_Female
+IMS_Female <- read_xlsx(
+  "../Données/IMS_from_ONU/ims_sex_residence_and_birth_2020.xlsx", sheet = "Table 1", skip = 8) %>% 
+  select(2, 4, 6:7, 22:28) %>% 
+  rename(Residence = 1, ResidenceCode = 2, Birth = 3, BirthCode = 4, 
+         `1990` = 5, `1995` = 6, `2000` = 7, `2005` = 8, `2010` = 9, `2015` = 10, `2020` = 11)
+IMS_Female <- pivot_longer(IMS_Female, cols = 5:11) %>% rename(Year = 5, IMS_Female = 6)
+
+#Combine IMS_Total | IMS_Male | IMS_Female
+IMS <- cbind(IMS_Total, IMS_Male[length(IMS_Male)], IMS_Female[length(IMS_Female)])
+
+#Example: World-(Europe and NA)
+kable(IMS[57:63, c(1, 3, 5:8)], row.names = FALSE, align = c("l", "l", "c", "c", "c", "c"),
+      caption = "World's MiGration Stocks born in Europe and Northern America (1990-2020)")
+```
+
+This was an example between World-(Europe and NA). Data are also available for more areas/countries (282).
+
+```{r}
+#Residence(s) in XLSX
+ResidencesIMS <- unique(IMS[c("Residence", "ResidenceCode")])
+datatable(ResidencesIMS, options = list(scrollX = TRUE, autoWidth = TRUE), 
+          caption = "Residences in IMS DATA", style = "bootstrap", rownames = FALSE) %>%
+  formatStyle(columns = 1, textAlign = "left", `text-transform` = "uppercase") %>% 
+  formatStyle(columns = 2, textAlign = "center")
+```
+
+A few minor alterations have been made to `Residence` and `Birth` columns.
+
+```{r}
+#Columns: Residence | Birth
+IMS.DATA <- IMS %>%
+  mutate_if(is.character, ~case_when(
+    . == "Oceania (excluding Australia and New Zealand)" ~ "Oceania (Australia and New Zealand excluded)",
+    . == "Developed regions" ~ "More Developed Countries",
+    . == "Less developed regions" ~ "Less Developed Countries",
+    . == "Less developed regions, excluding least developed countries" ~ 
+      "Less Developed Countries (Least Developed Countries excluded)",
+    . == "Less developed regions, excluding China" ~ "Less Developed Countries (China excluded)",
+    . == "Least developed countries" ~ "Least Developed Countries (LDC)",
+    . == "Land-locked Developing Countries (LLDC)" ~ "Land-Locked Developing Countries (LLDC)",
+    . == "Small island developing States (SIDS)" ~ "Small Island Developing States (SIDS)",
+    . == "High-income countries" ~ "High-Income Countries",
+    . == "Middle-income countries" ~ "Middle-Income Countries",
+    . == "Upper-middle-income countries" ~ "Upper-Middle-Income Countries",
+    . == "Lower-middle-income countries" ~ "Lower-Middle-Income Countries",
+    . == "Low-income countries" ~ "Low-Income Countries",
+    . == "Bolivia (Plurinational State of)" ~ "Bolivia",
+    . == "China, Hong Kong SAR*" ~ "Hong Kong SAR",
+    . == "China, Macao SAR*" ~ "Macao SAR",
+    . == "China, Taiwan Province of China*" ~ "Taiwan (Province of China)",
+    . == "Iran (Islamic Republic of)" ~ "Iran",
+    . == "Micronesia (Fed. States of)" ~ "Micronesia",
+    . == "Saint Helena*" ~ "Saint Helena, Ascension and Tristan da Cunha",
+    . == "Saint Martin (French part)*" ~ "Saint Martin",
+    . == "Sint Maarten (Dutch part)*" ~ "Sint Maarten",
+    . == "Turkey" ~ "Türkiye",
+    . == "United Kingdom*" ~ "United Kingdom of Great Britain and Northern Ireland",
+    . == "Venezuela (Bolivarian Republic of)" ~ "Venezuela", TRUE ~ .)) %>%
+  mutate(across(c(Residence, Birth), ~gsub("\\*", "", .)))
+```
+
+## Visualization (Continental REGIONs)
+
+Remark: STOCKs constitute a fraction of the information, we need to know SHAREs.
+
+We need to $\sum$ IMS from these 6 REGIONs to calculate SHAREs.
+
+```{r}
+#Keep IMS from CRs (6)
+IMS.FDATA <- IMS.DATA %>% filter(Residence == "WORLD", BirthCode %in% c(903, 935, 908, 904, 905, 909))
+
+#Make ∑/Year
+IMS.FDATA_CRs <- IMS.FDATA %>% group_by(Year) %>% 
+  summarize(IMS_Total_CRs = sum(IMS_Total), IMS_Male_CRs = sum(IMS_Male), IMS_Female_CRs = sum(IMS_Female))
+
+#Check Correct ∑
+IMS.DATA_World <- IMS.DATA %>% filter(Residence == "WORLD", Birth == "WORLD")
+
+#∑/Year !Correct => Omitted DATA
+IMS.FDATA_CRs <- merge(IMS.FDATA_CRs, IMS.DATA_World, by = "Year") %>% 
+  rename(IMS_Total_World = IMS_Total, IMS_Male_World = IMS_Male, IMS_Female_World = IMS_Female) %>%
+  mutate(Omitted_Total_SHARE = round(((IMS_Total_World - IMS_Total_CRs) / IMS_Total_World) * 100, 3),
+         Omitted_Male_SHARE = round(((IMS_Male_World - IMS_Male_CRs) / IMS_Male_World) * 100, 3),
+         Omitted_Female_SHARE = round(((IMS_Female_World - IMS_Female_CRs) / IMS_Female_World) * 100, 3)) %>% 
+  select(5:8, 1, 9, 2, 12, 10, 3, 13, 11, 4, 14)
+
+#Table World-World
+datatable(IMS.FDATA_CRs[, c(1, 3, 5:14)], options = list(scrollX = TRUE, autoWidth = TRUE), 
+          style = "bootstrap", rownames = FALSE, caption = "World's Total MiGration Stocks (1990-2020)") %>%
+  formatStyle(columns = c(1, 2), textAlign = "left") %>% formatStyle(columns = c(3:14), textAlign = "center")
+```
+
+`IMS_Total_CRs` $<$ World-World IMS (`IMS_Total_World`). There is 4-5.5% omitted data (`Omitted_Total_SHARE`) in `IMS_Total_CRs`. Where are these 4-5.5%? `XLSX` file include a row with IMS born in `Other` for countries but not for REGIONs, so we $\sum$ all these `Other` rows (`IMS_Total_OTHER`). `IMS_Total_OTHER` match `Omitted_Total_SHARE`?
+
+```{r}
+#Keep Other/Countries
+IMS.DATA_OTHERs <- IMS.DATA %>% filter(Birth == "Other")
+
+#∑/Year
+IMS.DATA_OTHER <- IMS.DATA_OTHERs %>% group_by(Year) %>%
+  summarize(IMS_Total_OTHER = sum(IMS_Total), IMS_Male_OTHER = sum(IMS_Male), IMS_Female_OTHER = sum(IMS_Female))
+
+#Variable(s)...
+IMS.DATA_OTHER <- IMS.DATA_OTHER %>% 
+  mutate(
+    Residence = IMS.FDATA_CRs$Residence, 
+    ResidenceCode = IMS.FDATA_CRs$ResidenceCode,
+    Birth = "OTHER", BirthCode = 2003) %>% select(5:8, everything())
+
+#Table World-OTHER
+kable(IMS.DATA_OTHER[ , c(1, 3, 5:8)], row.names = FALSE, 
+      align = c("l", "l", "c", "c", "c", "c"), 
+      caption = "World's MiGration Stocks born in OTHER (1990-2020)")
+```
+
+`IMS_Total_World` = `IMS_Total_CRs` + `IMS_Total_OTHER`. We can include a seventh REGION called `OTHER` to make our visualization. Now, we are able to calculate SHAREs for REGIONs (`IMS_Total_SHARE`).
+
+```{r}
+#DATA MANIPULATION...
+IMS.DATA_OTHER <- IMS.DATA_OTHER %>% 
+  rename(IMS_Total = IMS_Total_OTHER, IMS_Male = IMS_Male_OTHER, IMS_Female = IMS_Female_OTHER) 
+IMS.FDATA <- rbind(IMS.FDATA, IMS.DATA_OTHER)
+
+#Calculate SHARE/IMS_Total
+SHAREs <- list()
+for (ROW in 1:nrow(IMS.FDATA)) {
+  YYYY <- IMS.FDATA$Year[ROW]
+  IMS <- IMS.FDATA_CRs$IMS_Total_World[IMS.FDATA_CRs$Year == YYYY]
+  SHARE <- round((IMS.FDATA$IMS_Total[ROW] / IMS) * 100, 5)
+  SHAREs[[ROW]] <- SHARE}
+IMS.FDATA$IMS_Total_SHARE <- unlist(SHAREs)
+
+#Calculate SHARE/IMS_Male
+SHAREs <- list()
+for (ROW in 1:nrow(IMS.FDATA)) {
+  YYYY <- IMS.FDATA$Year[ROW]
+  IMS <- IMS.FDATA_CRs$IMS_Male_World[IMS.FDATA_CRs$Year == YYYY]
+  SHARE <- round((IMS.FDATA$IMS_Male[ROW] / IMS) * 100, 5)
+  SHAREs[[ROW]] <- SHARE}
+IMS.FDATA$IMS_Male_SHARE <- unlist(SHAREs)
+
+#Calculate SHARE/IMS_Female
+SHAREs <- list()
+for (ROW in 1:nrow(IMS.FDATA)) {
+  YYYY <- IMS.FDATA$Year[ROW]
+  IMS <- IMS.FDATA_CRs$IMS_Female_World[IMS.FDATA_CRs$Year == YYYY]
+  SHARE <- round((IMS.FDATA$IMS_Female[ROW] / IMS) * 100, 5)
+  SHAREs[[ROW]] <- SHARE}
+IMS.FDATA$IMS_Female_SHARE <- unlist(SHAREs)
+
+#Table World-(Europe and NA)
+kable(IMS.FDATA[15:21, c(1, 3, 5:11)], row.names = FALSE, 
+      align = c("l", "l", "c", "c", "c", "c", "c", "c", "c"),
+      caption = "World's MiGration Stocks (%) born in EUROPE (1990-2020)", 
+      digits = c(0, 0, 0, 0, 0, 0, 3, 3, 3))
+```
+
+`IMS_Total_SHARE` in World born in EUROPE is down, from 31.20% in 1990 to 22.55% in 2020.
+
+To visualize IMS DATA (STOCKs and SHAREs), we will use 4 libraries (`ggplot2` \| `ggplotly` \| `ggiraph` \| `plotly`). 
+
+### Evolution
+
+We will use LINEs and STACKEd BARs to illustrate IMS Evolution (in Millions) from 1990 to 2020. STACKEd BARs will show IMS Evolution in a Residence Area from $n$ Birth Areas.
+
+#### LINEs
+
+```{r, fig.width=10}
+#N°1
+LINEs <- ggplot(IMS.FDATA_CRs, aes(x = Year)) +
+  geom_line(aes(y = IMS_Total_World, color = "IMS_Total_World", group = "IMS_Total_World")) +
+  geom_line(aes(y = IMS_Male_World, color = "IMS_Male_World", group = "IMS_Male_World")) +
+  geom_line(aes(y = IMS_Female_World, color = "IMS_Female_World", group = "IMS_Female_World")) +
+  geom_point(aes(y = IMS_Total_World, color = "IMS_Total_World", group = "IMS_Total_World")) +
+  geom_point(aes(y = IMS_Male_World, color = "IMS_Male_World", group = "IMS_Male_World")) +
+  geom_point(aes(y = IMS_Female_World, color = "IMS_Female_World", group = "IMS_Female_World")) +
+  labs(title = "International MiGrant Stocks in World (1990-2020)", y = "International MiGrant Stock") +
+  #200 000 To 200M
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) +
+  theme_minimal() +
+  scale_color_manual(
+    values = c("IMS_Total_World" = "black", "IMS_Male_World" = "blue", "IMS_Female_World" = "pink"), 
+    labels = c(
+      "IMS_Total_World" = "Both Sexes Combined", "IMS_Male_World" = "Males",  "IMS_Female_World" = "Females")) +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "top", legend.title = element_blank())
+LINEs
+```
+
+We can follow IMS Evolution, which has become more intense since 2005. STOCKs are balanced in a fair manner between males and females (1990-2005), then leans in favor of men (2005-2020).
+
+We don't have accurate STOCKs because it's static, we need to make it interactive. We also have to rescale STOCKs to add "M" suffix on YAxis.
+
+```{r, fig.width=8.75, fig.height=4}
+#N°2
+LINEs_INTERACTIVE_One <- plot_ly(data = IMS.FDATA_CRs, x = ~Year, y = ~IMS_Total_World, 
+                             type = 'scatter', name = 'Both Sexes Combined', 
+                             mode = 'lines+markers', line = list(color = 'black'), marker = list(color = 'black'), 
+                             text = with(IMS.FDATA_CRs, paste(" Residence:", Residence, "<br>",
+                                                              "Birth:", Birth, "<br>", 
+                                                              "Year:", Year, "<br>",
+                                                              "International MiGrant Stock (Both Sexes Combined):", 
+                                                              paste0(format(x = IMS_Total_World, trim = TRUE, 
+                                                                            scientific = FALSE, big.mark = " "), "M"))), 
+                             hoverinfo = "text") %>%
+   add_trace(x = ~Year, y = ~IMS_Male_World, name = 'Males', line = list(color = 'blue'), marker = list(color = 'blue'), 
+             text = with(IMS.FDATA_CRs, paste(" Residence:", Residence, "<br>", "Birth:", Birth, "<br>", "Year:", Year, "<br>", 
+                                              "International MiGrant Stock (Males):", 
+                                              paste0(format(x = IMS_Male_World, trim = TRUE, scientific = FALSE, 
+                                                            big.mark = " "), "M"))), hoverinfo = "text") %>%
+   add_trace(x = ~Year, y = ~IMS_Female_World, name = 'Females', line = list(color = 'pink'), marker = list(color = 'pink'), 
+             text = with(IMS.FDATA_CRs, paste(" Residence:", Residence, "<br>", "Birth:", Birth, "<br>", "Year:", Year, "<br>", 
+                                              "International MiGrant Stock (Females):", 
+                                              paste0(format(x = IMS_Female_World, trim = TRUE, scientific = FALSE, 
+                                                            big.mark = " "), "M"))), hoverinfo = "text") %>% 
+  layout(title = "International MiGrant Stocks in World (1990-2020)", 
+         xaxis = list(title = "Year"), yaxis = list(title = "International MiGrant Stock"),
+         legend = list(x = 0.5, y = 1.05, xanchor = "center", orientation = "h"))
+LINEs_INTERACTIVE_One
+```
+
+A download button is available. We can see `Residence` | `Birth` | `Year` | STOCKs in Hover Text. We don't need to rescale STOCKs to add "M" suffix on YAxis, we need to do it for Hover Text.
+
+```{r, fig.width=8.75, fig.height=4}
+#N°3
+LINEs_INTERACTIVE_Two <- ggplotly(LINEs) %>% 
+  layout(legend = list(title = "", x = 0.5, y = 1.05, xanchor = "center", orientation = "h"))
+for (i in 1:length(LINEs_INTERACTIVE_Two$x$data)) {
+  LINEs_INTERACTIVE_Two$x$data[[i]]$name <- c("Both Sexes Combined", "Males", "Females")[i]}
+LINEs_INTERACTIVE_Two
+```
+
+We can't remove default Hover Text and `text` ARGu within `aes()` in `geom_point()` does not allow for modifications to Hover Text. Customs labels have to be redone here.
+
+```{r, fig.width=8.75, fig.height=4}
+#N°4
+LINEs_INTERACTIVE_THREE <- ggplot(IMS.FDATA_CRs) +
+  geom_line_interactive(aes(x = Year, y = IMS_Total_World, color = "IMS_Total_World", group = "IMS_Total_World")) +
+  geom_line_interactive(aes(x = Year, y = IMS_Male_World, color = "IMS_Male_World", group = "IMS_Male_World")) +
+  geom_line_interactive(aes(x = Year, y = IMS_Female_World, color = "IMS_Female_World", group = "IMS_Female_World")) +
+  geom_point_interactive(aes(x = Year, y = IMS_Total_World, color = "IMS_Total_World", group = "IMS_Total_World", 
+                             tooltip = paste("Residence:", Residence, "<br>Birth:", Birth, "<br>Year:", Year, 
+                                             "<br>International MiGrant Stock (Both Sexes Combined):", 
+                                             paste0(format(x = IMS_Total_World, trim = TRUE, 
+                                                           scientific = FALSE, big.mark = " "), "M")))) +
+  geom_point_interactive(aes(x = Year, y = IMS_Male_World, color = "IMS_Male_World", group = "IMS_Male_World", 
+                             tooltip = paste("Residence:", Residence, "<br>Birth:", Birth, "<br>Year:", Year,
+                                             "<br>International MiGrant Stock (Males):", 
+                                             paste0(format(x = IMS_Male_World, trim = TRUE, 
+                                                           scientific = FALSE, big.mark = " "), "M")))) +
+  geom_point_interactive(aes(x = Year, y = IMS_Female_World, color = "IMS_Female_World", group = "IMS_Female_World", 
+                             tooltip = paste("Residence:", Residence, "<br>Birth:", Birth, "<br>Year:", Year, 
+                                             "<br>International MiGrant Stock (Females):", 
+                                             paste0(format(x = IMS_Female_World, trim = TRUE,
+                                                           scientific = FALSE, big.mark = " "), "M")))) + 
+  labs(title = "International MiGrant Stocks in World (1990-2020)", y = "International MiGrant Stock") +
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) +
+  theme_minimal() +
+  scale_color_manual(
+    values = c("IMS_Total_World" = "black", "IMS_Male_World" = "blue", "IMS_Female_World" = "pink"), 
+    labels = c("IMS_Total_World" = "Both Sexes Combined", "IMS_Male_World" = "Males",  "IMS_Female_World" = "Females")) +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "top", legend.title = element_blank())
+girafe(ggobj = LINEs_INTERACTIVE_THREE)
+```
+
+Function `geom_bar_interactive` serves as an alternative to `geom_bar` to make it interactive. A download button is also available.
+
+#### STACKEd BARs
+
+```{r, fig.width=10}
+#COLORs
+CRs <- c("#339900", "#FF9900", "#003366", "#FF0000", "#663399", "#FFCC00", "#999999")
+
+#N°1
+BARs <- ggplot(IMS.FDATA, aes(x = Year, y = IMS_Total, fill = Birth, 
+                                     #For N°3
+                                     text = paste(" Residence:", Residence, "<br>", "Birth:", Birth, "<br>", 
+                                                  "Year:", Year, "<br>", "International MiGrant Stock:", 
+                                                  format(x = IMS_Total, trim = TRUE, scientific = FALSE, big.mark = " ")))) +
+  #STACKEd
+  geom_bar(stat = "identity") + 
+  labs(title = "International MiGrant Stocks in World from 6 Areas (1990-2020)", 
+       y = "International MiGrant Stock - Both Sexes Combined") +
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) +
+  scale_fill_manual(values = CRs) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
+BARs
+```
+
+We can see IMS Global Evolution from 150M in 1990 to $>$ 250M in 2020. We also notice a more marked evolution in ASIA than in EUROPE.
+
+Birth Areas are in A-Z order, we will have to use factor levels to reorder Birth Areas.
+
+Non-POSITIVE comments are same as for LINES. OCEANIA and NORTHERN AMERICA are too small. 
+
+In STACKEd BARs above, we have data for a `Residence`-`Birth` pair and all `Year` in a row.
+
+```{r, message=FALSE}
+#Residence-Birth/Year To Year/Residence/Birth
+IMS.FDATA_INTERACTIVE <- IMS.FDATA %>% group_by(Year, Residence, Birth) %>% 
+  summarise(IMS_Total_SHARE = sum(IMS_Total_SHARE), IMS_Total = sum(IMS_Total))
+
+#Table 1990/World
+kable(IMS.FDATA_INTERACTIVE[1:7, c(1:3, 5)], row.names = FALSE, 
+      align = c("l", "l", "l", "c"),
+      caption = "International MiGrant Stocks in World from 6 Areas in 1990")
+```
+
+Now, we need to have data for a `Year` and all `Residence`-`Birth` pairs in a row. 
+
+```{r, fig.width=8.75, fig.height=4.25}
+#N°2
+BARs_INTERACTIVE_One <- plot_ly(data = IMS.FDATA_INTERACTIVE, x = ~Year, y = ~IMS_Total, 
+                                color = ~Birth, type = "bar", colors = CRs, legendgroup = 'Birth', 
+                                text = with(IMS.FDATA_INTERACTIVE, paste(" Residence:", Residence, "<br>", 
+                                                                         "Birth:", Birth, "<br>", "Year:", Year, "<br>", 
+                                                                         "International MiGrant Stock:", 
+                                                                         paste0(format(IMS_Total, trim = TRUE, 
+                                                                                       scientific = FALSE, big.mark = " ")))),
+                                hoverinfo = "text") %>% 
+  layout(barmode = "stack", 
+         yaxis = list(title = "International MiGrant Stock - Both Sexes Combined"),
+         title = "International MiGrant Stocks in  World from 6 Areas (1990-2020)", 
+         legend = list(title = list(text='<b> Birth </b>'), x=1, y=0.5))
+BARs_INTERACTIVE_One
+```
+
+Birth Areas are in Z-A order, we will have to use factor levels to reorder Birth Areas.
+
+```{r, fig.width=8.75, fig.height=4.25}
+#N°3
+BARs_INTERACTIVE_Two <- ggplotly(BARs) %>%
+  layout(title = list(text = "International MiGrant Stocks in World From 6 Areas (1990-2020)", x = 0.5))
+BARs_INTERACTIVE_Two
+```
+
+```{r, fig.width=8.75, fig.height=4.25}
+#N°4
+BARs_INTERACTIVE_THREE <- ggplot(IMS.FDATA) + 
+  geom_bar_interactive(aes(x = Year, y = IMS_Total, fill = Birth, 
+                           tooltip = paste("Residence:", Residence, "<br>Birth:", Birth, "<br>Year:", Year, 
+                                           "<br>International MiGrant Stock:", 
+                                           paste0(format(IMS_Total, trim = TRUE, scientific = FALSE, big.mark = " ")))), 
+                       position = "stack", stat = "identity") +
+  labs(title = "International MiGrant Stocks in World from 6 Areas (1990-2020)", 
+       y = "International MiGrant Stock - Both Sexes Combined") +
+  scale_fill_manual(values = CRs) + 
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
+girafe(ggobj = BARs_INTERACTIVE_THREE)
+```
+
+### SHARE(s)
+
+STACKEd BARs will show SHAREs in a Residence Area from $n$ Birth Areas.
+
+```{r, fig.width=8.75, fig.height=4.25}
+#N°2
+BARs_INTERACTIVE_SHAREs_One <- plot_ly(data = IMS.FDATA_INTERACTIVE, x = ~Year, y = ~IMS_Total_SHARE, 
+                                       color = ~Birth, type = "bar", colors = CRs, legendgroup = 'Birth', 
+                                       #HOVER...
+                                       text = with(IMS.FDATA_INTERACTIVE, paste(" Residence:", Residence, "<br>", 
+                                                                                "Birth:", Birth, "<br>", "Year:", Year, "<br>", 
+                                                                                "International MiGrant Stock:",
+                                                                                round(IMS_Total_SHARE, 3), "%")), 
+                                       hoverinfo = "text") %>% 
+  layout(barmode = "stack", 
+         yaxis = list(title = "International MiGrant Stock - Both Sexes Combined (%)"),
+         title = "International MiGrant Stocks (%) in World from 6 Areas (1990-2020)", 
+         legend = list(title = list(text='<b> Birth </b>'), x=1, y=0.5),
+         margin = list(t = 30))
+BARs_INTERACTIVE_SHAREs_One
+```
+
+IMS SHAREs are $\nearrow$ in EUROPE (see section 3.2), $\searrow$ in LATIN AMERICA AND THE CARIBBEAN, look constant in AFRICA.
+
+```{r, fig.width=8.75, fig.height=4.25}
+#N°4
+BARs_INTERACTIVE_SHAREs_THREE <- ggplot(IMS.FDATA) +
+  geom_bar_interactive(aes(x = Year, y = IMS_Total_SHARE, fill = Birth, 
+                           #HOVER...
+                           tooltip = paste("Residence:", Residence, "<br>Birth:", Birth, "<br>Year:", Year, 
+                                           "<br>International MiGrant Stock:", round(IMS_Total_SHARE, 3), "%")), 
+                       stat = "identity") + 
+  labs(title = "International MiGrant Stocks (%) in World from 6 Areas (1990-2020)", 
+       y = "International MiGrant Stock - Both Sexes Combined (%)") +
+  scale_fill_manual(values = CRs) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
+girafe(ggobj = BARs_INTERACTIVE_SHAREs_THREE)
+```
+
+### Evolution and SHARE(s)
+
+Combine STOCKs and SHAREs thanks to `subplot()`. 
+
+```{r, fig.width=8.75, fig.height=8.5}
+#N°2 (x2)
+BARs_INTERACTIVE_One <- BARs_INTERACTIVE_One  %>% 
+  layout(annotations = list(x = 0.5, y = 1.05, xref = "paper", yref = "paper", 
+                            text = "International MiGrant Stocks in World from 6 Areas (1990-2020)", showarrow = FALSE))
+BARs_INTERACTIVE_SHAREs_One <- BARs_INTERACTIVE_SHAREs_One %>%
+  layout(title = "",
+         annotations = list(x = 0.5, y = 1.05, xref = "paper", yref = "paper", 
+                            text = "International MiGrant Stocks (%) in World from 6 Areas (1990-2020)", showarrow = FALSE))
+BARs_INTERACTIVE_STOCKs_SHAREs_One <- subplot(BARs_INTERACTIVE_One, BARs_INTERACTIVE_SHAREs_One, 
+                                              nrows = 2, heights = c(0.5, 0.5),
+                                              titleX = TRUE, titleY = TRUE, shareX = TRUE) %>%
+  layout(showlegend = TRUE)
+BARs_INTERACTIVE_STOCKs_SHAREs_One
+```
+
+We can allow a SHARE x-axis. We have labels twice and have to force to have Y-axis for STOCKs and SHAREs.
+
+Remarks: 
+
+* Combine static STOCKs and SHAREs with `grid.arrange()`. We can have one labels
+* For `ggiraph`, it's not doable
+* Combination is less flexible in Application
+
+### Resume
+
+We will use `plotly` or `ggplot2` combine with `ggiraph` to make our STACKEd BARs and LINEs.
+
+```{r}
+#LibrariesCOMPARISON
+LibrariesCOMPARISON <- data.frame(
+  LIBRARY = c("GGPLOT2", "PLOTLY", "GGPLOTLY", "GGIRAPH"),
+  POSITIVE = c("EASY | Nice GRAPHICs", 
+               "Interactive | DownLoad Button | Hover Text | Share X-axis", 
+               "Interactive | DownLoad Button", 
+               "Interactive | DownLoad Button | Hover Text | EASY"), 
+  NEGATIVE = c("Static", "Labels Issues", "Labels Issues | Hover Text", "-"))
+
+#Table
+datatable(LibrariesCOMPARISON, options = list(scrollX = TRUE, autoWidth = TRUE), 
+          style = "bootstrap", rownames = FALSE, caption = "GRAPHICs' Libraries COMPARISON ")
+```
+
+## DATA MANIPULATIONs
+
+DATA MANIPULATIONs can take time. We need to do it to avoid load times on client/server side.
+
+### Dev. Levels
+
+There are 3 Dev. Levels from [OHRLLS](https://www.un.org/ohrlls/) in IMS DATA (see section 3):
+
+-   Least Developed Countries (LDC)
+-   Land-Locked DevelopinG Countries (LLDC)
+-   Small Island DevelopinG States (SIDS)
+    
+We have found [method. data from UNSD](https://unstats.un.org/unsd/methodology/m49/overview/) which lists countries as LDC| LLDC | SIDS. There are 3 variables (LDC | LLDC | SIDS), with a small cross (x) if an area is in one level (an area can be in 2 levels at once). We create a new variable with 6 modalities:
+
+* LDC* | LLDC* | SIDS* | LDC/LLDC | LDC/SIDS | Not in this Classification
+
+We have rows based on LDC | LLDC | SIDS in IMS DATA. We want to create new ones to retrieve data that follow our new variable (6 modalities):
+
+* LDC for LDC* and LDC+LLDC for LDC/LLDC $\Rightarrow$ LDC DATA will be included twice in IMS DATA
+
+We need to calculate new rows thanks to countries data. We have method. data from UNSD (2023) with LDC (46) | LLDC (32) | SIDS (53), and we know LDC (47) | LLDC (32) | SIDS (58) in [method. from IMS DATA (2020)](https://www.un.org/development/desa/pd/sites/www.un.org.development.desa.pd/files/undesa_pd_2020_international_migrant_stock_documentation.pdf):
+
+* VANUATU ceased to be a LDC in December 2020 (46 To 47) (Sources: [1](https://www.un.org/ohrlls/content/list-ldcs?Is%20Featured=All&field_featured_categories_tid=26&language=All&sort_by=created&sort_order=DESC&Is_Featured=All) | [2](https://unctad.org/topic/least-developed-countries/recognition))
+* MARTINIQUE, TURKS AND CAICOS ISLANDS, GUADELOUPE, CAYMAN ISLANDS and BERMUDA (53 To 58) were not included in method. data from UNSD ([Source](https://www.un.org/ohrlls/content/list-sids))
+* BAHRAIN is also a SIDS since we need it to retrieve the correct data thanks to countries data (58 To 59) 
+
+Remarks:
+
+* 59 countries in SIDS, as BONAIRE, SABA AND SINT EUSTATIUS are also in SIDS
+* BHUTAN ceased to be a LDC in December 2023
+
+```{r}
+#Load XLSX File
+Methodo_from_ONU <- read_excel("../Données/REGIONs/ONU/methodo.xlsx") %>%
+  rename(Area = 9, RCode = 10, ISO2 = 11, ISO3 = 12, LDC = 13, LLDC = 14, SIDS = 15) %>% select(9:15)
+
+#Channel Islands
+Methodo_from_ONU <- Methodo_from_ONU %>% filter(!ISO3 %in% c("JEY", "GGY"))
+Methodo_from_ONU <- rbind(
+  Methodo_from_ONU, data.frame(
+    Area = "Channel Islands", RCode = 830, ISO2 = NA, ISO3 = "CHA", LDC = NA, LLDC = NA, SIDS = NA))
+
+#LDC | LLDC | SIDS => "x"
+Methodo_from_ONU[which(Methodo_from_ONU$Area == "Vanuatu"), "LDC"] <- "x"
+Areas_in_SIDS <- c(
+  "Martinique", "Turks and Caicos Islands", "Guadeloupe", "Cayman Islands", "Bermuda", "Bahrain")
+Methodo_from_ONU[Methodo_from_ONU$Area %in% Areas_in_SIDS, "SIDS"] <- "x"
+
+#New Variable - DevLevel (5)
+Methodo_from_ONU <- Methodo_from_ONU %>%
+  mutate(DevLevel = case_when(
+    LDC == 'x' & LLDC == 'x' & SIDS == 'x' ~ 'LDC | LLDC | SIDS',
+    LDC == 'x' & LLDC == 'x' & is.na(SIDS) ~ 'LDC | LLDC',
+    LDC == 'x' & is.na(LLDC) & SIDS == 'x' ~ 'LDC | SIDS',
+    is.na(LDC) & LLDC == 'x' & SIDS == 'x' ~ 'LLDC | SIDS',
+    LDC == 'x' & is.na(LLDC) & is.na(SIDS) ~ 'LDC',
+    is.na(LDC) & LLDC == 'x' & is.na(SIDS) ~ 'LLDC',
+    is.na(LDC) & is.na(LLDC) & SIDS == 'x' ~ 'SIDS'))
+
+##### Residence #####
+
+#IMS.DATA WITH NEW ROWs (0)
+IMS.DATA.NEWR <- data.frame(Residence = character(0), ResidenceCode = numeric(0), 
+                            Birth = character(0), BirthCode = numeric(0), 
+                            Year = character(0), 
+                            IMS_Total = numeric(0), IMS_Male = numeric(0), IMS_Female = numeric(0), 
+                            stringsAsFactors = FALSE) 
+
+#IMS DATA for SelectedBCode and LDC* or LLDC* or SIDS* | LDC/LLDC | LDC/SIDS Countries
+DEVT <- function(DATA, LV, IMS, RESIDENCE, RCODE) {
+  Level <- DATA %>% filter(DevLevel == LV)
+  fDATA <- IMS %>% filter(ResidenceCode %in% c(Level$RCode), BirthCode == SelectedBCode)
+  if (nrow(fDATA) == 0) {
+    fDATA <- data.frame(Residence = RESIDENCE, ResidenceCode = RCODE, 
+                        Birth = IMS$Birth[ROW], BirthCode = SelectedBCode, 
+                        Year = c(1990, 1995, 2000, 2005, 2010, 2015, 2020), 
+                        IMS_Total = 0, IMS_Male = 0, IMS_Female = 0)
+  } else {
+    fDATA <- fDATA %>% group_by(Year) %>% 
+      summarize(IMS_Total = sum(IMS_Total), IMS_Male = sum(IMS_Male), IMS_Female = sum(IMS_Female)) %>% 
+      mutate(Residence = RESIDENCE, ResidenceCode = RCODE, Birth = IMS$Birth[ROW], BirthCode = SelectedBCode) %>% 
+      select(5:8, 1:4)
+  }
+  return(fDATA)
+}
+
+#Loop which calculate new rows
+# for (ROW in 1:nrow(IMS.DATA)) {
+#   #BirthCode done or !done
+#   SelectedBCode <- IMS.DATA$BirthCode[ROW]
+#   if (SelectedBCode %in% IMS.DATA.NEWR$BirthCode) {
+#     # print("Done!")
+#   } else if (SelectedBCode == 2003) {
+#     #PROGRESSION
+#     print(paste0("PROGRESSION: ", ROW, "/", nrow(IMS.DATA)))
+# 
+#     #Get IMS DATA for SelectedBCode
+#     IMS.FDATA <- IMS.DATA %>%
+#       filter(BirthCode == 2003, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>%
+#       distinct(ResidenceCode, Year, .keep_all = TRUE)
+#     IMS.DATA.NEWR <- rbind(IMS.DATA.NEWR, IMS.FDATA)
+#   } else {
+#     #PROGRESSION
+#     print(paste0("PROGRESSION: ", ROW, "/", nrow(IMS.DATA)))
+# 
+#     #Get IMS DATA for SelectedBCode
+#     IMS.FDATA <- IMS.DATA %>%
+#       filter(BirthCode == SelectedBCode, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>%
+#       distinct(ResidenceCode, Year, .keep_all = TRUE)
+#     IMS.DATA.NEWR <- rbind(IMS.DATA.NEWR, IMS.FDATA)
+# 
+#     #Get IMS DATA for SelectedBCode and LDC* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC", IMS = IMS.DATA,
+#                   RESIDENCE = "Least Developed Countries* (LDC*)", RCODE = 942)
+#     IMS.DATA.NEWR <- rbind(IMS.DATA.NEWR, fDATA)
+# 
+#     #Get IMS DATA for SelectedBCode and LLDC* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LLDC", IMS = IMS.DATA,
+#                   RESIDENCE = "Land-Locked Developing Countries* (LLDC*)", RCODE = 1638)
+#     IMS.DATA.NEWR <- rbind(IMS.DATA.NEWR, fDATA)
+# 
+#     #Get IMS DATA for SelectedBCode and SIDS* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "SIDS", IMS = IMS.DATA,
+#                   RESIDENCE = "Small Island Developing States* (SIDS*)", RCODE = 1639)
+#     IMS.DATA.NEWR <- rbind(IMS.DATA.NEWR, fDATA)
+# 
+#     #Get IMS DATA for SelectedBCode and LDC/LLDC Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC | LLDC", IMS = IMS.DATA,
+#                   RESIDENCE = "LDC | LLDC", RCODE = 1640)
+#     IMS.DATA.NEWR <- rbind(IMS.DATA.NEWR, fDATA)
+# 
+#     #Get IMS DATA for SelectedBCode and LDC/SIDS Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC | SIDS", IMS = IMS.DATA,
+#                   RESIDENCE = "LDC | SIDS", RCODE = 1641)
+#     IMS.DATA.NEWR <- rbind(IMS.DATA.NEWR, fDATA)
+#   }
+# }
+
+##### Birth #####
+
+#IMS.DATA WITH NEW ROWs (0)
+IMS.DATA.NEWRB <- data.frame(Residence = character(0), ResidenceCode = numeric(0), 
+                             Birth = character(0), BirthCode = numeric(0),
+                             Year = character(0), 
+                             IMS_Total = numeric(0),  IMS_Male = numeric(0), IMS_Female = numeric(0),  
+                             stringsAsFactors = FALSE)  
+
+#IMS DATA for SelectedRCode and LDC* or LLDC* or SIDS* | LDC/LLDC | LDC/SIDS Countries
+DEVT <- function(DATA, LV, IMS, BIRTH, BCODE) {
+  Level <- DATA %>% filter(DevLevel == LV)
+  fDATA <- IMS %>% filter(ResidenceCode == SelectedRCode, BirthCode %in% c(Level$RCode))
+  if (nrow(fDATA) == 0) {
+    fDATA <- data.frame(Residence = IMS$Residence[ROW], ResidenceCode = SelectedRCode, 
+                        Birth = BIRTH, BirthCode = BCODE, Year = c(1990, 1995, 2000, 2005, 2010, 2015, 2020), 
+                        IMS_Total = 0, IMS_Male = 0, IMS_Female = 0)
+  } else {
+    fDATA <- fDATA %>% group_by(Year) %>% 
+      summarize(IMS_Total = sum(IMS_Total), IMS_Male = sum(IMS_Male), IMS_Female = sum(IMS_Female)) %>% 
+      mutate(Residence = IMS$Residence[ROW], ResidenceCode = SelectedRCode, Birth = BIRTH, BirthCode = BCODE) %>% 
+      select(5:8, 1:4)
+  }
+  return(fDATA)
+}
+
+#Loop which calculate new rows
+# for (ROW in 1:nrow(IMS.DATA.NEWR)) {
+#   #ResidenceCode done or !done
+#   SelectedRCode <- IMS.DATA.NEWR$ResidenceCode[ROW]
+#   if (SelectedRCode %in% IMS.DATA.NEWRB$ResidenceCode) {
+#     # print("Done!")
+#   } else {
+#     #PROGRESSION
+#     print(paste0("PROGRESSION: ", ROW, "/", nrow(IMS.DATA.NEWR)))
+# 
+#     #Get IMS DATA for SelectedRCode
+#     IMS.FDATA <- IMS.DATA.NEWR %>%
+#       filter(ResidenceCode == SelectedRCode, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>%
+#       distinct(BirthCode, Year, .keep_all = TRUE)
+#     IMS.DATA.NEWRB <- rbind(IMS.DATA.NEWRB, IMS.FDATA)
+# 
+#     #Get IMS DATA for SelectedRCode and LDC* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC", IMS = IMS.DATA.NEWR,
+#                   BIRTH = "Least Developed Countries* (LDC*)", BCODE = 942)
+#     IMS.DATA.NEWRB <- rbind(IMS.DATA.NEWRB, fDATA)
+# 
+#     #Get IMS DATA for SelectedRCode and LLDC* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LLDC", IMS = IMS.DATA.NEWR,
+#                   BIRTH = "Land-Locked Developing Countries* (LLDC*)", BCODE = 1638)
+#     IMS.DATA.NEWRB <- rbind(IMS.DATA.NEWRB, fDATA)
+# 
+#     #Get IMS DATA for SelectedRCode and SIDS* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "SIDS", IMS = IMS.DATA.NEWR,
+#                   BIRTH = "Small Island Developing States* (SIDS*)", BCODE = 1639)
+#     IMS.DATA.NEWRB <- rbind(IMS.DATA.NEWRB, fDATA)
+# 
+#     #Get IMS DATA for SelectedRCode and LDC/LLDC Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC | LLDC", IMS = IMS.DATA.NEWR,
+#                   BIRTH = "LDC | LLDC", BCODE = 1640)
+#     IMS.DATA.NEWRB <- rbind(IMS.DATA.NEWRB, fDATA)
+# 
+#     #Get IMS DATA for SelectedRCode and LDC/SIDS Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC | SIDS", IMS = IMS.DATA.NEWR,
+#                   BIRTH = "LDC | SIDS", BCODE = 1641)
+#     IMS.DATA.NEWRB <- rbind(IMS.DATA.NEWRB, fDATA)
+#   }
+# }
+
+#Reorder Rows (Residence-Birth)
+# URCode <- unique(IMS.DATA.NEWRB$ResidenceCode)
+# ORCode <- c(URCode[1:14], 942, 1636, 1638, 1637, 1639, 1640, 1641, URCode[17:282])
+# UBCode <- unique(IMS.DATA.NEWRB$BirthCode)
+# RUBCode <- c(UBCode[1:14], 942, 1636, 1638, 1637, 1639, 1640, 1641, UBCode[17:282])
+# CUBCode <- c(UBCode[1:14], 942, 1636, 1638, 1637, 1639, 1640, 1641, UBCode[17:282], 2003)
+# IMS.DATA.NEWRB <- IMS.DATA.NEWRB %>% arrange(match(ResidenceCode, ORCode), match(BirthCode, RUBCode))
+```
+
+### SHAREs (and OTHER)
+
+SHAREs Calculation:
+
+* `IMS_Total_SHARE`
+* `IMS_Male_SHARE`
+* `IMS_Female_SHARE`
+
+```{r}
+#IMS WITH SHARE (0)
+IMS.DATA.SHARE <- data.frame(Residence = character(0), ResidenceCode = numeric(0), 
+                             Birth = character(0), BirthCode = numeric(0),
+                             Year = character(0),
+                             IMS_Total = numeric(0), IMS_Male = numeric(0), IMS_Female = numeric(0), 
+                             IMS_Total_SHARE = numeric(0), 
+                             IMS_Male_SHARE = numeric(0), IMS_Female_SHARE = numeric(0), 
+                             stringsAsFactors = FALSE)  
+
+#Function which enable SHARE Values Calculation
+SHAREs <- function(DATA, FDATA, VARIABLE) {
+  SHARE_Values <- list()
+  for (ROw in 1:nrow(FDATA)) {
+    #Take Year Value
+    YYYY <- FDATA$Year[ROw]
+    #World Value
+    IMS <- unique(
+      DATA[DATA$ResidenceCode == SelectedRCode & DATA$BirthCode == 900 & DATA$Year == YYYY, VARIABLE])
+    #SHARE Value
+    SHARE <- round((FDATA[[VARIABLE]][ROw]/IMS) * 100, 5)
+    SHARE_Values[[ROw]] <- SHARE
+  }
+  return(SHARE_Values)
+}
+
+#Function which calculate OTHER when !Countries
+OTHERs <- function(DATA, IMS_COUNTRIEs, YEAR, VARIABLE, VARIABLE_Total, NROW) {
+  #World Value
+  IMS <- DATA[DATA$ResidenceCode == SelectedRCode & DATA$BirthCode == 900 & DATA$Year == YEAR, VARIABLE]
+  #OTHER Value
+  IMS.OTHER <- IMS[[1]] - IMS_COUNTRIEs[[VARIABLE_Total]][NROW]
+  return(IMS.OTHER)}
+
+#Loop which calculate SHAREs
+# for (ROW in 1:nrow(IMS.DATA.NEWRB)) {
+#   #ResidenceCode done or !done
+#   SelectedRCode <- IMS.DATA.NEWRB$ResidenceCode[ROW]
+#   if (SelectedRCode %in% IMS.DATA.SHARE$ResidenceCode) {
+#       # print("Done!")
+#   } else {
+#     #Get IMS DATA for SelectedRCode
+#     IMS.FDATA <- IMS.DATA.NEWRB %>%
+#         filter(ResidenceCode == SelectedRCode, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>%
+#         distinct(BirthCode, Year, .keep_all = TRUE)
+#     #Countrie(s)
+#     if (SelectedRCode < 900) {
+#       print(paste0("PROGRESSION: ", ROW, "/", nrow(IMS.DATA.NEWRB)))
+# 
+#       #Calculate SHAREs (Both)
+#       SHARE_Values.IMS_Total <- SHAREs(DATA = IMS.DATA.NEWRB, FDATA = IMS.FDATA, VARIABLE = "IMS_Total")
+#       IMS.FDATA$IMS_Total_SHARE <- unlist(SHARE_Values.IMS_Total)
+# 
+#       #Calculate SHAREs (Male)
+#       SHARE_Values.IMS_Male <- SHAREs(DATA = IMS.DATA.NEWRB, FDATA = IMS.FDATA, VARIABLE = "IMS_Male")
+#       IMS.FDATA$IMS_Male_SHARE <- unlist(SHARE_Values.IMS_Male)
+# 
+#       #Calculate SHAREs (Female)
+#       SHARE_Values.IMS_Female <- SHAREs(DATA = IMS.DATA.NEWRB, FDATA = IMS.FDATA, VARIABLE = "IMS_Female")
+#       IMS.FDATA$IMS_Female_SHARE <- unlist(SHARE_Values.IMS_Female)
+# 
+#       IMS.DATA.SHARE <- rbind(IMS.DATA.SHARE, IMS.FDATA)
+#     #REGION(s)
+#     } else {
+#       print(paste0("PROGRESSION: ", ROW, "/", nrow(IMS.DATA.NEWRB)))
+# 
+#       #Get IMS DATA for SelectedRCode and Countrie(s) BirthCode
+#       fDATA <- IMS.FDATA %>%
+#         filter(BirthCode < 900, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>%
+#         distinct(BirthCode, Year, .keep_all = TRUE)
+# 
+#       #∑/Year
+#       IMS.DATA_OTHER <- fDATA %>% group_by(Year) %>%
+#         summarize(
+#           IMS_Total_OTHER = sum(IMS_Total), IMS_Male_OTHER = sum (IMS_Male), IMS_Female_OTHER = sum(IMS_Female))
+#
+#       #Calculate OTHER Values
+#       for (Row in 1:nrow(IMS.DATA_OTHER)) {
+#         YYYY <- IMS.DATA_OTHER$Year[Row]
+# 
+#         IMS_Total.OTHER <- OTHERs(DATA = IMS.DATA.NEWRB, IMS_COUNTRIEs = IMS.DATA_OTHER, YEAR = YYYY,
+#                                   VARIABLE = "IMS_Total", VARIABLE_Total = "IMS_Total_OTHER", NROW = Row)
+#         IMS_Male.OTHER <- OTHERs(DATA = IMS.DATA.NEWRB, IMS_COUNTRIEs = IMS.DATA_OTHER, YEAR = YYYY,
+#                                  VARIABLE = "IMS_Male",VARIABLE_Total = "IMS_Male_OTHER", NROW = Row)
+#         IMS_Female.OTHER <- OTHERs(DATA = IMS.DATA.NEWRB, IMS_COUNTRIEs = IMS.DATA_OTHER, YEAR = YYYY,
+#                                    VARIABLE = "IMS_Female",VARIABLE_Total = "IMS_Female_OTHER", NROW = Row)
+# 
+#         IMS.FDATA <- rbind(IMS.FDATA, list(unique(IMS.FDATA$Residence), SelectedRCode, "Other", 2003,
+#                                            YYYY, IMS_Total.OTHER, IMS_Male.OTHER, IMS_Female.OTHER))
+#       }
+#       #Calculate SHAREs (Both)
+#       SHARE_Values.IMS_Total <- SHAREs(DATA = IMS.DATA.NEWRB, FDATA = IMS.FDATA, VARIABLE = "IMS_Total")
+#       IMS.FDATA$IMS_Total_SHARE <- unlist(SHARE_Values.IMS_Total)
+# 
+#       #Calculate SHAREs (Male)
+#       SHARE_Values.IMS_Male <- SHAREs(DATA = IMS.DATA.NEWRB, FDATA = IMS.FDATA, VARIABLE = "IMS_Male")
+#       IMS.FDATA$IMS_Male_SHARE <- unlist(SHARE_Values.IMS_Male)
+# 
+#       #Calculate SHAREs (Female)
+#       SHARE_Values.IMS_Female <- SHAREs(DATA = IMS.DATA.NEWRB, FDATA = IMS.FDATA, VARIABLE = "IMS_Female")
+#       IMS.FDATA$IMS_Female_SHARE <- unlist(SHARE_Values.IMS_Female)
+# 
+#       IMS.DATA.SHARE <- rbind(IMS.DATA.SHARE, IMS.FDATA)
+#     }
+#   }
+# }
+
+#Save XLSX File
+# write.xlsx(IMS.DATA.SHARE, "UI_and_SERVER/Données/ims_sex_residence_and_birth_with_share_2020.xlsx")
+```
