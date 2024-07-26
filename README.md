@@ -1,1 +1,1 @@
-# Climate_Change_Migration_Network
+# Climate ChanGe MiGration Network (CLIMINET)
