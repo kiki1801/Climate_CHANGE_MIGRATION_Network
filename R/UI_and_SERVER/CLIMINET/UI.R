@@ -2,7 +2,7 @@
 #####                Climate ChanGe MiGration Network                #####
 ##### Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques #####
 #####                   KYLLIAN JAMES | 2023-11-14                   #####
-#####                        Mod.: 2024-07-26                        #####
+#####                        Mod.: 2024-09-10                        #####
 #####                               UI                               #####
 ##########################################################################
 
@@ -368,7 +368,7 @@ WORKING.PAPER_Card <- function(
 #PRESENTATION Card Function
 PRESENTATION_Card <- function(
     PRESENTATION, SPEAKERs, #Related To PRESENTATION
-    ORGANIZER_LINK, ORGANIZER, #Related To ORGANIZER 
+    ORGANIZERs_LINK, ORGANIZERs, #Related To ORGANIZER(s)
     DATE, LOCATION, EVENT_LINK, EVENT) {#Related To EVENT
   #Replace DATE-RANGE BY FIRST-DAY
   DATE_Cleaned <- stringr::str_replace(
@@ -382,6 +382,8 @@ PRESENTATION_Card <- function(
     format = "%Y-%m-%d") #VECTOR => Formats(OUTPUT)
   #SPEAKERs => NUMBER
   SPEAKERs_NUMBER <- length(SPEAKERs)
+  #ORGANIZER(s) => NUMBER
+  ORGANIZERs_NUMBER <- length(ORGANIZERs)
   #PRESENTATION => Card
   card(
     #Attribute 'data-date' To Sort Card(s)
@@ -420,23 +422,67 @@ PRESENTATION_Card <- function(
           #Formatted NAMEs
           SPEAKERs_NAMEs <- if (SPEAKERs_NUMBER > 1) {
             paste(paste(AUTHORs[1:(SPEAKERs_NAMEs-1)], collapse = ", "), "and", SPEAKERs[SPEAKERs_NUMBER])} else {SPEAKERs})),
-      #ICON + ORGANIZER
-      tags$a(
-        href = ORGANIZER_LINK, #Link To ORGANIZER
-        target = "_blank", #Open a new tab when text/icon is clicked
-        style = "text-decoration: none; color: var(--bs-body-color);", #TEXT/ICON => COLOR
-        class = "ORGANIZER", #Clickable text/icon class
-        title = "Visit Website", #TEXT SHOW on HOVER
+      #ICON + ORGANIZER(s)
+      # tags$a(
+      #   href = ORGANIZERs_LINK, #Link To ORGANIZER
+      #   target = "_blank", #Open a new tab when text/icon is clicked
+      #   style = "text-decoration: none; color: var(--bs-body-color);", #TEXT/ICON => COLOR
+      #   class = "ORGANIZER", #Clickable text/icon class
+      #   title = "Visit Website", #TEXT SHOW on HOVER
+      #   tags$div(
+      #     #FLEXBOX CONTAINER
+      #     style = "display: flex",
+      #     #ORGANIZER => BOOTSTRAP_ICON
+      #     bsicons::bs_icon(
+      #       name = "bank", #Institution ICON from https://icons.getbootstrap.com/
+      #       size = "16px", #ICON => HEIGHT and WIDTH
+      #       title = "Visit Website"), #TEXT SHOW on HOVER
+      #     #LINK | MARGIN (Left: 5px)
+      #     tags$span(style = "margin-left: 5px;", ORGANIZERs))),
+      if (ORGANIZERs_NUMBER > 1) {
         tags$div(
           #FLEXBOX CONTAINER
           style = "display: flex",
-          #ORGANIZER => BOOTSTRAP_ICON
+          #ORGANIZER(s) => ICON
           bsicons::bs_icon(
             name = "bank", #Institution ICON from https://icons.getbootstrap.com/
-            size = "16px", #ICON => HEIGHT and WIDTH
-            title = "Visit Website"), #TEXT SHOW on HOVER
-          #LINK | MARGIN (Left: 5px)
-          tags$span(style = "margin-left: 5px;", ORGANIZER))),
+            size = "16px"), #ICON => HEIGHT and WIDTH
+          #ORGANIZER(s) => NAME(s)
+          tags$span(
+            #MARGIN (Left: 5px)
+            style = "margin-left: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;",
+            #Formatted NAME(s)
+            # ORGANIZERs_NAMEs <- paste(ORGANIZERs, collapse = " | ")
+            tags$a(
+              href = ORGANIZERs_LINK[1], #Link To ORGANIZER
+              target = "_blank", #Open a new tab when text is clicked
+              style = "text-decoration: none; color: var(--bs-body-color);", #TEXT => COLOR
+              class = "ORGANIZER", #Clickable text class
+              title = "Visit Website", #TEXT SHOW on HOVER
+              ORGANIZERs[1]), " | ",
+            tags$a(
+              href = ORGANIZERs_LINK[2], #Link To ORGANIZER
+              target = "_blank", #Open a new tab when text is clicked
+              style = "text-decoration: none; color: var(--bs-body-color);", #TEXT => COLOR
+              class = "ORGANIZER", #Clickable text class
+              title = "Visit Website", #TEXT SHOW on HOVER
+              ORGANIZERs[2])))} else {
+                                  tags$a(
+                                    href = ORGANIZERs_LINK, #Link To ORGANIZER
+                                    target = "_blank", #Open a new tab when text/icon is clicked
+                                    style = "text-decoration: none; color: var(--bs-body-color);", #TEXT/ICON => COLOR
+                                    class = "ORGANIZER", #Clickable text/icon class
+                                    title = "Visit Website", #TEXT SHOW on HOVER
+                                    tags$div(
+                                      #FLEXBOX CONTAINER
+                                      style = "display: flex",
+                                      #ORGANIZER => BOOTSTRAP_ICON
+                                      bsicons::bs_icon(
+                                        name = "bank", #Institution ICON from https://icons.getbootstrap.com/
+                                        size = "16px", #ICON => HEIGHT and WIDTH
+                                        title = "Visit Website"), #TEXT SHOW on HOVER
+                                      #LINK | MARGIN (Left: 5px)
+                                      tags$span(style = "margin-left: 5px;", ORGANIZERs)))},
       #DATE => ICON + (DAY(s) + MONTH + YEAR) || ICON + LOCATION
       tags$div(
         #FLEXBOX CONTAINER
@@ -1157,7 +1203,7 @@ ui <- fluidPage(
           #PROJECT OBJECTIVE from https://www.belmontforum.org/archives/projects/international-migration-climate-change-and-network-effects-a-worldwide-study
           # HTML(
           #   "<p>The goal of this project is to investigate two important aspects of international migration.</p>
-          #   <p>First, the project proposes a global framework (including more than 150 countries all over the world) to study the influence of climate change on migration. Our dataset spans the 30-year period over 1990-2017. To characterize countries, we include proxies for fast-and slow-onset meteorological events as a way of measuring countries' exposure to climate change, and a large set of country-specific socio-economic, health, political, and governance factors.</p>
+          #   <p>First, the project proposes a global framework (including more than 150 countries all over the world) to study the influence of climate change on migration. Our dataset spans the 30-year period over 1990-2020. To characterize countries, we include proxies for fast-and slow-onset meteorological events as a way of measuring countries' exposure to climate change, and a large set of country-specific socio-economic, health, political, and governance factors.</p>
           #   <p>Second, the project analyzes the role of neighboring countries on migration flows. To identify neighboring countries, we allow not only for geographical proximity, but also for economic, and cultural proximity between pairs of countries.</p>
           #   <p>The main contributions of this project are the following:</p>
           #   <ol>
@@ -1178,7 +1224,7 @@ ui <- fluidPage(
             <ol>
               <li>We propose a global framework (150+ countries) to examine the influence of climate change on migration:
                 <ul>
-                  <li>Our data spans the period from 1990 to 2017;</li>
+                  <li>Our data spans the period from 1990 to 2020;</li>
                   <li>To characterize countries, we include proxies for meteorological events to measure their exposure to climate change, and a set of country-specific socio-economic, health, political, and governance factors.</li>
                 </ul>
               </li>
@@ -1500,35 +1546,45 @@ ui <- fluidPage(
                 size = "16px"), #ICON => HEIGHT and WIDTH
               "Date Sort"), #TEXT on RIGHT-SIDE
             ##### AUTHOR(s)-YEAR #####
-            WORKING.PAPER_Card( #WORKING-PAPER Card Function
-              WORKING_PAPER = "Full WORKING-PAPER Title", #WORKING-PAPER => TITLE
-              AUTHORs = "Author n°1", #AUTHOR(s) => NAME(s)
-              WORKING_PAPER_SERIEs = "WORKING-PAPER-Series", #WORKING-PAPER => SERIEs
-              WORKING_PAPER_NUMBER = "X", #WORKING-PAPER => NUMBER
-              INSTITUTION_LINK = "http://www.example.com", #Link To INSTITUTION
-              INSTITUTION = "Full INSTITUTION Name", #INSTITUTION => NAME  
-              DATE = "October 2023", #WORKING-PAPER => DATE
-              LINK = "http://www.example.com"), #Link To WORKING-PAPER
+            # WORKING.PAPER_Card( #WORKING-PAPER Card Function
+            #   WORKING_PAPER = "Full WORKING-PAPER Title", #WORKING-PAPER => TITLE
+            #   AUTHORs = "Author n°1", #AUTHOR(s) => NAME(s)
+            #   WORKING_PAPER_SERIEs = "WORKING-PAPER-Series", #WORKING-PAPER => SERIEs
+            #   WORKING_PAPER_NUMBER = "X", #WORKING-PAPER => NUMBER
+            #   INSTITUTION_LINK = "http://www.example.com", #Link To INSTITUTION
+            #   INSTITUTION = "Full INSTITUTION Name", #INSTITUTION => NAME  
+            #   DATE = "Month Year", #WORKING-PAPER => DATE
+            #   LINK = "http://www.example.com"), #Link To WORKING-PAPER
+            ##### AUTHOR(s)-YEAR #####
+            # WORKING.PAPER_Card( #WORKING-PAPER Card Function
+            #   WORKING_PAPER = "Full WORKING-PAPER Title", #WORKING-PAPER => TITLE
+            #   AUTHORs = c("Author n°1", "Author n°2"), #AUTHOR(s) => NAME(s)
+            #   WORKING_PAPER_SERIEs = "WORKING-PAPER-Series", #WORKING-PAPER => SERIEs
+            #   WORKING_PAPER_NUMBER = "X", #WORKING-PAPER => NUMBER
+            #   INSTITUTION_LINK = "http://www.example.com", #Link To INSTITUTION
+            #   INSTITUTION = "Full INSTITUTION Name", #INSTITUTION => NAME  
+            #   DATE = "Month Year", #WORKING-PAPER => DATE
+            #   LINK = "http://www.example.com"), #Link To WORKING-PAPER
+            ##### AUTHOR(s)-YEAR #####
+            # WORKING.PAPER_Card( #WORKING-PAPER Card Function
+            #   WORKING_PAPER = "Full WORKING-PAPER Title", #WORKING-PAPER => TITLE
+            #   AUTHORs = c("Author n°1", "Author n°2", "Author n°3"), #AUTHOR(s) => NAME(s)
+            #   WORKING_PAPER_SERIEs = "WORKING-PAPER-Series", #WORKING-PAPER => SERIEs
+            #   WORKING_PAPER_NUMBER = "X", #WORKING-PAPER => NUMBER
+            #   INSTITUTION_LINK = "http://www.example.com", #Link To INSTITUTION
+            #   INSTITUTION = "Full INSTITUTION Name", #INSTITUTION => NAME  
+            #   DATE = "Month Year", #WORKING-PAPER => DATE
+            #   LINK = "http://www.example.com") #Link To WORKING-PAPER
             ##### AUTHOR(s)-YEAR #####
             WORKING.PAPER_Card( #WORKING-PAPER Card Function
-              WORKING_PAPER = "Full WORKING-PAPER Title", #WORKING-PAPER => TITLE
-              AUTHORs = c("Author n°1", "Author n°2"), #AUTHOR(s) => NAME(s)
-              WORKING_PAPER_SERIEs = "WORKING-PAPER-Series", #WORKING-PAPER => SERIEs
+              WORKING_PAPER = "Climate, Conflict and International Migration", #WORKING-PAPER => TITLE
+              AUTHORs = c("Evangelina A. Dardati", "Thibault Laurent", "Paula Margaretic", "Christine Thomas-Agnan"), #AUTHOR(s) => NAME(s)
+              WORKING_PAPER_SERIEs = "TSE Working Paper", #WORKING-PAPER => SERIEs
               WORKING_PAPER_NUMBER = "X", #WORKING-PAPER => NUMBER
-              INSTITUTION_LINK = "http://www.example.com", #Link To INSTITUTION
-              INSTITUTION = "Full INSTITUTION Name", #INSTITUTION => NAME  
-              DATE = "December 2023", #WORKING-PAPER => DATE
+              INSTITUTION_LINK = "https://www.tse-fr.eu/", #Link To INSTITUTION
+              INSTITUTION = "Toulouse School of Economics (TSE)", #INSTITUTION => NAME
+              DATE = "August 2024", #WORKING-PAPER => DATE
               LINK = "http://www.example.com"), #Link To WORKING-PAPER
-            ##### AUTHOR(s)-YEAR #####
-            WORKING.PAPER_Card( #WORKING-PAPER Card Function
-              WORKING_PAPER = "Full WORKING-PAPER Title", #WORKING-PAPER => TITLE
-              AUTHORs = c("Author n°1", "Author n°2", "Author n°3"), #AUTHOR(s) => NAME(s)
-              WORKING_PAPER_SERIEs = "WORKING-PAPER-Series", #WORKING-PAPER => SERIEs
-              WORKING_PAPER_NUMBER = "X", #WORKING-PAPER => NUMBER
-              INSTITUTION_LINK = "http://www.example.com", #Link To INSTITUTION
-              INSTITUTION = "Full INSTITUTION Name", #INSTITUTION => NAME  
-              DATE = "March 2024", #WORKING-PAPER => DATE
-              LINK = "http://www.example.com") #Link To WORKING-PAPER
             ),
           
           ##### PRESENTATION(s) #####
@@ -1556,8 +1612,8 @@ ui <- fluidPage(
             PRESENTATION_Card( #PRESENTATION Card Function
               PRESENTATION = "Exploring the Different International Migration Flow Estimates", #PRESENTATION => TITLE
               SPEAKERs = "Thibault Laurent", #SPEAKER(s) => NAME(s)
-              ORGANIZER_LINK = "http://climbproject.org/", #Link To ORGANIZER
-              ORGANIZER = "Climate-Induced Migration: Big Data & Predictive Analytics (CLIMB)", #ORGANIZER => NAME
+              ORGANIZERs_LINK = "http://climbproject.org/", #Link To ORGANIZER
+              ORGANIZERs = "Climate-Induced Migration: Big Data & Predictive Analytics (CLIMB)", #ORGANIZER => NAME
               DATE = "16-17 October 2023", #PRESENTATION => DATE
               LOCATION = "Malmö - Sweden", #PRESENTATION => LOCATION
               EVENT_LINK = "http://climbproject.org/2023/10/01/workshop-on-climate-induced-migration/", #Link To EVENT
@@ -1566,8 +1622,8 @@ ui <- fluidPage(
             PRESENTATION_Card( #PRESENTATION Card Function
               PRESENTATION = "International Mobility and Environmental Factors", #PRESENTATION => TITLE
               SPEAKERs = "Paula Margaretic", #SPEAKER(s) => NAME(s)
-              ORGANIZER_LINK = "https://www.spatialeconometricsassociation.org/", #Link To ORGANIZER
-              ORGANIZER = "Spatial Econometrics Association (SEA)", #ORGANIZER => NAME
+              ORGANIZERs_LINK = "https://www.spatialeconometricsassociation.org/", #Link To ORGANIZER
+              ORGANIZERs = "Spatial Econometrics Association (SEA)", #ORGANIZER => NAME
               DATE = "16-17 November 2023", #PRESENTATION => DATE
               LOCATION = "San Diego - United States of America (USA)", #PRESENTATION => LOCATION
               EVENT_LINK = "https://www.spatialeconometricsassociation.org/2023-annual-sea-conference-san-diego/", #Link To EVENT
@@ -1576,12 +1632,32 @@ ui <- fluidPage(
             PRESENTATION_Card( #PRESENTATION Card Function
               PRESENTATION = "Visualizing Migration Data with R", #PRESENTATION => TITLE
               SPEAKERs = "Thibault Laurent", #SPEAKER(s) => NAME(s)
-              ORGANIZER_LINK = "https://www.spatialeconometricsassociation.org/", #Link To ORGANIZER
-              ORGANIZER = "Spatial Econometrics Association (SEA)", #ORGANIZER => NAME
+              ORGANIZERs_LINK = "https://www.spatialeconometricsassociation.org/", #Link To ORGANIZER
+              ORGANIZERs = "Spatial Econometrics Association (SEA)", #ORGANIZER => NAME
               DATE = "16-17 November 2023", #PRESENTATION => DATE
               LOCATION = "San Diego - United States of America (USA)", #PRESENTATION => LOCATION
               EVENT_LINK = "https://www.spatialeconometricsassociation.org/2023-annual-sea-conference-san-diego/", #Link To EVENT
-              EVENT = "2023 Annual SEA Conference") #EVENT => NAME  
+              EVENT = "2023 Annual SEA Conference"), #EVENT => NAME
+            ##### SECHI-2024-E-DARDATI #####
+            PRESENTATION_Card( #PRESENTATION Card Function
+              PRESENTATION = "Climate, Conflict and International Migration", #PRESENTATION => TITLE
+              SPEAKERs = "Evangelina A. Dardati", #SPEAKER(s) => NAME(s)
+              ORGANIZERs_LINK = "https://www.sechi.cl/", #Link To ORGANIZER
+              ORGANIZERs = "Sociedad de Economía de Chile (SECHI)", #ORGANIZER => NAME
+              DATE = "4-6 September 2024", #PRESENTATION => DATE
+              LOCATION = "Concepción - Chile", #PRESENTATION => LOCATION
+              EVENT_LINK = "https://www.sechi.cl/encuentro-anual/encuentro-2024/", #Link To EVENT
+              EVENT = "Encuentro Anual SECHI 2024"), #EVENT => NAME
+            ##### LACEA-LAMES-2024-E-DARDATI #####
+            PRESENTATION_Card( #PRESENTATION Card Function
+              PRESENTATION = "Climate, Conflict and International Migration", #PRESENTATION => TITLE
+              SPEAKERs = "Evangelina A. Dardati", #SPEAKER(s) => NAME(s)
+              ORGANIZERs_LINK = c("https://www.lacea.org/portal/", "https://www.econometricsociety.org/"), #Link(s) To ORGANIZER(s)
+              ORGANIZERs = c("Latin American and Caribbean Economic Association (LACEA)", "Latin American and Caribbean Chapter of the Econometric Society (LAMES)"), #ORGANIZER(s) => NAME(s)
+              DATE = "14-16 November 2024", #PRESENTATION => DATE
+              LOCATION = "Montevideo - Uruguay", #PRESENTATION => LOCATION
+              EVENT_LINK = "https://www.lacealames2024.org/", #Link To EVENT
+              EVENT = "LACEA-LAMES 2024 Annual Meeting") #EVENT => NAME
             )
           )
         ),
