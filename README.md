@@ -14,3 +14,8 @@ Here, find all files used for **CLIMINET:**
 *Our own GeoSpatial Data and the enhanced version of International MiGration Stock Data are located in **R/UI_and_Server/CLIMINET/Données**.*
 
 **All this work fits into a broader framework &#8658; [Belmont Forum](https://www.belmontforum.org/archives/projects/international-migration-climate-change-and-network-effects-a-worldwide-study).**
+
+To reproduce CLIMINET's R environment `renv.lock` file is available in R/UI_and_SERVER/CLIMINET. To use `renv.lock` file, run next command:
+   ```r
+   renv::restore()
+   ```
