@@ -1580,11 +1580,11 @@ ui <- fluidPage(
               WORKING_PAPER = "Climate, Conflict and International Migration", #WORKING-PAPER => TITLE
               AUTHORs = c("Evangelina A. Dardati", "Thibault Laurent", "Paula Margaretic", "Christine Thomas-Agnan"), #AUTHOR(s) => NAME(s)
               WORKING_PAPER_SERIEs = "TSE Working Paper", #WORKING-PAPER => SERIEs
-              WORKING_PAPER_NUMBER = "X", #WORKING-PAPER => NUMBER
+              WORKING_PAPER_NUMBER = "24-1575", #WORKING-PAPER => NUMBER
               INSTITUTION_LINK = "https://www.tse-fr.eu/", #Link To INSTITUTION
               INSTITUTION = "Toulouse School of Economics (TSE)", #INSTITUTION => NAME
               DATE = "August 2024", #WORKING-PAPER => DATE
-              LINK = "http://www.example.com"), #Link To WORKING-PAPER
+              LINK = "https://www.tse-fr.eu/fr/publications/climate-conflict-and-international-migration"), #Link To WORKING-PAPER
             ),
           
           ##### PRESENTATION(s) #####
