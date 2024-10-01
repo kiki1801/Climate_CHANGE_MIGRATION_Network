@@ -1278,7 +1278,7 @@ ui <- fluidPage(
           PARTNER = "Belmont Forum"), #PARTNER Full Name
         ##### IAI Card #####
         PARTNER_Card( #PARTNER Card Function
-          LINK = "https://www.iai.int/en/#", #Link To IAI
+          LINK = "https://www.iai.int/en/", #Link To IAI
           SOURCE = "Partners/IAI/IAI.png", #LINK To LOGO
           WIDTH = "200px", HEIGHT = "190px", #LOGO => WITDH/HEIGHT
           id_attribute = "iai", #IAI => LOGO => id_attribute
