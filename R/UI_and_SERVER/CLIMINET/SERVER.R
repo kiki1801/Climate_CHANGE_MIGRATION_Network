@@ -223,7 +223,7 @@ server <- function(input, output, session) {
            if (DataValue === 'Publications') { //Retrieve Div that have a 'data-value' attribute === PUBLICATION(s)
                var $CardsInDiv = $(this).find('.card'); //Find all child elements with class='card'
                $Cards = $Cards.add($CardsInDiv);}}); //Add CardsInDiv To $Cards
-         //Create an ARRAY populated with 'data-date' and 'data-title atttributes from each card element
+         //Create an ARRAY populated with 'data-date' and 'data-title' atttributes from each card element
          var CardsData = []; //Create an ARRAY
          $Cards.each(function() { //Iterate over each Card in Cards
           var DateValue = $(this).attr('data-date'); //Retrieve DateValue
@@ -252,7 +252,7 @@ server <- function(input, output, session) {
            if (DataValue === 'Working Papers') { //Retrieve Div that have a 'data-value' attribute === WORKING-PAPER(s)
                var $CardsInDiv = $(this).find('.card'); //Find all child elements with class='card'
                $Cards = $Cards.add($CardsInDiv);}}); //Add CardsInDiv To $Cards
-         //Create an ARRAY populated with 'data-date' and 'data-title atttributes from each card element
+         //Create an ARRAY populated with 'data-date' and 'data-title' atttributes from each card element
          var CardsData = []; //Create an ARRAY
          $Cards.each(function() { //Iterate over each Card in Cards
           var DateValue = $(this).attr('data-date'); //Retrieve DateValue
@@ -281,7 +281,7 @@ server <- function(input, output, session) {
            if (DataValue === 'Presentations') { //Retrieve Div that have a 'data-value' attribute === PRESENTATION(s)
                var $CardsInDiv = $(this).find('.card'); //Find all child elements with class='card'
                $Cards = $Cards.add($CardsInDiv);}}); //Add CardsInDiv To $Cards
-         //Create an ARRAY populated with 'data-date' and 'data-title atttributes from each card element
+         //Create an ARRAY populated with 'data-date' and 'data-title' atttributes from each card element
          var CardsData = []; //Create an ARRAY
          $Cards.each(function() { //Iterate over each Card in Cards
           var DateValue = $(this).attr('data-date'); //Retrieve DateValue
