@@ -2,7 +2,7 @@
 #####                Climate ChanGe MiGration Network                #####
 ##### Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques #####
 #####                   KYLLIAN JAMES | 2023-11-14                   #####
-#####                        Mod.: 2024-10-02                        #####
+#####                        Mod.: 2024-10-03                        #####
 #####                               UI                               #####
 ##########################################################################
 
