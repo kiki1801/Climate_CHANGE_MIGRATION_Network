@@ -66,9 +66,11 @@ server <- function(input, output, session) {
       #World Map View => CENTER => LONGITUDE = 0 | LATITUDE = 0 | Zoom Level = 1
       setView(lng = 0, lat = 0, zoom = 1) %>%
       addDrawToolbar(position = "topleft", #ToolBAR => POSITION
+                     polylineOptions = FALSE,
                      polygonOptions = drawPolygonOptions(shapeOptions = drawShapeOptions(
                        #Stroke Attributes | Fill Attributes
-                       stroke = TRUE, color = "#0000FF", weight = 1.5, opacity = 0.75, fill = TRUE, fillOpacity = 0.25)), 
+                       stroke = TRUE, color = "#0000FF", weight = 1.5, opacity = 0.75, fill = TRUE, fillOpacity = 0.25)),
+                     circleOptions = FALSE, rectangleOptions = FALSE, markerOptions = FALSE, circleMarkerOptions = FALSE,
                      editOptions = editToolbarOptions(edit = FALSE, remove = TRUE))
     
         })
