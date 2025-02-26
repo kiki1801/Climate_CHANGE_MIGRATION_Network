@@ -8,7 +8,7 @@ Here, find all files used for **CLIMINET:**
   - **/REGIONs** contains countries' information from [UN | Statistics Division](https://unstats.un.org/unsd/methodology/m49/) and [World Bank](https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups).
 - **R** includes files that explain how we create some data and all the source code:
   - **/CCMN_GeoDATA** explain how we create our own Geospatial Data from raw ones;
-  - **/CCMN_GeoDATA_DATA_DICTIONARY** provides descriptions of the variables and attributes included in our Geospatial Data;
+  - **/CCMN_GeoDATA_DATA_DICTIONARY** provides descriptions of the variables included in our Geospatial Data;
   - **/CCMN_IMS_from_ONU** explain how we create an enhanced version of International MIGRANT Stock Data, which incorporates new variables;
   - **/UI_and_SERVER** contains **CLIMINET Website** and **Data Exploration Application (DEA)** source code.
 
