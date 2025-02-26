@@ -1,0 +1,137 @@
+---
+title: "Climate Change Migration Network"
+subtitle: "World Administrative Boundaries - Data Dictionary"
+author: "Kyllian James | Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques"
+date: "`r paste('Creation Date:', '2025-02-26', '|', 'Last Modified Date:', as.Date(file.info('CCMN_GeoDATA_DATA_DICTIONARY.RMD')$mtime))`"
+output: 
+  html_document:
+    toc: no
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: yes
+    number_subsections: yes
+    always_allow_html: true
+---
+
+```{=html}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;700&display=swap" rel="stylesheet">
+<style>body{font-family: 'DM Sans', sans-serif;text-align: justify;}</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Data Dictionary
+
+```{r, message=FALSE, warning=FALSE, results="asis"}
+#Load Libraries
+library(knitr)
+library(dplyr)
+library(tidyr)
+library(DT)
+
+#Create DATA DICTIONARY
+DATA_DICTIONARY <- data.frame(
+  Variable = c(
+    "NAME", "VISUALIZATION_NAME", "ISO2", "ISO3", "M49_CODE", "SOVRN", "Claimed", "COUNTRY", 
+    "CONTINENT", "CONTINENT_CODE", "SREGION", "SREGION_CODE", "IREGION", "IREGION_CODE", "SIREGION", "SIREGION_CODE", 
+    "LDC", "LLDC", "SIDS", "IncomeLevel", "ContinentalREGION", "GeoREGION", "MoreLess", "MoreLessLeast", "DevLevel", 
+    "Label", "CLRCode", 
+    "AREA", "BBOX_AREA", 
+    "Centroid_X | Centroid_Y", "Centroid_of_LARGEST_POLYGON_X | Centroid_of_LARGEST_POLYGON_Y", "BBOX_Centroid_X | BBOX_Centoid_Y",
+    "SOURCE", "geometry"), 
+  Description  = c(
+    "The country/territory name in uppercase letters", "The country/territory name in lowercase letter", 
+    "Alpha-2 code for the country/territory", "Alpha-3 code for the country/territory", "Numeric code for the country/territory", 
+    "The sovereign country/territory of the area (NAME)", 
+    "The names of the countries/territories that have claimed an area (NAME)", 
+    "The country/territory name where an area (NAME) is located on its land", 
+    "The location of the country/terrritory based on its continental landmass (Continental Affiliation)", 
+    "Numeric code for the continent (M49_CODE)", 
+    "The location of the country/terrritory based on its sub-region affiliation", "Numeric code for the sub-region (M49_CODE)", 
+    "The location of the country/terrritory based on its intermediate region affiliation", 
+    "Numeric code for the intermediate region (M49_CODE)", 
+    "The location of the country/terrritory based on its sub-region and intermediate region affiliation", 
+    "Numeric code for the sub-region and intermediate region (M49_CODE) ", 
+    "Indicates whether an area is listed as Least Developed Countries (LDC) by OHRLLS", 
+    "Indicates whether an area is listed as Land-Locked Developing Countries (LLDC) by OHRLLS", 
+    "Indicates whether an area is listed as Small Island Developing States (SIDS) by OHRLLS", 
+    "Indicates the income level of the country based on Gross National Income (GNI)", 
+    "The location of the country/terrritory based on its continental landmass (Continental Affiliation)", 
+    "The location of the country/terrritory based on Sustainable Development Goals (SDG) Classification", 
+    "The development level of the country/territory based on International Migrant Stock Data (2020)", 
+    "The development level of the country/territory based on International Migrant Stock Data (2020)", 
+    "The development level of the country/territory based on OHRLLS Classifications", 
+    "The hover text of the country/territory used on an interactive world map in our Data Exploration Application", 
+    "The color code for the country/territory", 
+    "The total area of the country’s/territory’s Geometries", "The area of the country’s/territory’s bounding box", 
+    "The centroid coordinates of the country’s/territory’s Geometries", 
+    "The centroid coordinates of the largest (sub)polygon of the country/territory", 
+    "The centroid coordinates of the country’s/territory’s bounding box",
+    "The source(s) of the Geometries", "Spatial vector data of the country"),
+  Format = c(
+    "character", "character", "character", "character", "character", "character", "character", "character", 
+    "character", "character", "character", "character", "character", "character", "character", "character", 
+    "character", "character", "character", "character", "character", "character", "character", "character", "character", 
+    "character", "character", 
+    "numeric", "numeric", 
+    "numeric", "numeric", "numeric",
+    "character", "sfc_MULTYPOLYGON"),
+  Unit = c(
+    "-", "-", "-", "-", "-", "-", "-", "-", 
+    "-", "-", "-", "-", "-", "-", "-", "-", 
+    "-", "-", "-", "-", "-", "-", "-", "-", "-", 
+    "-", "-", 
+    "km2", "km2", 
+    "Degrees", "Degrees", "Degrees",
+    "-", "-"),
+  Possible_Values = c(
+    "-", "-", "-", "-", "-", "-", "-", "-",
+    "Africa | Americas | Antarctica | Asia | Europe | Oceania", "002 | 019 | NA | 142 | 150 | 009", 
+    "17 Sub-Regions", "-", "7 Intermediate Regions", "-", "22 Sub-Regions and Intermediate Regions", "-", 
+    "Marked with a small cross (x) if the area is in this development level", 
+    "Marked with a small cross (x) if the area is in this development level", 
+    "Marked with a small cross (x) if the area is in this development level", 
+    "HIGH | UPPER-MIDDLE | LOWER-MIDDLE | LOW", 
+    "Africa | Asia | Europe | Latin America and the Caribbean | Northern America | Oceania", "8 Geographic Regions", 
+    "Less Developed | More Developed", 
+    "Least Developed | Less Developed* | More Developed", 
+    "LDC* | LLDC* | SIDS* | LDC/LLDC | LDC/SIDS", 
+    "-", "-", 
+    "-", "-", 
+    "-", "-", "-",
+    "-", "-"),
+  Sources = c(
+    "-", "-", 
+    "International Organization for Standardization (ISO)", 
+    "International Organization for Standardization (ISO)", 
+    "International Organization for Standardization (ISO) | United Nations Statistic Division (UNSD)", 
+    "-", "-", "-", 
+    "United Nations Statistic Division (UNSD)", "United Nations Statistic Division (UNSD)", 
+    "United Nations Statistic Division (UNSD)", "United Nations Statistic Division (UNSD)", 
+    "United Nations Statistic Division (UNSD)", "United Nations Statistic Division (UNSD)", 
+    "United Nations Statistic Division (UNSD)", "United Nations Statistic Division (UNSD)", 
+    "United Nations Statistic Division (UNSD)", "United Nations Statistic Division (UNSD)", "United Nations Statistic Division (UNSD)",
+    "World Bank | 2020-07-01", 
+    "United Nations Statistic Division (UNSD)", "United Nations Statistic Division (UNSD)", 
+    "UN | Population Division (2020)", 
+    "UN | Population Division (2020) | United Nations Statistic Division (UNSD)", "United Nations Statistic Division (UNSD)", 
+    "-", "-", 
+    "-", "-", 
+    "-", "-", "-",
+    "-", "-"))
+
+#Render as an interactive table
+datatable(DATA_DICTIONARY, options = list(scrollX = TRUE, autoWidth = TRUE,
+                                          columnDefs = list(
+                                            list(width = '475px', targets = 0), 
+                                            list(width = '700px', targets = 1), 
+                                            list(width = '100px', targets = 2), 
+                                            list(width = '100px', targets = 3), 
+                                            list(width = '550px', targets = 4), 
+                                            list(width = '600px', targets = 5))), 
+          caption = "Data Dicitonary For World Countries Boundaries",
+          style = "bootstrap", rownames = FALSE) %>% formatStyle(columns = c(1:6), textAlign = "left")
+```
