@@ -1,0 +1,935 @@
+---
+title: "Climate Change Migration Network"
+subtitle: "International Migrant Stock Data"
+author: "Kyllian James | Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques"
+date: "`r paste('Creation Date:', '2023-10-16', '|', 'Last Modified Date:', as.Date(file.info('CCMN_iMIGRANT_STOCK.RMD')$mtime))`"
+output: 
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: yes
+    number_subsections: yes
+    always_allow_html: true
+    code_folding: "hide"
+---
+
+```{=html}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;700&display=swap" rel="stylesheet">
+<style>body{font-family: 'DM Sans', sans-serif;text-align: justify;}</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Libraries
+
+```{r, message=FALSE, warning=FALSE, results="asis"}
+library(knitr)
+library(readxl)
+library(openxlsx)
+library(dplyr)
+library(tidyr)
+library(DescTools)
+library(DT)
+library(ggplot2)
+library(ggiraph)
+library(gridExtra)
+library(plotly)
+
+LibrariesVersions <- data.frame(
+  Library = c("knitr", "readxl", "openxlsx", "dplyr", "tidyr", 
+              "DescTools", "DT", "ggplot2", "ggiraph", "gridExtra", "plotly"), 
+  Version = c(as.character(packageVersion("knitr")), as.character(packageVersion("readxl")), 
+              as.character(packageVersion("openxlsx")), as.character(packageVersion("dplyr")), 
+              as.character(packageVersion("tidyr")), as.character(packageVersion("DescTools")), 
+              as.character(packageVersion("DT")), as.character(packageVersion("ggplot2")), 
+              as.character(packageVersion("ggiraph")), as.character(packageVersion("gridExtra")), 
+              as.character(packageVersion("plotly"))))
+
+datatable(LibrariesVersions, options = list(scrollX = TRUE, autoWidth = TRUE), 
+          caption = paste("Libraries Versions | R",  
+                          gsub("^R version\\s*|\\s*\\(\\d{4}-\\d{2}-\\d{2} ucrt\\)", "", R.version.string)),
+          style = "bootstrap", rownames = FALSE) %>%
+          formatStyle(columns = 1, textAlign = "left") %>% formatStyle(columns = 2, textAlign = "center")
+```
+
+# ISO 3166-1 and M49 Codes
+
+ISO 3166-1 is an international standard from [International Organization for Standardization (ISO)](https://www.iso.org/obp/ui/#search), with 3 codes:
+
+-   Alpha-2 Code (ISO2)
+-   Alpha-3 Code (ISO3)
+-   Numeric Code
+
+Numeric Code $\equiv$ M49 Code from [United Nations Statistic Division (UNSD)](https://unstats.un.org/unsd/methodology/m49/). ISO 3166-1 is available for autonomous countries or territories, while M49 is also available for world or continents.
+
+How to obtain a code? Be a United Nations (UN) or a UN Specialized Agencies (FAO \| World Bank \| WHO \| ...) Member State.
+
+There are more Numeric/M49 Code (249) than countries in UN (198).
+
+# International Migrant Stock Data
+
+Data are taken from [UN \| Population Division](https://www.un.org/development/desa/pd/content/international-migrant-stock). Estimates of the number (or "stock") of international migrants (1990-2020) are available for 235 countries/areas of the world. The international migrant population corresponds to the total number of migrants present in a given country at a given moment in time (foreign-born). Tourists are not counted among migrants.
+
+Data are organized on the basis of `Residence`-`Birth` pairs according to certain classifications or countries/areas:
+
+-   [6 Continental Regions](https://unstats.un.org/unsd/methodology/m49/) with 22 Sub-Regions and Intermediate Regions:
+    -   Africa
+    -   Asia
+    -   Europe
+    -   Latin America and the Caribbean
+    -   Northern America
+    -   Oceania
+-   8 Geographic Regions based on the [Sustainable Development Goals (SDG) Classification from UN](https://unstats.un.org/sdgs/indicators/regional-groups/):
+    -   Australia and New Zealand
+    -   Central and Southern Asia
+    -   Eastern and South-Eastern Asia
+    -   Europe and Northern America
+    -   Latin America and the Caribbean
+    -   Northern Africa and Western Asia
+    -   Oceania (Australia and New Zealand excluded)
+    -   Sub-Saharan Africa
+-   2 Development Levels:
+    -   More Developed Regions:
+        -   Australia and New Zealand and Japan
+        -   Europe
+        -   Northern America
+    -   Less Developed Regions:
+        -   Africa
+        -   Asia (Japan excluded)
+        -   Latin America and the Caribbean
+        -   Oceania (Australia and New Zealand excluded)
+-   3 Development Levels (137/232) from [OHRLLS](https://www.un.org/ohrlls/):
+    -   Least Developed Countries (LDC \| 47)
+    -   Land-Locked Developing Countries (LLDC \| 32)
+    -   Small Island Developing States (SIDS \| 58)
+-   3/4 Income Levels based on Gross National Income (GNI \| [World Bank 2020](https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups)):
+    -   High-Income Countries
+    -   Middle-Income Countries
+        -   Upper-Middle-Income Countries
+        -   Lower-Middle-Income Countries
+    -   Low-Income Countries
+
+Remark: Income Levels are not available for all countries/areas.
+
+## Data Exploration
+
+International Migrant Stocks in the World (`Residence`) born in Europe and Northern America (`Birth`) are shown in this table. We have estimates from 1990 to 2020 (`Year`). 
+
+```{r, warning=FALSE, message=FALSE}
+#Load XLSX File
+iMIGRANT_Stock_Total <- read_xlsx(
+  "../Données/iMIGRANT_STOCK/ims_sex_residence_and_birth_2020.xlsx", sheet = "Table 1", skip = 8) %>%
+  select(2, 4, 6:14) %>%
+  rename(Residence = 1, ResidenceCode = 2, Birth = 3, BirthCode = 4, 
+         `1990` = 5, `1995` = 6, `2000` = 7, `2005` = 8, `2010` = 9, `2015` = 10, `2020` = 11)
+#One line (with all Years) for each Residence-Birth to one line/Year for each Residence-Birth
+iMIGRANT_Stock_Total <- pivot_longer(iMIGRANT_Stock_Total, cols = 5:11) %>% rename(Year = 5, iMIGRANT_Stock_Total = 6)
+
+#iMIGRANT_Stock_Males
+iMIGRANT_Stock_Males <- read_xlsx(
+  "../Données/iMIGRANT_STOCK/ims_sex_residence_and_birth_2020.xlsx", sheet = "Table 1", skip = 8) %>% 
+  select(2, 4, 6:7, 15:21) %>% 
+  rename(Residence = 1, ResidenceCode = 2, Birth = 3, BirthCode = 4, 
+         `1990` = 5, `1995` = 6, `2000` = 7, `2005` = 8, `2010` = 9, `2015` = 10, `2020` = 11)
+iMIGRANT_Stock_Males <- pivot_longer(iMIGRANT_Stock_Males, cols = 5:11) %>% rename(Year = 5, iMIGRANT_Stock_Males = 6)
+
+#iMIGRANT_Stock_Females
+iMIGRANT_Stock_Females <- read_xlsx(
+  "../Données/iMIGRANT_STOCK/ims_sex_residence_and_birth_2020.xlsx", sheet = "Table 1", skip = 8) %>% 
+  select(2, 4, 6:7, 22:28) %>% 
+  rename(Residence = 1, ResidenceCode = 2, Birth = 3, BirthCode = 4, 
+         `1990` = 5, `1995` = 6, `2000` = 7, `2005` = 8, `2010` = 9, `2015` = 10, `2020` = 11)
+iMIGRANT_Stock_Females <- pivot_longer(iMIGRANT_Stock_Females, cols = 5:11) %>% rename(Year = 5, iMIGRANT_Stock_Females = 6)
+
+#Combine iMIGRANT_Stock_Total | iMIGRANT_Stock_Males | iMIGRANT_Stock_Females
+iMIGRANT_Stock <- cbind(
+  iMIGRANT_Stock_Total, iMIGRANT_Stock_Males[length(iMIGRANT_Stock_Males)], iMIGRANT_Stock_Females[length(iMIGRANT_Stock_Females)])
+
+#Example: World-(Europe and NA)
+kable(iMIGRANT_Stock[57:63, c(1, 3, 5:8)], row.names = FALSE, align = c("l", "l", "c", "c", "c", "c"),
+      caption = "World's Migrant Stocks born in Europe and Northern America (1990-2020)")
+```
+
+This was an example between World-(Europe and Northern America). Data are also available for more areas/countries (282).
+
+```{r}
+#Residence(s) in XLSX
+Residences_iMIGRANT_Stock <- unique(iMIGRANT_Stock[c("Residence", "ResidenceCode")])
+datatable(Residences_iMIGRANT_Stock, options = list(scrollX = TRUE, autoWidth = TRUE), 
+          caption = "Residences in International Migrant Stock Data", style = "bootstrap", rownames = FALSE) %>%
+  # formatStyle(columns = 1, textAlign = "left", `text-transform` = "uppercase") %>%
+  formatStyle(columns = 1, textAlign = "left") %>% formatStyle(columns = 2, textAlign = "center")
+```
+
+A few minor alterations have been made to `Residence` and `Birth` columns.
+
+```{r}
+#Columns: Residence | Birth
+iMIGRANT_Stock.DATA <- iMIGRANT_Stock %>%
+  mutate_if(is.character, ~case_when(
+    . == "Oceania (excluding Australia and New Zealand)" ~ "Oceania (Australia and New Zealand excluded)",
+    . == "Developed regions" ~ "More Developed Countries",
+    . == "Less developed regions" ~ "Less Developed Countries",
+    . == "Less developed regions, excluding least developed countries" ~ 
+      "Less Developed Countries (Least Developed Countries excluded)",
+    . == "Less developed regions, excluding China" ~ "Less Developed Countries (China excluded)",
+    . == "Least developed countries" ~ "Least Developed Countries (LDC)",
+    . == "Land-locked Developing Countries (LLDC)" ~ "Land-Locked Developing Countries (LLDC)",
+    . == "Small island developing States (SIDS)" ~ "Small Island Developing States (SIDS)",
+    . == "High-income countries" ~ "High-Income Countries",
+    . == "Middle-income countries" ~ "Middle-Income Countries",
+    . == "Upper-middle-income countries" ~ "Upper-Middle-Income Countries",
+    . == "Lower-middle-income countries" ~ "Lower-Middle-Income Countries",
+    . == "Low-income countries" ~ "Low-Income Countries",
+    . == "Bolivia (Plurinational State of)" ~ "Bolivia",
+    . == "China, Hong Kong SAR*" ~ "Hong Kong SAR",
+    . == "China, Macao SAR*" ~ "Macao SAR",
+    . == "China, Taiwan Province of China*" ~ "Taiwan (Province of China)",
+    . == "Iran (Islamic Republic of)" ~ "Iran",
+    . == "Micronesia (Fed. States of)" ~ "Micronesia",
+    . == "Saint Helena*" ~ "Saint Helena, Ascension and Tristan da Cunha",
+    . == "Saint Martin (French part)*" ~ "Saint Martin",
+    . == "Sint Maarten (Dutch part)*" ~ "Sint Maarten",
+    . == "Turkey" ~ "Türkiye",
+    . == "United Kingdom*" ~ "United Kingdom of Great Britain and Northern Ireland",
+    . == "Venezuela (Bolivarian Republic of)" ~ "Venezuela", TRUE ~ .)) %>%
+  mutate(across(c(Residence, Birth), ~gsub("\\*", "", .)))
+```
+
+## Visualization (Continental Regions)
+
+Remark: The Stocks constitute a fraction of the information, we need to know the Shares.
+
+We need to sum the International Migrant Stocks from these 6 Regions to calculate the Shares.
+
+```{r}
+#Keep iMIGRANT_Stock from CRs (6)
+iMIGRANT_Stock.FDATA <- iMIGRANT_Stock.DATA %>% filter(Residence == "WORLD", BirthCode %in% c(903, 935, 908, 904, 905, 909))
+
+#Make ∑/Year
+iMIGRANT_Stock.FDATA_CRs <- iMIGRANT_Stock.FDATA %>% group_by(Year) %>% 
+  summarize(iMIGRANT_Stock_Total_CRs = sum(iMIGRANT_Stock_Total), 
+            iMIGRANT_Stock_Males_CRs = sum(iMIGRANT_Stock_Males), 
+            iMIGRANT_Stock_Females_CRs = sum(iMIGRANT_Stock_Females))
+
+#Check Correct ∑
+iMIGRANT_Stock.DATA_World <- iMIGRANT_Stock.DATA %>% filter(Residence == "WORLD", Birth == "WORLD")
+
+#∑/Year !Correct => Omitted DATA
+iMIGRANT_Stock.FDATA_CRs <- merge(iMIGRANT_Stock.FDATA_CRs, iMIGRANT_Stock.DATA_World, by = "Year") %>% 
+  rename(iMIGRANT_Stock_Total_World = iMIGRANT_Stock_Total, 
+         iMIGRANT_Stock_Males_World = iMIGRANT_Stock_Males, 
+         iMIGRANT_Stock_Females_World = iMIGRANT_Stock_Females) %>%
+  mutate(
+    Share_of_Omitted_Stock_Total = round(((iMIGRANT_Stock_Total_World - iMIGRANT_Stock_Total_CRs) / iMIGRANT_Stock_Total_World) * 100, 3),
+    Share_of_Omitted_Stock_Males = round(((iMIGRANT_Stock_Males_World - iMIGRANT_Stock_Males_CRs) / iMIGRANT_Stock_Males_World) * 100, 3),
+    Share_of_Omitted_Stock_Females = 
+      round(((iMIGRANT_Stock_Females_World - iMIGRANT_Stock_Females_CRs) / iMIGRANT_Stock_Females_World) * 100, 3)) %>% 
+  select(5:8, 1, 9, 2, 12, 10, 3, 13, 11, 4, 14)
+
+#Table World-World
+datatable(iMIGRANT_Stock.FDATA_CRs[, c(1, 3, 5:14)], options = list(scrollX = TRUE, autoWidth = TRUE), 
+          style = "bootstrap", rownames = FALSE, caption = "World's Migrant Stocks born in World (1990-2020)") %>%
+  formatStyle(columns = c(1, 2), textAlign = "left") %>% formatStyle(columns = c(3:14), textAlign = "center")
+```
+
+`iMIGRANT_Stock_Total_CRs` $<$ World-World Migrant Stocks (`iMIGRANT_Stock_Total_World`). There is 4-5.5% omitted data (`Share_of_Omitted_Stock_Total`) in `iMIGRANT_Stock_Total_CRs`. Where are these 4-5.5%? `XLSX` file include a row with migrants born in `Other` for countries but not for Regions, so we sum all these `Other` rows (`iMIGRANT_Stock_Total_OTHER`). `iMIGRANT_Stock_Total_OTHER` match `Share_of_Omitted_Stock_Total`?
+
+```{r}
+#Keep Other/Countries
+iMIGRANT_Stock.DATA_OTHERs <- iMIGRANT_Stock.DATA %>% filter(Birth == "Other")
+
+#∑/Year
+iMIGRANT_Stock.DATA_OTHER <- iMIGRANT_Stock.DATA_OTHERs %>% group_by(Year) %>%
+  summarize(iMIGRANT_Stock_Total_OTHER = sum(iMIGRANT_Stock_Total), 
+            iMIGRANT_Stock_Males_OTHER = sum(iMIGRANT_Stock_Males), 
+            iMIGRANT_Stock_Females_OTHER = sum(iMIGRANT_Stock_Females))
+
+#Variable(s)...
+iMIGRANT_Stock.DATA_OTHER <- iMIGRANT_Stock.DATA_OTHER %>% 
+  mutate(
+    Residence = iMIGRANT_Stock.FDATA_CRs$Residence, 
+    ResidenceCode = iMIGRANT_Stock.FDATA_CRs$ResidenceCode,
+    Birth = "OTHER", BirthCode = 2003) %>% select(5:8, everything())
+
+#Table World-OTHER
+kable(iMIGRANT_Stock.DATA_OTHER[ , c(1, 3, 5:8)], row.names = FALSE, 
+      align = c("l", "l", "c", "c", "c", "c"), 
+      caption = "World's Migrant Stocks born in Other (1990-2020)")
+```
+
+`iMIGRANT_Stock_Total_World` $=$ `iMIGRANT_Stock_Total_CRs` $+$ `iMIGRANT_Stock_Total_OTHER`. We can include a seventh region called `OTHER` to make our visualization. Now, we are able to calculate the shares for all regions (`Share_of_iMIGRANT_Stock_Total`).
+
+```{r}
+#DATA MANIPULATION...
+iMIGRANT_Stock.DATA_OTHER <- iMIGRANT_Stock.DATA_OTHER %>% 
+  rename(iMIGRANT_Stock_Total = iMIGRANT_Stock_Total_OTHER, 
+         iMIGRANT_Stock_Males = iMIGRANT_Stock_Males_OTHER, 
+         iMIGRANT_Stock_Females = iMIGRANT_Stock_Females_OTHER)
+iMIGRANT_Stock.FDATA <- rbind(iMIGRANT_Stock.FDATA, iMIGRANT_Stock.DATA_OTHER)
+
+#Calculate SHARE/iMIGRANT_Stock_Total
+SHAREs <- list()
+for (ROW in 1:nrow(iMIGRANT_Stock.FDATA)) {
+  YYYY <- iMIGRANT_Stock.FDATA$Year[ROW]
+  iMIGRANT_Stock <- iMIGRANT_Stock.FDATA_CRs$iMIGRANT_Stock_Total_World[iMIGRANT_Stock.FDATA_CRs$Year == YYYY]
+  SHARE <- round((iMIGRANT_Stock.FDATA$iMIGRANT_Stock_Total[ROW] / iMIGRANT_Stock) * 100, 5)
+  SHAREs[[ROW]] <- SHARE}
+iMIGRANT_Stock.FDATA$Share_of_iMIGRANT_Stock_Total <- unlist(SHAREs)
+
+#Calculate SHARE/iMIGRANT_Stock_Males
+SHAREs <- list()
+for (ROW in 1:nrow(iMIGRANT_Stock.FDATA)) {
+  YYYY <- iMIGRANT_Stock.FDATA$Year[ROW]
+  iMIGRANT_Stock <- iMIGRANT_Stock.FDATA_CRs$iMIGRANT_Stock_Males_World[iMIGRANT_Stock.FDATA_CRs$Year == YYYY]
+  SHARE <- round((iMIGRANT_Stock.FDATA$iMIGRANT_Stock_Males[ROW] / iMIGRANT_Stock) * 100, 5)
+  SHAREs[[ROW]] <- SHARE}
+iMIGRANT_Stock.FDATA$Share_of_iMIGRANT_Stock_Males <- unlist(SHAREs)
+
+#Calculate SHARE/iMIGRANT_Stock_Females
+SHAREs <- list()
+for (ROW in 1:nrow(iMIGRANT_Stock.FDATA)) {
+  YYYY <- iMIGRANT_Stock.FDATA$Year[ROW]
+  iMIGRANT_Stock <- iMIGRANT_Stock.FDATA_CRs$iMIGRANT_Stock_Females_World[iMIGRANT_Stock.FDATA_CRs$Year == YYYY]
+  SHARE <- round((iMIGRANT_Stock.FDATA$iMIGRANT_Stock_Females[ROW] / iMIGRANT_Stock) * 100, 5)
+  SHAREs[[ROW]] <- SHARE}
+iMIGRANT_Stock.FDATA$Share_of_iMIGRANT_Stock_Females <- unlist(SHAREs)
+
+#Table World-(Europe and NA)
+datatable(iMIGRANT_Stock.FDATA[15:21, c(1, 3, 5:11)], options = list(scrollX = TRUE, autoWidth = TRUE), 
+          style = "bootstrap", rownames = FALSE, caption = "World's Migrant Stocks (%) born in EUROPE (1990-2020)") %>%
+  formatStyle(columns = c(1, 2), textAlign = "left") %>% 
+  formatStyle(columns = c(3:9), textAlign = "center") %>% formatRound(columns = c(7:9), digits = 3)
+```
+
+`Share_of_iMIGRANT_Stock_Total` in World born in EUROPE is down, from 31.20% in 1990 to 22.55% in 2020.
+
+To visualize International Migrant Stock Data (Stocks and Shares), we will use 4 libraries (`ggplot2` \| `ggplotly` \| `ggiraph` \| `plotly`). 
+
+### Evolution
+
+We will use Line Plots and Stacked Barplots to illustrate International Migrant Stock Evolution (in Millions) from 1990 to 2020. Stacked Barplots will show International Migrant Stock Evolution in a Residence Area from $n$ Birth Areas.
+
+#### Line Plots
+
+```{r, fig.width=10}
+#N°1
+LINEs <- ggplot(iMIGRANT_Stock.FDATA_CRs, aes(x = Year)) +
+  geom_line(aes(y = iMIGRANT_Stock_Total_World, color = "iMIGRANT_Stock_Total_World", group = "iMIGRANT_Stock_Total_World")) +
+  geom_line(aes(y = iMIGRANT_Stock_Males_World, color = "iMIGRANT_Stock_Males_World", group = "iMIGRANT_Stock_Males_World")) +
+  geom_line(aes(y = iMIGRANT_Stock_Females_World, color = "iMIGRANT_Stock_Females_World", group = "iMIGRANT_Stock_Females_World")) +
+  geom_point(aes(y = iMIGRANT_Stock_Total_World, color = "iMIGRANT_Stock_Total_World", group = "iMIGRANT_Stock_Total_World")) +
+  geom_point(aes(y = iMIGRANT_Stock_Males_World, color = "iMIGRANT_Stock_Males_World", group = "iMIGRANT_Stock_Males_World")) +
+  geom_point(aes(y = iMIGRANT_Stock_Females_World, color = "iMIGRANT_Stock_Females_World", group = "iMIGRANT_Stock_Females_World")) +
+  labs(title = "International MIGRANT Stocks in World (1990-2020)", y = "International MIGRANT Stock") +
+  #200 000 To 200M
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) +
+  theme_minimal() +
+  scale_color_manual(
+    values = c("iMIGRANT_Stock_Total_World" = "black", "iMIGRANT_Stock_Males_World" = "blue", "iMIGRANT_Stock_Females_World" = "pink"), 
+    labels = c("iMIGRANT_Stock_Total_World" = "Both Sexes Combined", 
+               "iMIGRANT_Stock_Males_World" = "Males", "iMIGRANT_Stock_Females_World" = "Females")) +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "top", legend.title = element_blank())
+LINEs
+```
+
+We can follow International Migrant Stock Evolution, which has become more intense since 2005. Stocks are balanced in a fair manner between males and females (1990-2005), then leans in favor of males (2005-2020).
+
+We don't have accurate Stocks because it's static, we need to make it interactive. We also have to rescale Stocks to add "M" suffix on y-axis.
+
+```{r, fig.width=8.75, fig.height=4}
+#N°2
+LINEs_INTERACTIVE_One <- plot_ly(data = iMIGRANT_Stock.FDATA_CRs, x = ~Year, y = ~iMIGRANT_Stock_Total_World, 
+                                 type = 'scatter', name = 'Both Sexes Combined', 
+                                 mode = 'lines+markers', line = list(color = 'black'), marker = list(color = 'black'), 
+                                 text = with(iMIGRANT_Stock.FDATA_CRs, paste(" Residence:", Residence, "<br>",
+                                                                             "Birth:", Birth, "<br>", 
+                                                                             "Year:", Year, "<br>",
+                                                                             "International MIGRANT Stock (Both Sexes Combined):", 
+                                                                             paste0(format(x = iMIGRANT_Stock_Total_World, trim = TRUE, 
+                                                                                           scientific = FALSE, big.mark = " "), "M"))), 
+                                 hoverinfo = "text") %>%
+  add_trace(x = ~Year, y = ~iMIGRANT_Stock_Males_World, name = 'Males', line = list(color = 'blue'), marker = list(color = 'blue'), 
+            text = with(iMIGRANT_Stock.FDATA_CRs, paste(" Residence:", Residence, "<br>", "Birth:", Birth, "<br>", "Year:", Year, "<br>", 
+                                                        "International MIGRANT Stock (Males):", 
+                                                        paste0(format(x = iMIGRANT_Stock_Males_World, trim = TRUE, scientific = FALSE, 
+                                                                      big.mark = " "), "M"))), hoverinfo = "text") %>%
+  add_trace(x = ~Year, y = ~iMIGRANT_Stock_Females_World, name = 'Females', line = list(color = 'pink'), marker = list(color = 'pink'), 
+            text = with(iMIGRANT_Stock.FDATA_CRs, paste(" Residence:", Residence, "<br>", "Birth:", Birth, "<br>", "Year:", Year, "<br>", 
+                                                        "International MIGRANT Stock (Females):", 
+                                                        paste0(format(x = iMIGRANT_Stock_Females_World, trim = TRUE, scientific = FALSE, 
+                                                                      big.mark = " "), "M"))), hoverinfo = "text") %>% 
+  layout(title = "International MIGRANT Stocks in World (1990-2020)", 
+         xaxis = list(title = "Year"), yaxis = list(title = "International MIGRANT Stock"),
+         legend = list(x = 0.5, y = 1.05, xanchor = "center", orientation = "h"))
+LINEs_INTERACTIVE_One
+```
+
+A download button is available. We can see `Residence` | `Birth` | `Year` | Stocks in Hover Text. We don't need to rescale Stocks to add "M" suffix on y-axis, we need to do it for Hover Text.
+
+```{r, fig.width=8.75, fig.height=4}
+#N°3
+LINEs_INTERACTIVE_Two <- ggplotly(LINEs) %>% 
+  layout(legend = list(title = "", x = 0.5, y = 1.05, xanchor = "center", orientation = "h"))
+for (i in 1:length(LINEs_INTERACTIVE_Two$x$data)) {
+  LINEs_INTERACTIVE_Two$x$data[[i]]$name <- c("Both Sexes Combined", "Males", "Females")[i]}
+LINEs_INTERACTIVE_Two
+```
+
+We can't remove default Hover Text and `text` argument within `aes()` in `geom_point()` does not allow for modifications to Hover Text. Customs labels have to be redone here.
+
+```{r, fig.width=8.75, fig.height=4}
+#N°4
+LINEs_INTERACTIVE_THREE <- ggplot(iMIGRANT_Stock.FDATA_CRs) +
+  geom_line_interactive(aes(x = Year, y = iMIGRANT_Stock_Total_World, color = "iMIGRANT_Stock_Total_World", group = "iMIGRANT_Stock_Total_World")) +
+  geom_line_interactive(aes(x = Year, y = iMIGRANT_Stock_Males_World, color = "iMIGRANT_Stock_Males_World", group = "iMIGRANT_Stock_Males_World")) +
+  geom_line_interactive(aes(
+    x = Year, y = iMIGRANT_Stock_Females_World, color = "iMIGRANT_Stock_Females_World", group = "iMIGRANT_Stock_Females_World")) +
+  geom_point_interactive(aes(x = Year, y = iMIGRANT_Stock_Total_World, color = "iMIGRANT_Stock_Total_World", group = "iMIGRANT_Stock_Total_World", 
+                             tooltip = paste("Residence:", Residence, "<br>Birth:", Birth, "<br>Year:", Year, 
+                                             "<br>International MIGRANT Stock (Both Sexes Combined):", 
+                                             paste0(format(x = iMIGRANT_Stock_Total_World, trim = TRUE, 
+                                                           scientific = FALSE, big.mark = " "), "M")))) +
+  geom_point_interactive(aes(x = Year, y = iMIGRANT_Stock_Males_World, color = "iMIGRANT_Stock_Males_World", group = "iMIGRANT_Stock_Males_World", 
+                             tooltip = paste("Residence:", Residence, "<br>Birth:", Birth, "<br>Year:", Year,
+                                             "<br>International MIGRANT Stock (Males):", 
+                                             paste0(format(x = iMIGRANT_Stock_Males_World, trim = TRUE, 
+                                                           scientific = FALSE, big.mark = " "), "M")))) +
+  geom_point_interactive(aes(
+    x = Year, y = iMIGRANT_Stock_Females_World, color = "iMIGRANT_Stock_Females_World", group = "iMIGRANT_Stock_Females_World", 
+    tooltip = paste("Residence:", Residence, "<br>Birth:", Birth, "<br>Year:", Year, 
+                    "<br>International MIGRANT Stock (Females):", 
+                    paste0(format(x = iMIGRANT_Stock_Females_World, trim = TRUE,
+                                  scientific = FALSE, big.mark = " "), "M")))) + 
+  labs(title = "International MIGRANT Stocks in World (1990-2020)", y = "International MIGRANT Stock") +
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) +
+  theme_minimal() +
+  scale_color_manual(
+    values = c("iMIGRANT_Stock_Total_World" = "black", "iMIGRANT_Stock_Males_World" = "blue", "iMIGRANT_Stock_Females_World" = "pink"), 
+    labels = c("iMIGRANT_Stock_Total_World" = "Both Sexes Combined", 
+               "iMIGRANT_Stock_Males_World" = "Males",  "iMIGRANT_Stock_Females_World" = "Females")) +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "top", legend.title = element_blank())
+girafe(ggobj = LINEs_INTERACTIVE_THREE)
+```
+
+Function `geom_line_interactive()` serves as an alternative to `geom_line()` to make it interactive. A download button is also available.
+
+#### Stacked Barplots
+
+```{r, fig.width=10}
+#COLORs
+CRs <- c("#339900", "#FF9900", "#003366", "#FF0000", "#663399", "#FFCC00", "#999999")
+
+#N°1
+BARs <- ggplot(iMIGRANT_Stock.FDATA, aes(x = Year, y = iMIGRANT_Stock_Total, fill = Birth, 
+                                         #For N°3
+                                         text = paste(" Residence:", Residence, "<br>", "Birth:", Birth, "<br>", 
+                                                      "Year:", Year, "<br>", "International MIGRANT Stock:", 
+                                                      format(x = iMIGRANT_Stock_Total, trim = TRUE, scientific = FALSE, big.mark = " ")))) +
+  #STACKEd
+  geom_bar(stat = "identity") + 
+  labs(title = "International MIGRANT Stocks in World from 6 Areas (1990-2020)", 
+       y = "International MIGRANT Stock - Both Sexes Combined") +
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) +
+  scale_fill_manual(values = CRs) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
+BARs
+```
+
+We can see International Migrant Stock Global Evolution from 150M in 1990 to more than 250M in 2020. We also notice a more marked evolution in ASIA than in EUROPE.
+
+Birth Areas are in A-Z order, we will have to use factor levels to reorder Birth Areas.
+
+Non-positive comments are same as for Line Plots. OCEANIA and NORTHERN AMERICA are too small. 
+
+In Stacked Barplots above, we have data for a `Residence`-`Birth` pair and all `Year` in a row.
+
+```{r, message=FALSE}
+#Residence-Birth/Year To Year/Residence/Birth
+iMIGRANT_Stock.FDATA_INTERACTIVE <- iMIGRANT_Stock.FDATA %>% group_by(Year, Residence, Birth) %>% 
+  summarise(Share_of_iMIGRANT_Stock_Total = sum(Share_of_iMIGRANT_Stock_Total), iMIGRANT_Stock_Total = sum(iMIGRANT_Stock_Total))
+
+#Table 1990/World
+kable(iMIGRANT_Stock.FDATA_INTERACTIVE[1:7, c(1:3, 5)], row.names = FALSE, 
+      align = c("l", "l", "l", "c"),
+      caption = "International MIGRANT Stocks in World from 6 Areas in 1990")
+```
+
+Now, we need to have data for a `Year` and all `Residence`-`Birth` pairs in a row. 
+
+```{r, fig.width=8.75, fig.height=4.25}
+#N°2
+BARs_INTERACTIVE_One <- plot_ly(data = iMIGRANT_Stock.FDATA_INTERACTIVE, x = ~Year, y = ~iMIGRANT_Stock_Total, 
+                                color = ~Birth, type = "bar", colors = CRs, legendgroup = 'Birth', 
+                                text = with(iMIGRANT_Stock.FDATA_INTERACTIVE, paste(" Residence:", Residence, "<br>", 
+                                                                                    "Birth:", Birth, "<br>", "Year:", Year, "<br>", 
+                                                                                    "International MIGRANT Stock:", 
+                                                                                    paste0(format(iMIGRANT_Stock_Total, trim = TRUE, 
+                                                                                                  scientific = FALSE, big.mark = " ")))),
+                                hoverinfo = "text") %>% 
+  layout(barmode = "stack", 
+         yaxis = list(title = "International MIGRANT Stock - Both Sexes Combined"),
+         title = "International MIGRANT Stocks in  World from 6 Areas (1990-2020)", 
+         legend = list(title = list(text='<b> Birth </b>'), x=1, y=0.5))
+BARs_INTERACTIVE_One
+```
+
+Birth Areas are in Z-A order, we will have to use factor levels to reorder Birth Areas.
+
+```{r, fig.width=8.75, fig.height=4.25}
+#N°3
+BARs_INTERACTIVE_Two <- ggplotly(BARs) %>%
+  layout(title = list(text = "International MIGRANT Stocks in World from 6 Areas (1990-2020)", x = 0.5))
+BARs_INTERACTIVE_Two
+```
+
+```{r, fig.width=8.75, fig.height=4.25}
+#N°4
+BARs_INTERACTIVE_THREE <- ggplot(iMIGRANT_Stock.FDATA) + 
+  geom_bar_interactive(aes(x = Year, y = iMIGRANT_Stock_Total, fill = Birth, 
+                           tooltip = paste("Residence:", Residence, "<br>Birth:", Birth, "<br>Year:", Year, 
+                                           "<br>International MIGRANT Stock:", 
+                                           paste0(format(iMIGRANT_Stock_Total, trim = TRUE, scientific = FALSE, big.mark = " ")))), 
+                       position = "stack", stat = "identity") +
+  labs(title = "International MIGRANT Stocks in World from 6 Areas (1990-2020)", 
+       y = "International MIGRANT Stock - Both Sexes Combined") +
+  scale_fill_manual(values = CRs) + 
+  scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
+girafe(ggobj = BARs_INTERACTIVE_THREE)
+```
+
+### Shares
+
+Stacked Barplots will show Shares in a Residence Area from $n$ Birth Areas.
+
+```{r, fig.width=8.75, fig.height=4.25}
+#N°2
+BARs_INTERACTIVE_SHAREs_One <- plot_ly(data = iMIGRANT_Stock.FDATA_INTERACTIVE, x = ~Year, y = ~Share_of_iMIGRANT_Stock_Total, 
+                                       color = ~Birth, type = "bar", colors = CRs, legendgroup = 'Birth', 
+                                       #HOVER...
+                                       text = with(iMIGRANT_Stock.FDATA_INTERACTIVE, paste(" Residence:", Residence, "<br>", 
+                                                                                           "Birth:", Birth, "<br>", "Year:", Year, "<br>", 
+                                                                                           "International MIGRANT Stock:",
+                                                                                           round(Share_of_iMIGRANT_Stock_Total, 3), "%")), 
+                                       hoverinfo = "text") %>% 
+  layout(barmode = "stack", 
+         yaxis = list(title = "International MIGRANT Stock - Both Sexes Combined (%)"),
+         title = "International MIGRANT Stocks (%) in World from 6 Areas (1990-2020)", 
+         legend = list(title = list(text='<b> Birth </b>'), x=1, y=0.5),
+         margin = list(t = 30))
+BARs_INTERACTIVE_SHAREs_One
+```
+
+Shares of International Migrant Stock are increasing in EUROPE (see section 3.2), decrease in LATIN AMERICA AND THE CARIBBEAN, look constant in AFRICA.
+
+```{r, fig.width=8.75, fig.height=4.25}
+#N°4
+BARs_INTERACTIVE_SHAREs_THREE <- ggplot(iMIGRANT_Stock.FDATA) +
+  geom_bar_interactive(aes(x = Year, y = Share_of_iMIGRANT_Stock_Total, fill = Birth, 
+                           #HOVER...
+                           tooltip = paste("Residence:", Residence, "<br>Birth:", Birth, "<br>Year:", Year, 
+                                           "<br>International MIGRANT Stock:", round(Share_of_iMIGRANT_Stock_Total, 3), "%")), 
+                       stat = "identity") + 
+  labs(title = "International MIGRANT Stocks (%) in World from 6 Areas (1990-2020)", 
+       y = "International MIGRANT Stock - Both Sexes Combined (%)") +
+  scale_fill_manual(values = CRs) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
+girafe(ggobj = BARs_INTERACTIVE_SHAREs_THREE)
+```
+
+### Evolution and Shares
+
+Combine Stocks and Shares thanks to `subplot()`. 
+
+```{r, fig.width=8.75, fig.height=8.5}
+#N°2 (x2)
+BARs_INTERACTIVE_One <- BARs_INTERACTIVE_One  %>% 
+  layout(annotations = list(x = 0.5, y = 1.05, xref = "paper", yref = "paper", 
+                            text = "International MIGRANT Stocks in World from 6 Areas (1990-2020)", showarrow = FALSE))
+BARs_INTERACTIVE_SHAREs_One <- BARs_INTERACTIVE_SHAREs_One %>%
+  layout(title = "",
+         annotations = list(x = 0.5, y = 1.05, xref = "paper", yref = "paper", 
+                            text = "International MIGRANT Stocks (%) in World from 6 Areas (1990-2020)", showarrow = FALSE))
+BARs_INTERACTIVE_STOCKs_SHAREs_One <- subplot(BARs_INTERACTIVE_One, BARs_INTERACTIVE_SHAREs_One, 
+                                              nrows = 2, heights = c(0.5, 0.5),
+                                              titleX = TRUE, titleY = TRUE, shareX = TRUE) %>%
+  layout(showlegend = TRUE)
+BARs_INTERACTIVE_STOCKs_SHAREs_One
+```
+
+We can allow a shared x-axis. We have labels twice and have to force to have y-axis for Stocks and Shares.
+
+Remarks: 
+
+* Combine static Stocks and Shares with `grid.arrange()`. We can have one labels
+* For `ggiraph`, it's not doable
+* Combination is less flexible in the application
+
+### Resume
+
+We will use `plotly` or `ggplot2` combine with `ggiraph` to make our Line Plots and Stacked Barplots.
+
+```{r}
+#LibrariesCOMPARISON
+LibrariesCOMPARISON <- data.frame(
+  Library = c("ggplot2", "plotly", "ggplotly", "ggiraph"),
+  Positive = c("Easy | Nice Graphics", 
+               "Interactive | Download Button | Hover Text | Shared x-axis", 
+               "Interactive | Download Button", 
+               "Interactive | Download Button | Hover Text | Easy"), 
+  Negative = c("Static", "Labels Issues", "Labels Issues | Hover Text", "-"))
+
+#Table
+datatable(LibrariesCOMPARISON, options = list(scrollX = TRUE, autoWidth = TRUE), 
+          style = "bootstrap", rownames = FALSE, caption = "Graphics' Libraries Comparison")
+```
+
+## Data Manipulations
+
+Data Manipulations can take time. We need to do it to avoid loading times on client/server side.
+
+### Development Levels
+
+There are 3 Development Levels from [OHRLLS](https://www.un.org/ohrlls/) in International Migrant Stock Data (see section 3):
+
+-   Least Developed Countries (LDC)
+-   Land-Locked Developing Countries (LLDC)
+-   Small Island Developing States (SIDS)
+    
+We have found [method. data from UNSD](https://unstats.un.org/unsd/methodology/m49/overview/) which lists countries as LDC | LLDC | SIDS. There are 3 variables (`LDC` | `LLDC` | `SIDS`), with a small cross (x) if an area is in one level (an area can be in 2 levels at once). We create a new variable with 5 modalities:
+
+* LDC* | LLDC* | SIDS* | LDC/LLDC | LDC/SIDS
+
+We have rows based on LDC | LLDC | SIDS in International Migrant Stock Data. We want to create new ones to retrieve data that follow our new variable (5 modalities):
+
+* LDC for LDC* and LDC+LLDC for LDC/LLDC $\Rightarrow$ LDC will be included twice in International Migrant Stock Data
+
+We need to calculate new rows thanks to countries data. We have method. data from UNSD (2023) with `LDC` (46) | `LLDC` (32) | `SIDS` (53), and we know LDC (47) | LLDC (32) | SIDS (58) in [method. from UN | Population Division (2020)](https://www.un.org/development/desa/pd/sites/www.un.org.development.desa.pd/files/undesa_pd_2020_international_migrant_stock_documentation.pdf):
+
+* Vanuatu ceased to be a LDC in December 2020 (46 To 47) (Sources: [1](https://www.un.org/ohrlls/content/list-ldcs?Is%20Featured=All&field_featured_categories_tid=26&language=All&sort_by=created&sort_order=DESC&Is_Featured=All) | [2](https://unctad.org/topic/least-developed-countries/recognition))
+* Martinique, Turks and Caicos Islands, Guadeloupe, Cayman Islands and Bermuda (53 To 58) were not included in method. data from UNSD ([Source](https://www.un.org/ohrlls/content/list-sids))
+* Bahrain is also a SIDS since we need it to retrieve the correct data thanks to countries data (58 To 59) 
+
+Remarks:
+
+* 59 countries in SIDS, as Bonaire, Saba and Sint Eustatius, are also in SIDS
+* Bhutan ceased to be a LDC in December 2023
+
+```{r}
+#Load XLSX File
+Methodo_from_ONU <- read_excel("../Données/REGIONs/ONU/methodo.xlsx") %>%
+  rename(Area = 9, RCode = 10, ISO2 = 11, ISO3 = 12, LDC = 13, LLDC = 14, SIDS = 15) %>% select(9:15)
+
+#Channel Islands
+Methodo_from_ONU <- Methodo_from_ONU %>% filter(!ISO3 %in% c("JEY", "GGY"))
+Methodo_from_ONU <- rbind(
+  Methodo_from_ONU, data.frame(
+    Area = "Channel Islands", RCode = 830, ISO2 = NA, ISO3 = "CHA", LDC = NA, LLDC = NA, SIDS = NA))
+
+#LDC | LLDC | SIDS => "x"
+Methodo_from_ONU[which(Methodo_from_ONU$Area == "Vanuatu"), "LDC"] <- "x"
+Areas_in_SIDS <- c(
+  "Martinique", "Turks and Caicos Islands", "Guadeloupe", "Cayman Islands", "Bermuda", "Bahrain")
+Methodo_from_ONU[Methodo_from_ONU$Area %in% Areas_in_SIDS, "SIDS"] <- "x"
+
+#New Variable - DevLevel (5)
+Methodo_from_ONU <- Methodo_from_ONU %>%
+  mutate(DevLevel = case_when(
+    LDC == 'x' & LLDC == 'x' & SIDS == 'x' ~ 'LDC | LLDC | SIDS',
+    LDC == 'x' & LLDC == 'x' & is.na(SIDS) ~ 'LDC | LLDC',
+    LDC == 'x' & is.na(LLDC) & SIDS == 'x' ~ 'LDC | SIDS',
+    is.na(LDC) & LLDC == 'x' & SIDS == 'x' ~ 'LLDC | SIDS',
+    LDC == 'x' & is.na(LLDC) & is.na(SIDS) ~ 'LDC',
+    is.na(LDC) & LLDC == 'x' & is.na(SIDS) ~ 'LLDC',
+    is.na(LDC) & is.na(LLDC) & SIDS == 'x' ~ 'SIDS'))
+
+##### Residence #####
+
+#iMIGRANT_Stock.DATA WITH NEW ROWs (0)
+iMIGRANT_Stock.DATA.NEWR <- data.frame(Residence = character(0), ResidenceCode = numeric(0), 
+                                       Birth = character(0), BirthCode = numeric(0), 
+                                       Year = character(0), 
+                                       iMIGRANT_Stock_Total = numeric(0), iMIGRANT_Stock_Males = numeric(0), iMIGRANT_Stock_Females = numeric(0), 
+                                       stringsAsFactors = FALSE) 
+
+#iMIGRANT_Stock DATA for SelectedBCode and LDC* or LLDC* or SIDS* | LDC/LLDC | LDC/SIDS Countries
+DEVT <- function(DATA, LV, iMIGRANT_Stock, RESIDENCE, RCODE) {
+  Level <- DATA %>% filter(DevLevel == LV)
+  fDATA <- iMIGRANT_Stock %>% filter(ResidenceCode %in% c(Level$RCode), BirthCode == SelectedBCode)
+  if (nrow(fDATA) == 0) {
+    fDATA <- data.frame(Residence = RESIDENCE, ResidenceCode = RCODE, 
+                        Birth = iMIGRANT_Stock$Birth[ROW], BirthCode = SelectedBCode, 
+                        Year = c(1990, 1995, 2000, 2005, 2010, 2015, 2020), 
+                        iMIGRANT_Stock_Total = 0, iMIGRANT_Stock_Males = 0, iMIGRANT_Stock_Females = 0)
+  } else {
+    fDATA <- fDATA %>% group_by(Year) %>% 
+      summarize(iMIGRANT_Stock_Total = sum(iMIGRANT_Stock_Total), 
+                iMIGRANT_Stock_Males = sum(iMIGRANT_Stock_Males), 
+                iMIGRANT_Stock_Females = sum(iMIGRANT_Stock_Females)) %>% 
+      mutate(Residence = RESIDENCE, ResidenceCode = RCODE, Birth = iMIGRANT_Stock$Birth[ROW], BirthCode = SelectedBCode) %>% 
+      select(5:8, 1:4)
+  }
+  return(fDATA)
+}
+
+#Loop which calculate new rows
+# for (ROW in 1:nrow(iMIGRANT_Stock.DATA)) {
+#   #BirthCode done or !done
+#   SelectedBCode <- iMIGRANT_Stock.DATA$BirthCode[ROW]
+#   if (SelectedBCode %in% iMIGRANT_Stock.DATA.NEWR$BirthCode) {
+#     # print("Done!")
+#   } else if (SelectedBCode == 2003) {
+#     #PROGRESSION
+#     print(paste0("PROGRESSION: ", ROW, "/", nrow(iMIGRANT_Stock.DATA)))
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedBCode
+#     iMIGRANT_Stock.FDATA <- iMIGRANT_Stock.DATA %>%
+#       filter(BirthCode == 2003, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>%
+#       distinct(ResidenceCode, Year, .keep_all = TRUE)
+#     iMIGRANT_Stock.DATA.NEWR <- rbind(iMIGRANT_Stock.DATA.NEWR, iMIGRANT_Stock.FDATA)
+#   } else {
+#     #PROGRESSION
+#     print(paste0("PROGRESSION: ", ROW, "/", nrow(iMIGRANT_Stock.DATA)))
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedBCode
+#     iMIGRANT_Stock.FDATA <- iMIGRANT_Stock.DATA %>%
+#       filter(BirthCode == SelectedBCode, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>%
+#       distinct(ResidenceCode, Year, .keep_all = TRUE)
+#     iMIGRANT_Stock.DATA.NEWR <- rbind(iMIGRANT_Stock.DATA.NEWR, iMIGRANT_Stock.FDATA)
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedBCode and LDC* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC", iMIGRANT_Stock = iMIGRANT_Stock.DATA,
+#                   RESIDENCE = "Least Developed Countries* (LDC*)", RCODE = 942)
+#     iMIGRANT_Stock.DATA.NEWR <- rbind(iMIGRANT_Stock.DATA.NEWR, fDATA)
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedBCode and LLDC* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LLDC", iMIGRANT_Stock = iMIGRANT_Stock.DATA,
+#                   RESIDENCE = "Land-Locked Developing Countries* (LLDC*)", RCODE = 1638)
+#     iMIGRANT_Stock.DATA.NEWR <- rbind(iMIGRANT_Stock.DATA.NEWR, fDATA)
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedBCode and SIDS* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "SIDS", iMIGRANT_Stock = iMIGRANT_Stock.DATA,
+#                   RESIDENCE = "Small Island Developing States* (SIDS*)", RCODE = 1639)
+#     iMIGRANT_Stock.DATA.NEWR <- rbind(iMIGRANT_Stock.DATA.NEWR, fDATA)
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedBCode and LDC/LLDC Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC | LLDC", iMIGRANT_Stock = iMIGRANT_Stock.DATA,
+#                   RESIDENCE = "LDC | LLDC", RCODE = 1640)
+#     iMIGRANT_Stock.DATA.NEWR <- rbind(iMIGRANT_Stock.DATA.NEWR, fDATA)
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedBCode and LDC/SIDS Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC | SIDS", iMIGRANT_Stock = iMIGRANT_Stock.DATA,
+#                   RESIDENCE = "LDC | SIDS", RCODE = 1641)
+#     iMIGRANT_Stock.DATA.NEWR <- rbind(iMIGRANT_Stock.DATA.NEWR, fDATA)
+#   }
+# }
+
+##### Birth #####
+
+#iMIGRANT_Stock.DATA WITH NEW ROWs (0)
+iMIGRANT_Stock.DATA.NEWRB <- data.frame(Residence = character(0), ResidenceCode = numeric(0), 
+                                        Birth = character(0), BirthCode = numeric(0),
+                                        Year = character(0), 
+                                        iMIGRANT_Stock_Total = numeric(0),  iMIGRANT_Stock_Males = numeric(0), iMIGRANT_Stock_Females = numeric(0),  
+                                        stringsAsFactors = FALSE)  
+
+#iMIGRANT_Stock DATA for SelectedRCode and LDC* or LLDC* or SIDS* | LDC/LLDC | LDC/SIDS Countries
+DEVT <- function(DATA, LV, iMIGRANT_Stock, BIRTH, BCODE) {
+  Level <- DATA %>% filter(DevLevel == LV)
+  fDATA <- iMIGRANT_Stock %>% filter(ResidenceCode == SelectedRCode, BirthCode %in% c(Level$RCode))
+  if (nrow(fDATA) == 0) {
+    fDATA <- data.frame(Residence = iMIGRANT_Stock$Residence[ROW], ResidenceCode = SelectedRCode, 
+                        Birth = BIRTH, BirthCode = BCODE, Year = c(1990, 1995, 2000, 2005, 2010, 2015, 2020), 
+                        iMIGRANT_Stock_Total = 0, iMIGRANT_Stock_Males = 0, iMIGRANT_Stock_Females = 0)
+  } else {
+    fDATA <- fDATA %>% group_by(Year) %>% 
+      summarize(iMIGRANT_Stock_Total = sum(iMIGRANT_Stock_Total), 
+                iMIGRANT_Stock_Males = sum(iMIGRANT_Stock_Males), 
+                iMIGRANT_Stock_Females = sum(iMIGRANT_Stock_Females)) %>% 
+      mutate(Residence = iMIGRANT_Stock$Residence[ROW], ResidenceCode = SelectedRCode, Birth = BIRTH, BirthCode = BCODE) %>% 
+      select(5:8, 1:4)
+  }
+  return(fDATA)
+}
+
+#Loop which calculate new rows
+# for (ROW in 1:nrow(iMIGRANT_Stock.DATA.NEWR)) {
+#   #ResidenceCode done or !done
+#   SelectedRCode <- iMIGRANT_Stock.DATA.NEWR$ResidenceCode[ROW]
+#   if (SelectedRCode %in% iMIGRANT_Stock.DATA.NEWRB$ResidenceCode) {
+#     # print("Done!")
+#   } else {
+#     #PROGRESSION
+#     print(paste0("PROGRESSION: ", ROW, "/", nrow(iMIGRANT_Stock.DATA.NEWR)))
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedRCode
+#     iMIGRANT_Stock.FDATA <- iMIGRANT_Stock.DATA.NEWR %>%
+#       filter(ResidenceCode == SelectedRCode, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>%
+#       distinct(BirthCode, Year, .keep_all = TRUE)
+#     iMIGRANT_Stock.DATA.NEWRB <- rbind(iMIGRANT_Stock.DATA.NEWRB, iMIGRANT_Stock.FDATA)
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedRCode and LDC* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC", iMIGRANT_Stock = iMIGRANT_Stock.DATA.NEWR,
+#                   BIRTH = "Least Developed Countries* (LDC*)", BCODE = 942)
+#     iMIGRANT_Stock.DATA.NEWRB <- rbind(iMIGRANT_Stock.DATA.NEWRB, fDATA)
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedRCode and LLDC* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LLDC", iMIGRANT_Stock = iMIGRANT_Stock.DATA.NEWR,
+#                   BIRTH = "Land-Locked Developing Countries* (LLDC*)", BCODE = 1638)
+#     iMIGRANT_Stock.DATA.NEWRB <- rbind(iMIGRANT_Stock.DATA.NEWRB, fDATA)
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedRCode and SIDS* Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "SIDS", iMIGRANT_Stock = iMIGRANT_Stock.DATA.NEWR,
+#                   BIRTH = "Small Island Developing States* (SIDS*)", BCODE = 1639)
+#     iMIGRANT_Stock.DATA.NEWRB <- rbind(iMIGRANT_Stock.DATA.NEWRB, fDATA)
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedRCode and LDC/LLDC Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC | LLDC", iMIGRANT_Stock = iMIGRANT_Stock.DATA.NEWR,
+#                   BIRTH = "LDC | LLDC", BCODE = 1640)
+#     iMIGRANT_Stock.DATA.NEWRB <- rbind(iMIGRANT_Stock.DATA.NEWRB, fDATA)
+# 
+#     #Get iMIGRANT_Stock DATA for SelectedRCode and LDC/SIDS Countries
+#     fDATA <- DEVT(DATA = Methodo_from_ONU, LV = "LDC | SIDS", iMIGRANT_Stock = iMIGRANT_Stock.DATA.NEWR,
+#                   BIRTH = "LDC | SIDS", BCODE = 1641)
+#     iMIGRANT_Stock.DATA.NEWRB <- rbind(iMIGRANT_Stock.DATA.NEWRB, fDATA)
+#   }
+# }
+
+#Reorder Rows (Residence-Birth)
+# URCode <- unique(iMIGRANT_Stock.DATA.NEWRB$ResidenceCode)
+# ORCode <- c(URCode[1:14], 942, 1636, 1638, 1637, 1639, 1640, 1641, URCode[17:282])
+# UBCode <- unique(iMIGRANT_Stock.DATA.NEWRB$BirthCode)
+# RUBCode <- c(UBCode[1:14], 942, 1636, 1638, 1637, 1639, 1640, 1641, UBCode[17:282])
+# CUBCode <- c(UBCode[1:14], 942, 1636, 1638, 1637, 1639, 1640, 1641, UBCode[17:282], 2003)
+# iMIGRANT_Stock.DATA.NEWRB <- iMIGRANT_Stock.DATA.NEWRB %>% arrange(match(ResidenceCode, ORCode), match(BirthCode, RUBCode))
+```
+
+### Shares (and Other)
+
+Calculation of Shares:
+
+* `Share_of_iMIGRANT_Stock_Total`
+* `Share_of_iMIGRANT_Stock_Males`
+* `Share_of_iMIGRANT_Stock_Females`
+
+```{r}
+#iMIGRANT_Stock WITH SHARE (0)
+iMIGRANT_Stock.DATA.SHAREs <- data.frame(Residence = character(0), ResidenceCode = numeric(0), 
+                                         Birth = character(0), BirthCode = numeric(0),
+                                         Year = character(0),
+                                         iMIGRANT_Stock_Total = numeric(0), iMIGRANT_Stock_Males = numeric(0), iMIGRANT_Stock_Females = numeric(0), 
+                                         Share_of_iMIGRANT_Stock_Total = numeric(0), 
+                                         Share_of_iMIGRANT_Stock_Males = numeric(0), Share_of_iMIGRANT_Stock_Females = numeric(0), 
+                                         stringsAsFactors = FALSE)  
+
+#Function which enable SHARE Values Calculation
+SHAREs <- function(DATA, FDATA, VARIABLE) {
+  SHARE_Values <- list()
+  for (ROw in 1:nrow(FDATA)) {
+    #Take Year Value
+    YYYY <- FDATA$Year[ROw]
+    #World Value
+    iMIGRANT_Stock <- unique(
+      DATA[DATA$ResidenceCode == SelectedRCode & DATA$BirthCode == 900 & DATA$Year == YYYY, VARIABLE])
+    #SHARE Value
+    SHARE <- round((FDATA[[VARIABLE]][ROw]/iMIGRANT_Stock) * 100, 5)
+    SHARE_Values[[ROw]] <- SHARE
+  }
+  return(SHARE_Values)
+}
+
+#Function which calculate OTHER when !Countries
+OTHERs <- function(DATA, iMIGRANT_Stock_COUNTRIEs, YEAR, VARIABLE, VARIABLE_Total, NROW) {
+  #World Value
+  iMIGRANT_Stock <- DATA[DATA$ResidenceCode == SelectedRCode & DATA$BirthCode == 900 & DATA$Year == YEAR, VARIABLE]
+  #OTHER Value
+  iMIGRANT_Stock.OTHER <- iMIGRANT_Stock[[1]] - iMIGRANT_Stock_COUNTRIEs[[VARIABLE_Total]][NROW]
+  return(iMIGRANT_Stock.OTHER)}
+
+#Loop which calculate SHAREs
+# for (ROW in 1:nrow(iMIGRANT_Stock.DATA.NEWRB)) {
+#   #ResidenceCode done or !done
+#   SelectedRCode <- iMIGRANT_Stock.DATA.NEWRB$ResidenceCode[ROW]
+#   if (SelectedRCode %in% iMIGRANT_Stock.DATA.SHAREs$ResidenceCode) {
+#       # print("Done!")
+#   } else {
+#     #Get iMIGRANT_Stock DATA for SelectedRCode
+#     iMIGRANT_Stock.FDATA <- iMIGRANT_Stock.DATA.NEWRB %>%
+#         filter(ResidenceCode == SelectedRCode, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>%
+#         distinct(BirthCode, Year, .keep_all = TRUE)
+#     #Countrie(s)
+#     if (SelectedRCode < 900) {
+#       print(paste0("PROGRESSION: ", ROW, "/", nrow(iMIGRANT_Stock.DATA.NEWRB)))
+# 
+#       #Calculate SHAREs (Both)
+#       SHARE_Values.iMIGRANT_Stock_Total <- SHAREs(DATA = iMIGRANT_Stock.DATA.NEWRB, FDATA = iMIGRANT_Stock.FDATA, VARIABLE = "iMIGRANT_Stock_Total")
+#       iMIGRANT_Stock.FDATA$Share_of_iMIGRANT_Stock_Total <- unlist(SHARE_Values.iMIGRANT_Stock_Total)
+# 
+#       #Calculate SHAREs (Male)
+#       SHARE_Values.iMIGRANT_Stock_Males <- SHAREs(DATA = iMIGRANT_Stock.DATA.NEWRB, FDATA = iMIGRANT_Stock.FDATA, VARIABLE = "iMIGRANT_Stock_Males")
+#       iMIGRANT_Stock.FDATA$Share_of_iMIGRANT_Stock_Males <- unlist(SHARE_Values.iMIGRANT_Stock_Males)
+# 
+#       #Calculate SHAREs (Female)
+#       SHARE_Values.iMIGRANT_Stock_Females <- SHAREs(DATA = iMIGRANT_Stock.DATA.NEWRB, 
+#                                                     FDATA = iMIGRANT_Stock.FDATA, VARIABLE = "iMIGRANT_Stock_Females")
+#       iMIGRANT_Stock.FDATA$Share_of_iMIGRANT_Stock_Females <- unlist(SHARE_Values.iMIGRANT_Stock_Females)
+# 
+#       iMIGRANT_Stock.DATA.SHAREs <- rbind(iMIGRANT_Stock.DATA.SHAREs, iMIGRANT_Stock.FDATA)
+#     #REGION(s)
+#     } else {
+#       print(paste0("PROGRESSION: ", ROW, "/", nrow(iMIGRANT_Stock.DATA.NEWRB)))
+# 
+#       #Get iMIGRANT_Stock DATA for SelectedRCode and Countrie(s) BirthCode
+#       fDATA <- iMIGRANT_Stock.FDATA %>%
+#         filter(BirthCode < 900, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>%
+#         distinct(BirthCode, Year, .keep_all = TRUE)
+# 
+#       #∑/Year
+#       iMIGRANT_Stock.DATA_OTHER <- fDATA %>% group_by(Year) %>%
+#         summarize(iMIGRANT_Stock_Total_OTHER = sum(iMIGRANT_Stock_Total),
+#                   iMIGRANT_Stock_Males_OTHER = sum (iMIGRANT_Stock_Males), 
+#                   iMIGRANT_Stock_Females_OTHER = sum(iMIGRANT_Stock_Females))
+# 
+#       #Calculate OTHER Values
+#       for (Row in 1:nrow(iMIGRANT_Stock.DATA_OTHER)) {
+#         YYYY <- iMIGRANT_Stock.DATA_OTHER$Year[Row]
+# 
+#         iMIGRANT_Stock_Total.OTHER <- OTHERs(DATA = iMIGRANT_Stock.DATA.NEWRB, iMIGRANT_Stock_COUNTRIEs = iMIGRANT_Stock.DATA_OTHER, YEAR = YYYY,
+#                                              VARIABLE = "iMIGRANT_Stock_Total", VARIABLE_Total = "iMIGRANT_Stock_Total_OTHER", NROW = Row)
+#         iMIGRANT_Stock_Males.OTHER <- OTHERs(DATA = iMIGRANT_Stock.DATA.NEWRB, iMIGRANT_Stock_COUNTRIEs = iMIGRANT_Stock.DATA_OTHER, YEAR = YYYY,
+#                                              VARIABLE = "iMIGRANT_Stock_Males",VARIABLE_Total = "iMIGRANT_Stock_Males_OTHER", NROW = Row)
+#         iMIGRANT_Stock_Females.OTHER <- OTHERs(DATA = iMIGRANT_Stock.DATA.NEWRB, iMIGRANT_Stock_COUNTRIEs = iMIGRANT_Stock.DATA_OTHER, YEAR = YYYY,
+#                                                VARIABLE = "iMIGRANT_Stock_Females",VARIABLE_Total = "iMIGRANT_Stock_Females_OTHER", NROW = Row)
+# 
+#         iMIGRANT_Stock.FDATA <- rbind(iMIGRANT_Stock.FDATA, list(unique(iMIGRANT_Stock.FDATA$Residence), SelectedRCode, "Other", 2003,
+#                                       YYYY, iMIGRANT_Stock_Total.OTHER, iMIGRANT_Stock_Males.OTHER, iMIGRANT_Stock_Females.OTHER))
+#       }
+#       #Calculate SHAREs (Both)
+#       SHARE_Values.iMIGRANT_Stock_Total <- SHAREs(DATA = iMIGRANT_Stock.DATA.NEWRB, FDATA = iMIGRANT_Stock.FDATA, VARIABLE = "iMIGRANT_Stock_Total")
+#       iMIGRANT_Stock.FDATA$Share_of_iMIGRANT_Stock_Total <- unlist(SHARE_Values.iMIGRANT_Stock_Total)
+# 
+#       #Calculate SHAREs (Male)
+#       SHARE_Values.iMIGRANT_Stock_Males <- SHAREs(DATA = iMIGRANT_Stock.DATA.NEWRB, FDATA = iMIGRANT_Stock.FDATA, VARIABLE = "iMIGRANT_Stock_Males")
+#       iMIGRANT_Stock.FDATA$Share_of_iMIGRANT_Stock_Males <- unlist(SHARE_Values.iMIGRANT_Stock_Males)
+# 
+#       #Calculate SHAREs (Female)
+#       SHARE_Values.iMIGRANT_Stock_Females <- SHAREs(DATA = iMIGRANT_Stock.DATA.NEWRB, 
+#                                                     FDATA = iMIGRANT_Stock.FDATA, VARIABLE = "iMIGRANT_Stock_Females")
+#       iMIGRANT_Stock.FDATA$Share_of_iMIGRANT_Stock_Females <- unlist(SHARE_Values.iMIGRANT_Stock_Females)
+# 
+#       iMIGRANT_Stock.DATA.SHAREs <- rbind(iMIGRANT_Stock.DATA.SHAREs, iMIGRANT_Stock.FDATA)
+#     }
+#   }
+# }
+
+#Save XLSX File
+# write.xlsx(iMIGRANT_Stock.DATA.SHAREs, "UI_and_SERVER/Données/ims_sex_residence_and_birth_with_shares_2020.xlsx")
+```
