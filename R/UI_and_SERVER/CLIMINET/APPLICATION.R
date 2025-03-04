@@ -1,5 +1,5 @@
 ##########################################################################
-#####                Climate ChanGe MiGration Network                #####
+#####                CLIMATE CHANGE MIGRATION NETWORK                #####
 ##### Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques #####
 #####                   KYLLIAN JAMES | 2023-11-14                   #####
 #####                        Mod.: 2024-04-23                        #####

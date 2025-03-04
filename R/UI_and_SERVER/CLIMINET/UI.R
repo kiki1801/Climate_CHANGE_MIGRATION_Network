@@ -1,8 +1,8 @@
 ##########################################################################
-#####                Climate ChanGe MiGration Network                #####
+#####                CLIMATE CHANGE MIGRATION NETWORK                #####
 ##### Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques #####
 #####                   KYLLIAN JAMES | 2023-11-14                   #####
-#####                        Mod.: 2024-10-03                        #####
+#####                        Mod.: 2025-03-03                        #####
 #####                               UI                               #####
 ##########################################################################
 
@@ -16,6 +16,7 @@ library(shinyjs)
 library(slickR)
 library(waiter)
 library(leaflet) 
+library(plotly)
 
 ####################
 ##### THEME(s) #####
@@ -683,7 +684,7 @@ ui <- fluidPage(
       #HOME => Carousel => DEA-Capture => Browser => SHRINK
       "@media (max-width: 1080px) {img.HOME-DEA-CAPTURE {width: 855px !important; height: 385px !important;}}",
       #HOME => Carousel => Clickable DEA-Capture
-      # "img.HOME-DEA-CAPTURE:hover {opacity: 0.75 !important;}", #LOGO => HOVER => OPACITY
+      "img.HOME-DEA-CAPTURE:hover {opacity: 0.75 !important;}", #LOGO => HOVER => OPACITY
       #HOME => Carousel => Most Recent Card(s) => Card-Header => POSITION
       "#home .card-header {display: flex !important;}",
       #HOME => Carousel => REDIRECTION => BUTTON => Appearance
@@ -803,7 +804,7 @@ ui <- fluidPage(
       ".tab-pane:is([data-value='Climate']) .shiny-input-container-inline .shiny-options-group .radio-inline {padding-top: 1px !important;}", #Radio Button(s) => POSITION in CLIMATE
       ".shiny-input-container-inline .shiny-options-group {column-gap: 10px !important; margin-left: 1.5px !important;}", #Radio Button(s) | Circle(s) => POSITION
       ".form-group.shiny-input-radiogroup.shiny-input-container.shiny-input-container-inline.shinyjs-resettable.shiny-bound-input {margin-bottom: 0px !important;}", #Radio Button(s) => MARGIN
-      ".tab-pane:is([data-value='Migration'], [data-value='Migration and Climate']) .shiny-input-container-inline .shiny-options-group .radio-inline input {margin-top: 1px !important;}", #Radio Button(s) => Circle(s)  => POSITION (!in CLIMATE)
+      ".tab-pane:is([data-value='Migrant Stock'], [data-value='Migration and Climate']) .shiny-input-container-inline .shiny-options-group .radio-inline input {margin-top: 1px !important;}", #Radio Button(s) => Circle(s)  => POSITION (!in CLIMATE)
       ".shiny-input-container .radio-inline input:not(:checked):hover {border-color: #B0B0B0 !important;}", #Radio Button(s) => !Active => HOVER => BORDER => COLOR
       ".shiny-input-container .radio-inline input:focus {box-shadow: none !important;}", #Radio Button(s) => Focus => BOX-SHADOW => REMOVE
       ".shiny-input-container .radio-inline input:checked {background-color: var(--bs-body-bg) !important;}", #Radio Button(s) => Active => BackGround => COLOR
@@ -813,7 +814,7 @@ ui <- fluidPage(
       #Card HEADER Appearance
       ".bslib-card .card-header {font-size: 14px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;}", #Font Size from 0.9rem To 14px | !SHRINK Headline
       #Card BODY Appearance
-      ".leaflet-touch .leaflet-bar {border: 1px solid #ddd !important}", #Zoom CONTAINER => BORDER from 2px To 1px
+      ".leaflet-touch .leaflet-bar {border: 1px solid #ddd !important;}", #Zoom CONTAINER => BORDER from 2px To 1px
       ".leaflet-bar {border-radius: 5px !important}", #Zoom CONTAINER => BORDER Radius from 4px To 5px
       ".leaflet-touch .leaflet-bar a:first-child {border-top-left-radius: 5px !important; border-top-right-radius: 5px !important;}", #Zoom-in CONTAINER => BORDER Radius from 2px To 5px
       # ".leaflet-touch .leaflet-control-zoom-in {font-size: 20px !important;}", #Zoom-in CONTAINER => Font Size from 22px To 20px
@@ -825,12 +826,16 @@ ui <- fluidPage(
       # ".leaflet-control-zoom-out {text-indent: 0px !important;}", #Zoom-out CONTAINER => TEXT INDENT from 1px To 0px
       # ".leaflet-touch .leaflet-control-zoom-out {font-size: 0px !important; background-image: url(https://icons.getbootstrap.com/assets/icons/zoom-out.svg) !important; background-repeat: no-repeat !important; background-position: center !important;}", #Zoom-out CONTAINER => Replace "-"
       ".leaflet-touch .leaflet-control-zoom-out {font-size: 0px !important; background-image: url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-zoom-out' viewBox='0 0 16 16'%3e%3cpath fill-rule='evenodd' d='M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11M13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0'/%3e%3cpath d='M10.344 11.742q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1 6.5 6.5 0 0 1-1.398 1.4z'/%3e%3cpath fill-rule='evenodd' d='M3 6.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5'/%3e%3c/svg%3e\") ; background-repeat: no-repeat !important; background-position: center !important;}", #Zoom-out CONTAINER => Replace "-"
-      ".leaflet-bar button:first-of-type {border-top-left-radius: 5px !important;border-top-right-radius: 5px !important;}", #Map View CONTAINER => BORDER Radius from 4px To 5px
+      ".leaflet-bar button:first-of-type {border-top-left-radius: 5px !important; border-top-right-radius: 5px !important;}", #Map View CONTAINER => BORDER Radius from 4px To 5px
       ".leaflet-bar button:last-of-type {border-bottom-left-radius: 5px !important; border-bottom-right-radius: 5px !important;}", #Map View CONTAINER => BORDER Radius from 4px To 5px
       ".leaflet-touch .leaflet-bar button {font-size: 16px !important;}", #Map View CONTAINER => ICON => SIZE
-      ".leaflet-control-scale-line {border: 1px solid #777 !important; border-top: none !important; line-height: 1 !important; font-size: 10px !important;}", #Scale CONTAINER => BORDER from 2px To 1px | Font Size from 11px To 10px
+      ".leaflet-control-scale-line {border: 1px solid #777 !important; border-top: none !important; line-height: 0.95 !important; font-size: 10px !important; padding: 2px 4px !important;}", #Scale CONTAINER => BORDER from 2px To 1px | Font Size from 11px To 10px | PADDING+
       ".leaflet-control-scale-line:not(:first-child) {border-top: 1px solid #777 !important; border-bottom: none !important; margin-top: -1px !important;}", #Scale CONTAINER => BORDER from 2px To 1px | Font Size from 11px To 10px
-      ".leaflet-container .leaflet-control-attribution {font-size: 10px !important;}", #Attribution CONTAINER => Font Size from 11px To 10px
+      ".leaflet-container .leaflet-control-attribution {font-size: 10px !important; padding: 2px 4px !important;}", #Attribution CONTAINER => Font Size from 11px To 10px | PADDING+
+      ".leaflet-touch .leaflet-control-layers {border: 1px solid #ddd !important;}", #LAYER(s) CONTAINER => BORDER from 2px To 1px
+      ".leaflet-control-layers-expanded {padding: 4px 8px !important;}", #LAYER(s) CONTAINER => PADDING+
+      ".leaflet-control-layers-base {margin-top: 1px !important;}", #LAYER(s) CONTAINER => SELECTOR(s) => MARGIN-Top
+      ".leaflet-control-layers-base label div span {position: relative !important; top: -1px !important;}", #LAYER(s) CONTAINER => SELECTOR(s) => POSITION
       #Card FOOTER Appearance
       ".bslib-card .card-footer {font-size: 12px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;}", #Font Size from 0.9rem To 12px | !SHRINK SOURCE(s)
       ".card-footer a {text-decoration: none !important;}", #Source(s) Link => !HOVER => Remove Line
@@ -949,7 +954,7 @@ ui <- fluidPage(
       #Handle CUSTOM CURSOR Classes MESSAGE from server-side
       "Shiny.addCustomMessageHandler('CURSORwithinBODY', function(MESSAGE) {document.body.className = MESSAGE;});",
       #Disabled Data Exploration Application (DEA) NavPanel => DEA => !READY
-      "$(document).ready(function() {$('a[data-value=\"DEA_Menu\"]').addClass('disabled');});",
+      # "$(document).ready(function() {$('a[data-value=\"DEA_Menu\"]').addClass('disabled');});",
       #FILTER => PUBLICATION(s) Card(s) => DATE
       "$(document).ready(function() {
          //Click-Event-Handler For Element with a certain id 
@@ -977,7 +982,7 @@ ui <- fluidPage(
            //$Cards.each(function(index) {
             //var DateValue = $(this).attr('data-date');
             //Dates.push(DateValue);});
-           //console.log(Dates);
+           //console.log(Dates); //Console-support
            //Create an ARRAY populated with 'data-date' and 'data-title atttributes from each card element
            var CardsData = []; //Create an ARRAY
            $Cards.each(function() { //Iterate over each Card in Cards
@@ -989,7 +994,7 @@ ui <- fluidPage(
            //Dates.sort(function(a, b) {
             //if (NewOrder === 'chrono-order') {
                 //return a.localeCompare(b);} else {return b.localeCompare(a);}});
-           //console.log(Dates);
+           //console.log(Dates); //Console-support
            //Sort ARRAY-CardData BY DATE-TITLE
            CardsData.sort(function(a, b) {
             //Sort BY DATE based on NewOrder Value
@@ -1107,9 +1112,68 @@ ui <- fluidPage(
              var TitleValue = $(this).attr('data-title'); //Retrieve TitleValue
              var KEY = DateValue + ' - ' + TitleValue; //Create a KEY
              var index = CardsIndex[KEY]; //Retrieve index for a KEY
-             $(this).css('order', index);});});});" #Add OR Replace CSS-ORDER-PROPERTY
+             $(this).css('order', index);});});});", #Add OR Replace CSS-ORDER-PROPERTY
+      #DROPDOWN-ITEM(s) => CLICK COUNTER
+      "$(document).ready(function() {
+         //Initialize Click COUNTER
+         let DropdownIClickCOUNTER = 0;
+         //Click-Event-Handler For Elements with class='dropdown-item' 
+         $(document).on('click', '.dropdown-item', function() { //When element(s) are clicked, function is executed
+           //console.log('Button Clicked'); //Button Clicked To Console To Confirm-button-click-was-detected
+           //Retrieve Text Content (= DropdownItem-TITLE)
+           var DataValue = $(this).attr('data-value');
+           //DROPDOWN-ITEM(s) => CLICK COUNTER (+1)
+           if (DataValue === 'Migrant Stock' || DataValue === 'Climate' || DataValue === 'Migration and Climate') {
+               DropdownIClickCOUNTER++; //+1
+               Shiny.setInputValue('DropdownI_Click_COUNTER', DropdownIClickCOUNTER);}});});", #Reactive Value To SERVER 
+               # Shiny.setInputValue('DropdownI_Click_COUNTER', DropdownIClickCOUNTER, {priority: 'event'});}});});"
+      #Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX => Label => Width+
+      "$(document).ready(function() {
+         function WindowSize_LabelWidth() { //Function To Replace Width Attribute in Label
+           if (window.matchMedia('(max-width: 1020px)').matches) { //Window Size < 1020px => Width == 430px
+               $('.shiny-input-container .checkbox label').css({'white-space': 'nowrap', 'overflow': 'hidden', 'text-overflow': 'ellipsis', 'width': '430px'});}
+           else if (window.matchMedia('(min-width: 1020px) and (max-width: 1050px)').matches) { //1020px < Window Size < 1050px => Width == 440px
+               $('.shiny-input-container .checkbox label').css({'white-space': 'nowrap', 'overflow': 'hidden', 'text-overflow': 'ellipsis', 'width': '440px'});}
+           else if (window.matchMedia('(min-width: 1050px) and (max-width: 1070px)').matches) { //1050px < Window Size < 1070px => Width == 455px
+               $('.shiny-input-container .checkbox label').css({'white-space': 'nowrap', 'overflow': 'hidden', 'text-overflow': 'ellipsis', 'width': '455px'});}
+           else if (window.matchMedia('(min-width: 1070px) and (max-width: 1090px)').matches) { //1070px < Window Size < 1090px => Width == 465px
+               $('.shiny-input-container .checkbox label').css({'white-space': 'nowrap', 'overflow': 'hidden', 'text-overflow': 'ellipsis', 'width': '465px'});}
+           else if (window.matchMedia('(min-width: 1090px) and (max-width: 1100px)').matches) { //1090px < Window Size < 1100px => Width == 470px
+               $('.shiny-input-container .checkbox label').css({'white-space': 'nowrap', 'overflow': 'hidden', 'text-overflow': 'ellipsis', 'width': '470px'});}
+           else {$('.shiny-input-container .checkbox label').css({'white-space': '', 'overflow': '', 'text-overflow': '', 'width': ''});} //Window Size > 1100px
+           }
+         WindowSize_LabelWidth(); //Replace Width Attribute in Label
+         //$(window).on('resize', function() {WindowSize_LabelWidth();}); //Window => Resize => Replace Width Attribute in Label
+         $(window).on('resize', WindowSize_LabelWidth);})" #Window => Resize => Replace Width Attribute in Label
+         # $(window).resize(WindowSize_LabelWidth);})" #Window => Resize => Replace Width Attribute in Label
       ),
     ),
+  
+  ##### Modal Box #####
+  tags$div( #Modal Box => Creation
+    class = "modal fade", #Modal Box => Window => Fade
+    id = "WorldMap_ModalBox", #Modal Box => IDENTIFIER
+    tags$div( #Modal Box => DIALOG+
+      class = "modal-dialog", #Modal Box => Content => CENTER
+      tags$div( #Modal Box => Content
+        class = "modal-content", 
+        tags$div( #Modal Box => HEADER => Creation
+          class = "modal-header", #Modal Box => HEADER
+          h3(class = "modal-title", "Classification Information"), #Modal Box => HEADLINE => 18px
+          tags$button( #Button Creation
+            type = "button", #Button Element
+            style = "display: contents; color: #333537;", #!BORDER | COLOR
+            class = "close-button", #Button Class
+            id = "modal-box-close-button", #Button IDENTIFIER
+            `data-bs-dismiss` = "modal", #Attribute To Close Modal Box
+            #BOOTSTRAP_ICON
+            bsicons::bs_icon(
+              name = "x-lg", #Close ICON from https://icons.getbootstrap.com/
+              size = "18px"))), #ICON => HEIGHT and WIDTH
+        tags$div( #Modal Box => BODY => Creation
+          class = "modal-body", #Modal Box => BODY
+          HTML( #Modal Box => BODY => Content
+            '2020 ≠ 2023 => LDC|LLDC|SIDS => DATA (x2) => 3 TO 5 => DATA (x1) => Σ5 < Σ3'))))),
   
   ##### Responsive 12-Column Grid #####
   layout_columns(
@@ -1158,7 +1222,7 @@ ui <- fluidPage(
       #   class = "CLIMINET-HOME", #Clickable LOGO Class
       #   id = "climinet-home"), #Allow To Switch LOGO (!Dark/Dark Mode) in SERVER.R
       ##### WELCOME - MESSAGE #####
-      tags$div(#CLIMINET-HOME + MESSAGE + CLIMINET-HOME => CENTER
+      tags$div( #CLIMINET-HOME + MESSAGE + CLIMINET-HOME => CENTER
         style = "display: flex; justify-content: space-evenly; align-items: center;",
         #CLIMINET => HOME => LOGO
         tags$img( #CLIMINET-HOME => Animated (FadeIn)
@@ -1218,6 +1282,7 @@ ui <- fluidPage(
                 </ul>
               <p>This project promises to advance understanding of the complex interdependencies between climate change and migration, offering <strong>predictive tools</strong> to shape policy responses. Thus, a multi-disciplinary approach integrating environmental economics, mathematics and statistics, and social science considerations is pivotal.</p>
               <p><span style='font-weight: 600;'>Duration:</span> April 2023 - March 2026 (36 Months)</p>"),
+            #Card_BODY => ARGu.
             fillable = TRUE, #FLEXBOX CONTAINER
             padding = c(0, 16, 8, 16), #PADDING => TOP To 0px | BOTTOM To 8px | LEFT/RIGHT To 16px
             fill = FALSE #Content => Fixed Size => !Allowed To Scroll
@@ -1344,6 +1409,7 @@ ui <- fluidPage(
           #     </li>
           #   </ol>
           #   <p><span style='font-weight: 600;'>Duration:</span> April 2023 - March 2026 (36 Months)</p>"),
+          # #Card_BODY => ARGu.
           # fillable = TRUE, #FLEXBOX CONTAINER
           # padding = c(0, 16, 8, 16), #PADDING => TOP To 0px | BOTTOM To 8px | LEFT/RIGHT To 16px
           # fill = FALSE #Content => Fixed Size => !Allowed To Scroll
@@ -1387,7 +1453,7 @@ ui <- fluidPage(
       # ),
     
     ##### DATA EXPLORATION APPLICATION (MENU) #####
-    nav_menu(#navbarMenu()
+    nav_menu( #navbarMenu()
       #NAVIGATION BAR MENU HEADLINE
       title = "Data Exploration Application",
       #NAVIGATION BAR MENU VALUE
@@ -1395,8 +1461,8 @@ ui <- fluidPage(
       #Dropdown Menu => Horizontal ALIGNMENT => Relative To Dropdown TOGGLE 
       align = "left",
       
-      ##### MIGRATION #####
-      nav_panel(title = "Migration", #tabPanel()
+      ##### MIGRANT STOCK #####
+      nav_panel(title = "Migrant Stock", #tabPanel()
         #Contains Multiple Tabs
         navset_tab( #tabsetPanel()
           #Selected Tab Panel
@@ -1418,9 +1484,9 @@ ui <- fluidPage(
               ##### REGIONs CHOICE RADIO BUTTONs #####
               div(style = "min-width: 1296px;", #RADIO BUTTONs' container minimum width (don't shrink choices)
                 radioButtons(inputId = "MRR_REGIONs_CHOICE", label  = NULL, 
-                  #International MiGration Stock Data Classifications
+                  #International MIGRANT Stock Data Classifications
                   choices = c(
-                    "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Income Levels", "Development Levels (x3)"),
+                    "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Development Levels (x3)", "Income Levels"),
                   #Selected Classification | Render choices inline
                   selected = "Continental Regions", inline = TRUE
                   )
@@ -1428,13 +1494,14 @@ ui <- fluidPage(
               ),
           
             ##### World Map Card #####
-            hidden(#Card => Hidden
+            hidden( #Card => Hidden
               card(
                 #Card => Headline
                 card_header("Interactive World Map"),
                 #World Map
                 card_body(
                   leafletOutput("MR_World_Map", width = "100%", height = 720), #Interactive World Map
+                  #Card_BODY => ARGu.
                   fillable = TRUE, #FLEXBOX CONTAINER
                   min_height = "510px", max_height = "510px", #World Map => HEIGHT => !Full_Screen
                   max_height_full_screen = "720px", #World Map => HEIGHT => Full_Screen
@@ -1449,7 +1516,206 @@ ui <- fluidPage(
                 #Card => ARGu.
                 full_screen = TRUE, #Expand Card To Fit Screen Size
                 fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
-                id = "MR_World_Map_Card")) #Observe Full Screen State in SHINY
+                id = "MR_World_Map_Card")), #Observe Full Screen State in SHINY
+            
+            ##### Responsive 12-Column Grid #####
+            layout_columns(
+            #Responsive 12-Column Grid => MARGIN(s)+ | OVERFLOW+
+            style = "margin-top: 0px !important; margin-bottom: 0px !important; max-height: none !important; overflow: visible !important",
+              ##### Selected Residence Card #####
+              hidden( #Card => Hidden
+                card(
+                  #Card => Headline
+                  # card_header("Selected Residence"),
+                  #Selected Residence
+                  card_body(
+                    htmlOutput("MR_Selected_Residence"), #Selected Residence
+                    #Card_BODY => ARGu.
+                    fillable = TRUE, #FLEXBOX CONTAINER
+                    # min_height = "28.05px", max_height = "28.05px", #Selected Residence => HEIGHT => !Full_Screen
+                    min_height = "36.05px", max_height = "36.05px", #Selected Residence => HEIGHT => !Full_Screen
+                    # padding = c(0, 16, 8, 16), #PADDING+
+                    padding = c(8, 16), #PADDING+
+                    fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
+                  #Card => ARGu.
+                  full_screen = FALSE, #!Expand Card To Fit Screen Size
+                  fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
+                  id = "MR_Selected_Residence_Card")), #Make Selected Residence Card Visible/Invisible
+              ##### Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX Card #####
+              hidden( #Card => Hidden
+                card(
+                  #Card => Headline 
+                  # card_header("View Top 5 Birth Countries on World Map (5-Year Period, 1990-2020)"),
+                  # card_header("View Top Birth Countries on World Map (5-Year Period, 1990-2020)"),
+                  #Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX
+                  card_body(
+                    checkboxInput(inputId = "MR_Top_Five_BIRTH", #Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX
+                                  label = "View Top 5 Birth Countries on World Map (5-Year Period, 1990-2020)", value = FALSE, width = "100%"), #CHECKBOX => Label | Value
+                                  # label = "View Top Birth Countries on World Map (5-Year Period, 1990-2020)", value = FALSE, width = "100%"), #CHECKBOX => Label | Value
+                    #Card_BODY => ARGu.
+                    fillable = TRUE, #FLEXBOX CONTAINER
+                    # min_height = "28.05px", max_height = "28.05px", # Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX => HEIGHT => !Full_Screen
+                    min_height = "36.05px", max_height = "36.05px", # Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX => HEIGHT => !Full_Screen
+                    # padding = c(0, 16, 8, 16), #PADDING+
+                    padding = c(8, 16), #PADDING+
+                    fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
+                  #Card => ARGu.
+                  full_screen = FALSE, #!Expand Card To Fit Screen Size
+                  fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
+                  id = "MR_Top_Five_BIRTH_Card")), #Make  Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX Card Visible/Invisible
+              ##### Columns #####
+              col_widths = c(6, 6)),
+            
+            
+            
+            ##### iMIGRANT-STOCK-DATA-Card #####
+            hidden( #Card => Hidden
+              card(
+                #Card => Headline
+                card_header("International Migrant Stock Data"),
+                #Stacked BAR(s) => DATA-SELECTION | Plot-PARAMETER(s)
+                layout_sidebar(
+                  #Stacked BAR(s) Card(s)
+                  card_body(
+                    ##### Responsive 12-Column Grid #####
+                    layout_columns(
+                      #Responsive 12-Column Grid => MARGIN(s)+ | OVERFLOW+
+                      style = "margin-top: 0px !important; margin-bottom: 0px !important; max-height: none !important; overflow: visible !important",
+                      ##### Stacked BAR(s) (COUNT(s)) Card #####
+                      # hidden( #Card => Hidden
+                      card(
+                        #Card => Headline
+                        card_header("International Migrant Stock Data - Counts"),
+                        #Stacked BAR(s) => COUNT(s)
+                        card_body(
+                          plotlyOutput("MR_Stacked_BARs_COUNTs", width = "100%", height = "425px"), #...
+                          #Card_BODY => ARGu.
+                          fillable = TRUE, #FLEXBOX CONTAINER
+                          min_height = "425px", max_height = "425px", #Stacked BAR(s) Card(s) => HEIGHT => !Full_Screen
+                          max_height_full_screen = "510px", #Stacked BAR(s) Card(s) => HEIGHT => Full_Screen
+                          padding = c(8, 16), #PADDING+
+                          fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
+                        #Stacked BAR(s) => COUNT(s) => International MIGRANT Stock Data => Source(s)
+                        card_footer(
+                          "Sources:", HTML("<a href='https://www.un.org/development/desa/pd/content/international-migrant-stock' target='_blank'>United Nations - Population Division</a>"), "|", #Link To International MIGRANT Stock Data
+                          HTML("<a href='https://github.com/kiki1801/Climate_CHANGE_MIGRATION_Network/blob/main/R/UI_and_SERVER/CLIMINET/Donn%C3%A9es/ims_sex_residence_and_birth_with_shares_2020.xlsx' target='_blank'>Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques</a>")), #Link To Enhanced Version of International MIGRANT Stock Data
+                        #Card => ARGu.
+                        full_screen = TRUE, #Expand Card To Fit Screen Size
+                        fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
+                        id = "MR_Stacked_BARs_COUNTs_Card"),
+                      # ), #Make ... Card Visible/Invisible
+                      ##### Stacked BAR(s) (SHARE(s)) Card #####
+                      # hidden( #Card => Hidden
+                      card(
+                        #Card => Headline
+                        card_header("International Migrant Stock Data - Shares"),
+                        #Stacked BAR(s) => SHARE(s)
+                        card_body(
+                          plotlyOutput("MR_Stacked_BARs_SHAREs", width = "100%", height = "425px"), #...
+                          #Card_BODY => ARGu.
+                          fillable = TRUE, #FLEXBOX CONTAINER
+                          min_height = "425px", max_height = "425px", #Stacked BAR(s) Card(s) => HEIGHT => !Full_Screen
+                          max_height_full_screen = "510px", #Stacked BAR(s) Card(s) => HEIGHT => Full_Screen
+                          padding = c(8, 16), #PADDING+
+                          fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
+                        #Stacked BAR(s) => SHARE(s) => International MIGRANT Stock Data => Source(s)
+                        card_footer(
+                          "Sources:", HTML("<a href='https://www.un.org/development/desa/pd/content/international-migrant-stock' target='_blank'>United Nations - Population Division</a>"), "|", #Link To International MIGRANT Stock Data
+                          HTML("<a href='https://github.com/kiki1801/Climate_CHANGE_MIGRATION_Network/blob/main/R/UI_and_SERVER/CLIMINET/Donn%C3%A9es/ims_sex_residence_and_birth_with_shares_2020.xlsx' target='_blank'>Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques</a>")), #Link To Enhanced Version of International MIGRANT Stock Data
+                        #Card => ARGu.
+                        full_screen = TRUE, #Expand Card To Fit Screen Size
+                        fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
+                        id = "MR_Stacked_BARs_SHAREs_Card"),
+                      # ), #Make ... Card Visible/Invisible
+                      ##### Columns #####
+                      col_widths = c(6, 6)),
+                    #Card_BODY => ARGu.
+                    fillable = TRUE, #FLEXBOX CONTAINER
+                    min_height = "510px", max_height = "510px", #Stacked BAR(s) Card(s) => HEIGHT => !Full_Screen
+                    max_height_full_screen = "720px", #Stacked BAR(s) Card(s) => HEIGHT => Full_Screen
+                    padding = c(8, 16), #PADDING+
+                    fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
+                  #Stacked BAR(s) => DATA-SELECTION | Plot-PARAMETER(s) => UI-ELEMENT(s)+
+                  sidebar = sidebar(
+                    h5("Data Selection", class = "sidebar-title"),
+                    # selectInput(
+                    #   inputId = "MR_BIRTH_View_Choice",
+                    #   # inputId = "MR_BIRTH_Data_Choice",
+                    #   label = "Birth View",
+                    #   # label = "Birth Data",
+                    #   choices = c("Countries", "Regions"),
+                    #   selected = "Countries",
+                    #   multiple = FALSE,
+                    #   width = "100%"),
+                    radioButtons(
+                      inputId = "MR_BIRTH_View_Choice",
+                      label = "Birth View",
+                      choices = c("Countries", "Regions"),
+                      selected = "Countries",
+                      inline = FALSE),
+                    selectInput(
+                      inputId = "MR_BIRTH_View_Choice_REGIONs_CHOICE",
+                      # label = "Classification",
+                      label = "Classification of Regions",
+                      choices = c(
+                        "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "2 Development Levels", "3 Development Levels", "5 Development Levels", "Income Levels"),
+                      selected = "Continental Regions",
+                      multiple = FALSE,
+                      width = "100%"),
+                    # radioButtons(
+                    #   inputId = "MR_BIRTH_View_Choice_REGIONs_CHOICE",
+                    #   label = "Classification of Regions",
+                    #   choices = c(
+                    #     "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "2 Development Levels", "3 Development Levels", "5 Development Levels", "Income Levels"),
+                    #   selected = "Continental Regions",
+                    #   inline = FALSE),
+                    # selectInput( #Hidden OR !Enable
+                    #   inputId = "MR_Variable_Choice",
+                    #   # label = "Variable",
+                    #   # label = "Group",
+                    #   # label = "Population Group",
+                    #   label = "Gender",
+                    #   choices = c("Both Sexes Combined", "Males", "Females"),
+                    #   # choices = c("Both Sexes Combined" = "iMIGRANT_Stock_Total", "Males" = "iMIGRANT_Stock_Males", "Females" = "iMIGRANT_Stock_Females"),
+                    #   selected = "Both Sexes Combined",
+                    #   multiple = FALSE,
+                    #   width = "100%"),
+                    radioButtons(
+                      inputId = "MR_Variable_Choice",
+                      label = "Gender",
+                      choices = c("Both Sexes Combined", "Males", "Females"),
+                      selected = "Both Sexes Combined",
+                      inline = FALSE),
+                    h5("Plot Parameters", class = "sidebar-title"),
+                    sliderInput(
+                      inputId = "MR_Decimal_Choice", 
+                      label = "Decimal Choice", 
+                      min = 0,
+                      max = 5,
+                      value = 2,
+                      step = 1,
+                      ticks = FALSE, 
+                      width = "100%"),
+                    width = 225, #SideBAR-CONTAINER => Width+
+                    position = "left", #SideBAR-CONTAINER => POSITION
+                    open = "desktop", #SideBAR-CONTAINER => STATE => TIME = 1 => OPEN on DeskTop Screen | Close on Mobile
+                    id = "MR_MIGRANT_STOCK_DATA_Card_SideBAR", #SideBAR-CONTAINER => IDENTIFIER+
+                    bg = "#FCFCFC", #SideBAR-CONTAINER => BACKGround => COLOR+
+                    fg = "#1D1F21", #SideBAR-CONTAINER => FOREGround => COLOR+
+                    padding = c(8, 16)), #SideBAR-CONTAINER => PADDING+
+                  #Stacked BAR(s) => DATA-SELECTION | PARAMETER(s) => ARGu.
+                  fillable = TRUE, #FLEXBOX CONTAINER
+                  fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
+                  bg = "#FCFCFC", #MAIN-CONTAINER => BACKGround => COLOR+
+                  padding = 0, #MAIN-CONTAINER => PADDING+
+                  height = "510px"), #MAIN-CONTAINER => HEIGHT => !Full_Screen
+                #Card => ARGu.
+                full_screen = TRUE, #Expand Card To Fit Screen Size
+                fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
+                id = "MR_MIGRANT_STOCK_DATA_Card")) #Make ... Card Visible/Invisible
+            
+            
+            
             ),
         
           ##### BIRTH #####
@@ -1468,9 +1734,9 @@ ui <- fluidPage(
               ##### REGIONs CHOICE RADIO BUTTONs #####
               div(style = "min-width: 1296px;", #RADIO BUTTONs' container minimum width (don't shrink choices)
                 radioButtons(inputId = "MBR_REGIONs_CHOICE", label  = NULL, 
-                  #International MiGration Stock Data Classifications
+                  #International MIGRANT Stock Data Classifications
                   choices = c(
-                    "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Income Levels", "Development Levels (x3)"),
+                    "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Development Levels (x3)", "Income Levels"),
                   #Selected Classification | Render choices inline
                   selected = "Continental Regions", inline = TRUE
                   )
@@ -1493,9 +1759,9 @@ ui <- fluidPage(
           ##### REGIONs CHOICE RADIO BUTTONs #####
           div(style = "min-width: 1296px;", #RADIO BUTTONs' container minimum width (don't shrink choices)
             radioButtons(inputId = "CLIMATE_R_REGIONs_CHOICE", label  = NULL, 
-              #International MiGration Stock Data Classifications
+              #International MIGRANT Stock Data Classifications
               choices = c(
-                "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Income Levels", "Development Levels (x3)"),
+                "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Development Levels (x3)", "Income Levels"),
               #Selected Classification | Render choices inline
               selected = "Continental Regions", inline = TRUE
               )
@@ -1526,9 +1792,9 @@ ui <- fluidPage(
               ##### REGIONs CHOICE RADIO BUTTONs #####
               div(style = "min-width: 1296px;", #RADIO BUTTONs' container minimum width (don't shrink choices)
                 radioButtons(inputId = "MCRR_REGIONs_CHOICE", label  = NULL, 
-                  #International MiGration Stock Data Classifications
+                  #International MIGRANT Stock Data Classifications
                   choices = c(
-                    "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Income Levels", "Development Levels (x3)"),
+                    "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Development Levels (x3)", "Income Levels"),
                   #Selected Classification | Render choices inline
                   selected = "Continental Regions", inline = TRUE
                   )
@@ -1552,9 +1818,9 @@ ui <- fluidPage(
               ##### REGIONs CHOICE RADIO BUTTONs #####
               div(style = "min-width: 1296px;", #RADIO BUTTONs' container minimum width (don't shrink choices)
                 radioButtons(inputId = "MCBR_REGIONs_CHOICE", label  = NULL, 
-                  #International MiGration Stock Data Classifications
+                  #International MIGRANT Stock Data Classifications
                   choices = c(
-                    "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Income Levels", "Development Levels (x3)"),
+                    "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Development Levels (x3)", "Income Levels"),
                   #Selected Classification | Render choices inline
                   selected = "Continental Regions", inline = TRUE
                   )
@@ -1946,7 +2212,17 @@ ui <- fluidPage(
         DATE = "14-16 November 2024", #PRESENTATION => DATE
         LOCATION = "Montevideo - Uruguay", #PRESENTATION => LOCATION
         EVENT_LINK = "https://www.lacealames2024.org/", #Link To EVENT
-        EVENT = "LACEA-LAMES 2024 Annual Meeting") #EVENT => NAME
+        EVENT = "LACEA-LAMES 2024 Annual Meeting"), #EVENT => NAME
+      ##### CFE-CMSTATISTICS-2024-C-THOMAS-AGNAN #####
+      PRESENTATION_Card( #PRESENTATION Card Function
+        PRESENTATION = "A Bayes Space Point of View on Climate Change", #PRESENTATION => TITLE
+        SPEAKERs = "Christine Thomas-Agnan", #SPEAKER(s) => NAME(s)
+        ORGANIZERs_LINK = c("https://www.cmstatistics.org/", "https://www.cfenetwork.org/"), #Link(s) To ORGANIZER(s)
+        ORGANIZERs = c("Computational and Methodological Statistics (CMStatistics)", "Computational and Financial Econometrics (CFEnetwork)"), #ORGANIZER(s) => NAME(s)
+        DATE = "14-16 December 2024", #PRESENTATION => DATE
+        LOCATION = "London - United Kingdom of Great Britain and Northern Ireland", #PRESENTATION => LOCATION
+        EVENT_LINK = "https://www.cmstatistics.org/CFECMStatistics2024/", #Link To EVENT
+        EVENT = "CFE-CMStatistics 2024 Conference") #EVENT => NAME
       ),
     
     ##### EVENT(s) #####
