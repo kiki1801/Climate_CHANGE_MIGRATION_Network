@@ -12,7 +12,7 @@ Here, find all files used for **CLIMINET:**
   - **/CCMN_iMIGRANT_STOCK** explain how we create an enhanced version of International MIGRANT Stock Data, which incorporates new variables;
   - **/UI_and_SERVER** contains **CLIMINET Website** and **Data Exploration Application (DEA)** source code.
 
-*Our own Geospatial Data and the enhanced version of International MIGRANT Stock Data are located in **R/UI_and_Server/CLIMINET/Données**.*
+*Our own [Geospatial Data](https://doi.org/10.57745/ABJ8OQ) and the enhanced version of International MIGRANT Stock Data are located in **R/UI_and_Server/CLIMINET/Données**.*
 
 **All this work fits into a broader framework &#8658; [Belmont Forum](https://www.belmontforum.org/archives/projects/international-migration-climate-change-and-network-effects-a-worldwide-study).**
 
