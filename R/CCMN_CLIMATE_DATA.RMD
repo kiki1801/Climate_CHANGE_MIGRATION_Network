@@ -1,0 +1,1372 @@
+---
+title: "Climate Change Migration Network"
+subtitle: "Climate Data"
+author: "Kyllian James | Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques"
+date: "`r paste('Creation Date:', '2025-03-06', '|', 'Last Modified Date:', as.Date(file.info('CCMN_CLIMATE_DATA.RMD')$mtime))`"
+output: 
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: yes
+    number_subsections: yes
+    always_allow_html: true
+    code_folding: "hide"
+---
+
+```{=html}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;700&display=swap" rel="stylesheet">
+<style>body{font-family: 'DM Sans', sans-serif;text-align: justify;}</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Libraries
+
+```{r, message=FALSE, warning=FALSE, results="asis"}
+library(knitr)
+library(readxl)
+library(openxlsx)
+library(dplyr)
+library(tidyr)
+library(DT)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(KernSmooth)
+library(RColorBrewer)
+library(plotly)
+library(sf)
+library(classInt)
+library(leaflet)
+
+LibrariesVersions <- data.frame(
+  Library = c("knitr", "readxl", "openxlsx", "dplyr", "tidyr", "DT", "ggplot2",
+              "grid", "gridExtra", "KernSmooth", "RColorBrewer", "plotly", "sf", "classInt", "leaflet"), 
+  Version = c(as.character(packageVersion("knitr")), as.character(packageVersion("readxl")), 
+              as.character(packageVersion("openxlsx")), as.character(packageVersion("dplyr")), 
+              as.character(packageVersion("tidyr")), as.character(packageVersion("DT")), 
+              as.character(packageVersion("ggplot2")), as.character(packageVersion("grid")),
+              as.character(packageVersion("gridExtra")), as.character(packageVersion("KernSmooth")), 
+              as.character(packageVersion("RColorBrewer")), as.character(packageVersion("plotly")),
+              as.character(packageVersion("sf")), as.character(packageVersion("classInt")),
+              as.character(packageVersion("leaflet"))))
+
+datatable(LibrariesVersions, options = list(scrollX = TRUE, autoWidth = TRUE), 
+          caption = paste("Libraries Versions | R",  
+                          gsub("^R version\\s*|\\s*\\(\\d{4}-\\d{2}-\\d{2} ucrt\\)", "", R.version.string)),
+          style = "bootstrap", rownames = FALSE) %>%
+          formatStyle(columns = 1, textAlign = "left") %>% formatStyle(columns = 2, textAlign = "center")
+```
+
+# Climate Data
+
+Data are taken from [NASA-POWER](https://power.larc.nasa.gov/):
+
+* Temporal Resolution: 1990-01-01 To 2020-12-31
+* All available Climate Parameters can be found [here](https://power.larc.nasa.gov/beta/parameters/)
+* Spatial Resolution: 0.5°x0.625° latitude/longitude Grid for Meteorology Parameters
+
+We have Time Series (1990-01-01 To 2020-12-31) for 4 variables:
+
+* `T2M` $\Rightarrow$ The mean air temperature at 2 meters above the surface of the earth in °C
+* `T2M_MIN` $\Rightarrow$ The minimum air temperature at 2 meters above the surface of the earth in °C
+* `T2M_MAX` $\Rightarrow$ The maximum air temperature at 2 meters above the surface of the earth in °C
+* `T2M_RANGE` $\Rightarrow$ The difference between the minimum and maximum air temperature at 2 meters in °C
+
+```{r}
+# Austria_Climate_DATA <- data.frame(
+#   YEAR = numeric(0), MONTH = numeric(0), DAY = numeric(0), 
+#   DOY = numeric(0), DATE = as.Date(character(0), format = "%Y%m%d"),
+#   T2M = numeric(0), T2M_MIN = numeric(0), T2M_MAX = numeric(0), T2M_RANGE = numeric(0))  
+
+Austria_Climate_DATA <- read_xlsx("../MAEM1/Données/Austria.xlsx")
+
+X <- Austria_Climate_DATA
+X$DATE <- format(X$DATE, "%Y-%m-%d")
+
+datatable(X[1:240,], options = list(scrollX = TRUE, autoWidth = TRUE, columnDefs = list(list(width = '75px', targets = 4))), 
+          caption = "Austria's Climate Variables From 1990-01-01 To 1990-01-05", style = "bootstrap", rownames = FALSE) %>%
+  formatStyle(columns = 5, textAlign = "left") %>% formatStyle(columns = c(1:4, 6:9), textAlign = "center")
+```
+
+There are 31 years ($T = 31$), and we denote each year as $Year_t$ where $t = 1, 2, \dots, 31$.  
+
+For each $Year_t$, there are $X_t$ days, denoted as $x_t$, with:
+
+* $\begin{align} X_t = \begin{cases} 365 \text{ for non-leap years}\\ 366 \text{ for leap years} \end{cases} \end{align};$ 
+  $\begin{align} x_t = \begin{cases} 1, 2, \dots, 365 \text{ for non-leap years}\\ 1, 2, \dots, 366 \text{ for leap years} \end{cases} \end{align}$
+
+Moreover, for each day $x_t$, there are $C$ cells (Spatial Points), denoted as $c_i$, where $i = 1, 2, \dots, 48$. 
+
+Number of observations for:
+
+* One day ($x_t$) $\Rightarrow$ $N = C = 48$
+* One year ($Year_t$) $\Rightarrow$ $\begin{align} N = C \times X_t = \begin{cases} 17520 \text{ for non-leap years}\\ 17568 \text{ for leap years} \end{cases} \end{align}$
+* All years $\Rightarrow$ $N = C \times X_t \times T = 543504$
+
+# Parallel Boxplots
+
+To examine Climate Change, we aim to visualize the distributions across all years. We draw Parallel Boxplots.
+
+```{r, fig.width=10, fig.height=6}
+ParallelBOXPLOTs <- function(DATA, VARIABLE) {
+  DATA_1990 <- DATA %>% filter(YEAR == 1990)
+  MEDIAN_1990 <- median(DATA_1990[[VARIABLE]])
+  ggplot(data = DATA, aes(x = as.factor(YEAR), y = !!sym(VARIABLE))) + 
+    geom_boxplot(fill = "#99FF99") + geom_hline(yintercept = MEDIAN_1990, color = "#FF9900", linewidth = 1, alpha = 0.65) +
+    ggtitle(paste("Variable:", VARIABLE)) + xlab("Year") + ylab("Temperature in °C") + guides(x = guide_axis(check.overlap = TRUE)) +
+    theme_classic() + theme(plot.title = element_text(hjust = 0.5, size = 10))}
+
+grid.arrange(
+  ParallelBOXPLOTs(Austria_Climate_DATA, "T2M"), ParallelBOXPLOTs(Austria_Climate_DATA, "T2M_MIN"), 
+  ParallelBOXPLOTs(Austria_Climate_DATA, "T2M_MAX"), ParallelBOXPLOTs(Austria_Climate_DATA, "T2M_RANGE"), ncol = 2)
+grid.text("Temperature Trends in Austria (1990-2020)", x = 0.515, y = 1, just = "top", gp = gpar(fontsize = 12, fontface = "bold"))
+```
+
+We observe a low, almost invisible, increase in temperature for 3 variables (`T2M` | `T2M_MIN` | `T2M_MAX`).
+
+# Kernel Densities
+
+We have a Probability Density Function (PDF) $f(x)$ of a random variable $X$.
+
+Conditions: 
+
+* $f(x) \geq 0, \space \forall x$
+* $\int_{-\infty}^{+\infty} f(u) du = 1$
+
+Data $\{X_i, \space i = 1, 2, \dots, n\}$, where $X_i$ iid $\sim f(x)$. 
+
+**How can we estimate $f(x)$?** We will use kernel method to estimate $f(x)$.
+
+Rosenblatt (1956) and Parzen (1962) $\Rightarrow$ $\widehat{f}(x) = \frac{1}{nh} \sum_{i = n}^n K\left(\frac{x - X_i}{h}\right)$ with $n$ (no. observations), $X_i$ (observations).
+
+Where kernel $K$ satisfies $K(u) \geq 0, \space \forall u$. We decide to use Gaussian Kernel $\Rightarrow$ $K(u) = \frac{1}{\sqrt{2\pi}} e^{-\frac{1}{2}u^2}$.
+
+For bandwidth selection, we decide to use a **data-driven bandwidth selection rule** over **cross-validation**, since calculation time for cross-validation increases with no. observations. As a result, we choose **Silverman's rule** to compute bandwidth:
+
+* Silverman (1986) $\Rightarrow$ $h_{Silverman} = 1.059 \times min\left(\sigma, \frac{q_3 - q_1}{1.349}\right) n^{-\frac{1}{5}}$
+
+## All Years (1990-2020)
+
+```{r, message=FALSE, warning=FALSE, fig.width=10, fig.height=6}
+KDE <- function(DATA, VARIABLE) {
+  DENSITIEs <- ggplot() + 
+    ggtitle(paste("Variable:", VARIABLE)) + xlab("Temperature in °C") + ylab("DENSITY") +
+    theme_classic() + theme(plot.title = element_text(hjust = 0.5, size = 10))
+  COLOR <- 1
+  COLORs <- c(colorRampPalette(c("#FFFFCC", "#FF9900"))(15), 
+              colorRampPalette(c("#FF6600", "#FF0000"))(8), colorRampPalette(c("#DD0000", "#660000"))(8))
+  #KDE/YEAR
+  for (Year in unique(DATA$YEAR)) {
+    DATA_YEAR <- DATA %>% filter(YEAR == Year)
+    X <- DATA_YEAR[[VARIABLE]]
+    Silverman <- 1.059 * min(sd(X), (quantile(X, 0.75) - quantile(X, 0.25)) / 1.349) * length(X)^{-1/5}
+    BKDE <- data.frame(bkde(X, kernel = "normal", bandwidth = Silverman))
+    colnames(BKDE) <- c("X", "Y")
+    DENSITIEs <- DENSITIEs + geom_line(data = BKDE, aes(x = X, y = Y), color = COLORs[COLOR], linewidth = 1, alpha = 0.65)
+    COLOR <- COLOR + 1}
+  return(DENSITIEs)}
+
+grid.arrange(KDE(Austria_Climate_DATA, "T2M"), KDE(Austria_Climate_DATA, "T2M_MIN"), 
+             KDE(Austria_Climate_DATA, "T2M_MAX"), KDE(Austria_Climate_DATA, "T2M_RANGE"), ncol = 2)
+grid.text("Kernel Densities in Austria (1990-2020)", x = 0.515, y = 1, just = "top", gp = gpar(fontsize = 12, fontface = "bold"))
+```
+
+Colors $\Rightarrow$ Yellow (1990) To Red (2020).
+
+## 5-Year Periods (1990-2020)
+
+5-Year Periods $\Rightarrow$ 6 Distributions $\Rightarrow$ 6 Kernel Densities:
+
+* 1990-1995 | 1995-2000 | 2000-2005 | 2005-2010 | 2010-2015 | 2015-2020
+
+```{r, message=FALSE, warning=FALSE, fig.width=10, fig.height=6}
+KDE_FIVE_YEARs <- function(DATA, VARIABLE) {
+  DENSITIEs <- ggplot() + 
+    ggtitle(paste("Variable:", VARIABLE)) + xlab("Temperature in °C") + ylab("DENSITY") +
+    theme_classic() + theme(plot.title = element_text(hjust = 0.5, size = 10))
+  COLOR <- 1
+  COLORs <- brewer.pal(7, "YlOrRd")[-1]
+  #KDE/5-YEARs
+  for (YEAR in seq(from = 1990, to = 2015, by = 5)) {
+    YEARs <- seq(from = YEAR, to = YEAR + 4)
+    DATA_YEARs <- DATA %>% filter(YEAR %in% YEARs)
+    X <- DATA_YEARs[[VARIABLE]]
+    Silverman <- 1.059 * min(sd(X), (quantile(X, 0.75) - quantile(X, 0.25)) / 1.349) * length(X)^{-1/5}
+    BKDE <- data.frame(bkde(X, kernel = "normal", bandwidth = Silverman))
+    colnames(BKDE) <- c("X", "Y")
+    DENSITIEs <- DENSITIEs + geom_line(data = BKDE, aes(x = X, y = Y), color = COLORs[COLOR], linewidth = 1, alpha = 0.80)
+    COLOR <- COLOR + 1}
+  return(DENSITIEs)}
+
+grid.arrange(KDE_FIVE_YEARs(Austria_Climate_DATA, "T2M"), KDE_FIVE_YEARs(Austria_Climate_DATA, "T2M_MIN"), 
+             KDE_FIVE_YEARs(Austria_Climate_DATA, "T2M_MAX"), KDE_FIVE_YEARs(Austria_Climate_DATA, "T2M_RANGE"), ncol = 2)
+grid.text("Kernel Densities in Austria (5-Year Periods, 1990-2020)", 
+          x = 0.515, y = 1, just = "top", gp = gpar(fontsize = 11, fontface = "bold"))
+```
+
+Colors $\Rightarrow$ Yellow (1990-1995) To Red (2015-2020).
+
+# Reduced Climate Data
+
+* Austria's climate data file size $>$ 10MB
+* File size loaded into [SHINYApps.io](https://www.shinyapps.io/) must be less than 10MB
+* We therefore need to create a reduced climate data file to be able to reproduce parallel boxplots and kernel densities
+
+## Parallel Boxplots
+
+To reproduce parallel boxplots, we need to compute, for each year-variable combination, some statistics (Lower Whisker | Quantile 0.25 | Median | Quantile 0.75 | Upper Whisker) and store the outliers.
+
+```{r, message=FALSE, warning=FALSE}
+VARIABLEs <- c("T2M", "T2M_MIN", "T2M_MAX", "T2M_RANGE")
+
+Austria_ParallelBOXPLOTs <- Austria_Climate_DATA %>%
+  pivot_longer(cols = 6:9, names_to = "VARIABLE", values_to = "VALUE") %>%
+  group_by(YEAR, VARIABLE) %>%
+  summarise(
+    MIN = min(VALUE), Q25 = quantile(VALUE, 0.25), 
+    MEDIAN = median(VALUE), Q75 = quantile(VALUE, 0.75), MAX = max(VALUE),
+    IQR = Q75 - Q25, LOWER_Bound = Q25 - 1.5 * IQR, UPPER_Bound = Q75 + 1.5 * IQR,
+    LOWER_WHISKER = max(MIN, LOWER_Bound), UPPER_WHISKER = min(MAX, UPPER_Bound),
+    OUTLIERs = list(VALUE[VALUE < LOWER_Bound | VALUE > UPPER_Bound])) %>% select(-IQR)
+
+datatable(Austria_ParallelBOXPLOTs, options = list(scrollX = TRUE, autoWidth = TRUE),
+          caption = "Austria's Data For Parallel Boxplots (All Years, 1990-2020)", style = "bootstrap", rownames = FALSE) %>%
+  formatStyle(columns = 12, textAlign = "left") %>% formatStyle(columns = 1:11, textAlign = "center") %>%
+  formatRound(columns = c(3:11), digits = 3)
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=10, fig.height=6}
+ParallelBOXPLOTs <- function(DATA, VARIABLE) {
+  DATA_VARIABLE <- DATA %>% filter(VARIABLE == !!VARIABLE)
+  ggplot(data = DATA_VARIABLE, aes(x = as.factor(YEAR))) +
+    geom_boxplot(
+      aes(ymin = LOWER_WHISKER, lower = Q25, middle = MEDIAN, upper = Q75, ymax = UPPER_WHISKER), stat = "identity", fill = "#99FF99") + 
+    geom_point(data = DATA_VARIABLE %>% unnest(OUTLIERs), aes(x = as.factor(YEAR), y = OUTLIERs)) +
+    geom_hline(yintercept = DATA_VARIABLE %>% filter(YEAR == 1990) %>% pull(MEDIAN), color = "#FF9900", linewidth = 1, alpha = 0.65) +
+    ggtitle(paste("Variable:", VARIABLE)) + xlab("Year") + ylab("Temperature in °C") + guides(x = guide_axis(check.overlap = TRUE)) +
+    theme_classic() + theme(plot.title = element_text(hjust = 0.5, size = 10))}
+
+# grid.arrange(ParallelBOXPLOTs(Austria_ParallelBOXPLOTs, "T2M"), ParallelBOXPLOTs(Austria_ParallelBOXPLOTs, "T2M_MIN"),
+#              ParallelBOXPLOTs(Austria_ParallelBOXPLOTs, "T2M_MAX"), ParallelBOXPLOTs(Austria_ParallelBOXPLOTs, "T2M_RANGE"), ncol = 2)
+# grid.text("Temperature Trends in Austria (1990-2020)", x = 0.515, y = 1, just = "top", gp = gpar(fontsize = 12, fontface = "bold"))
+```
+
+## Kernel Densities
+
+To reproduce kernel densities, we need to compute and store estimated values.
+
+### All Years (1990-2020)
+
+```{r, message=FALSE, warning=FALSE}
+VARIABLEs <- c("T2M", "T2M_MIN", "T2M_MAX", "T2M_RANGE")
+
+Austria_KDE <- tibble()
+
+for (VARIABLE in VARIABLEs) {
+  for (Year in unique(Austria_Climate_DATA$YEAR)) {
+    DATA_YEAR <- Austria_Climate_DATA %>% filter(YEAR == Year)
+    X <- DATA_YEAR[[VARIABLE]] 
+    Silverman <- 1.059 * min(sd(X), (quantile(X, 0.75) - quantile(X, 0.25)) / 1.349) * length(X)^{-1/5}
+    BKDE <- data.frame(bkde(X, kernel = "normal", bandwidth = Silverman))
+    colnames(BKDE) <- c("X", "Y") 
+    Austria_KDE <- Austria_KDE %>% bind_rows(tibble(YEAR = Year, VARIABLE = VARIABLE, X = list(BKDE$X), Y = list(BKDE$Y)))}}
+
+datatable(Austria_KDE, options = list(scrollX = TRUE, autoWidth = TRUE), 
+          caption = "Austria's Data For Kernel Densities (All Years, 1990-2020)", style = "bootstrap", rownames = FALSE) %>%
+  formatStyle(columns = 3:4, textAlign = "left") %>% formatStyle(columns = 1:2, textAlign = "center")
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=10, fig.height=6}
+KDE <- function(DATA, VARIABLE) {
+  DATA_VARIABLE <- DATA %>% filter(VARIABLE == !!VARIABLE) %>% unnest(c(X, Y))
+  COLORs <- c(colorRampPalette(c("#FFFFCC", "#FF9900"))(15), 
+              colorRampPalette(c("#FF6600", "#FF0000"))(8), colorRampPalette(c("#DD0000", "#660000"))(8))
+  DENSITIEs <- ggplot(DATA_VARIABLE, aes(x = X, y = Y, color = as.factor(YEAR))) + 
+    geom_line(linewidth = 1, alpha = 0.65) +
+    scale_color_manual(values = COLORs) +  
+    ggtitle(paste("Variable:", VARIABLE)) + xlab("Temperature in °C") + ylab("DENSITY") +
+    theme_classic() + theme(plot.title = element_text(hjust = 0.5, size = 10), legend.position = "none")  
+  return(DENSITIEs)}
+
+# grid.arrange(KDE(Austria_KDE, "T2M"), KDE(Austria_KDE, "T2M_MIN"),
+#              KDE(Austria_KDE, "T2M_MAX"), KDE(Austria_KDE, "T2M_RANGE"), ncol = 2)
+# grid.text("Kernel Densities in Austria (1990-2020)", x = 0.515, y = 1, just = "top", gp = gpar(fontsize = 12, fontface = "bold"))
+```
+
+We combine climate data for parallel boxplots and kernel densities for each year-variable combination into a file, with a size of 700-800 KB (XLS or RDS format).
+
+```{r, message=FALSE, warning=FALSE}
+Austria_Climate_DATA_Reduced <- merge(Austria_ParallelBOXPLOTs, Austria_KDE, by = c("YEAR", "VARIABLE"))
+# write.xlsx(Austria_Climate_DATA_Reduced, "../MAEM1/Données/Austria_Reduced.xlsx")
+# saveRDS(Austria_Climate_DATA_Reduced, "../MAEM1/Données/Austria_Reduced.rds")
+
+datatable(Austria_Climate_DATA_Reduced, options = list(scrollX = TRUE, autoWidth = TRUE), 
+          caption = "Austria's Reduced Climate Data (All Years, 1990-2020)", style = "bootstrap", rownames = FALSE) %>%
+  formatStyle(columns = 12:14, textAlign = "left") %>% formatStyle(columns = 1:11, textAlign = "center") %>%
+  formatRound(columns = c(3:11), digits = 3)
+```
+
+### 5-Year Periods (1990-2020)
+
+```{r}
+VARIABLEs <- c("T2M", "T2M_MIN", "T2M_MAX", "T2M_RANGE")
+
+Austria_KDE_FIVE_YEARs <- tibble()
+
+for (VARIABLE in VARIABLEs) {
+  for (YEAR in seq(from = 1990, to = 2015, by = 5)) {
+    YEARs <- seq(from = YEAR, to = YEAR + 4)
+    DATA_YEARs <- Austria_Climate_DATA %>% filter(YEAR %in% YEARs)
+    X <- DATA_YEARs[[VARIABLE]]
+    Silverman <- 1.059 * min(sd(X), (quantile(X, 0.75) - quantile(X, 0.25)) / 1.349) * length(X)^{-1/5}
+    BKDE <- data.frame(bkde(X, kernel = "normal", bandwidth = Silverman))
+    colnames(BKDE) <- c("X", "Y") 
+    Austria_KDE_FIVE_YEARs <- Austria_KDE_FIVE_YEARs %>% 
+      bind_rows(tibble(Period = paste0(YEAR, "-", YEAR + 5), VARIABLE = VARIABLE, X = list(BKDE$X), Y = list(BKDE$Y)))}}
+
+datatable(Austria_KDE_FIVE_YEARs, options = list(scrollX = TRUE, autoWidth = TRUE, 
+                                                 columnDefs = list(list(width = '80px', targets = 0))),
+          caption = "Austria's Data For Kernel Densities (5-Year Periods, 1990-2020)", style = "bootstrap", rownames = FALSE) %>%
+  formatStyle(columns = 3:4, textAlign = "left") %>% formatStyle(columns = 1:2, textAlign = "center")
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=10, fig.height=6}
+KDE_FIVE_YEARs <- function(DATA, VARIABLE) {
+  DATA_VARIABLE <- DATA %>% filter(VARIABLE == !!VARIABLE) %>% unnest(c(X, Y))
+  COLORs <- brewer.pal(7, "YlOrRd")[-1]
+  DENSITIEs <- ggplot(DATA_VARIABLE, aes(x = X, y = Y, color = as.factor(Period))) + 
+    geom_line(linewidth = 1, alpha = 0.65) +
+    scale_color_manual(values = COLORs) +  
+    ggtitle(paste("Variable:", VARIABLE)) + xlab("Temperature in °C") + ylab("DENSITY") +
+    theme_classic() + theme(plot.title = element_text(hjust = 0.5, size = 10), legend.position = "none")  
+  return(DENSITIEs)}
+
+# grid.arrange(KDE_FIVE_YEARs(Austria_KDE_FIVE_YEARs, "T2M"), KDE_FIVE_YEARs(Austria_KDE_FIVE_YEARs, "T2M_MIN"),
+#              KDE_FIVE_YEARs(Austria_KDE_FIVE_YEARs, "T2M_MAX"), KDE_FIVE_YEARs(Austria_KDE_FIVE_YEARs, "T2M_RANGE"), ncol = 2)
+# grid.text("Kernel Densities in Austria (5-Year Periods, 1990-2020)",
+#           x = 0.515, y = 1, just = "top", gp = gpar(fontsize = 11, fontface = "bold"))
+```
+
+```{r}
+# write.xlsx(Austria_KDE_FIVE_YEARs, "../MAEM1/Données/Austria_KDE_FIVE_YEARs.xlsx")
+# saveRDS(Austria_KDE_FIVE_YEARs, "../MAEM1/Données/Austria_KDE_FIVE_YEARs.rds")
+# save(Austria_Climate_DATA_Reduced, Austria_KDE_FIVE_YEARs, file = "../MAEM1/Données/Austria_Reduced.RData")
+```
+
+Now, we combine two climate data files into one RData file, which is 900KB in size.
+
+# Interactive Visualization
+
+We want to use interactive plots in our Data Exploration Application (DEA).
+
+## Parallel Boxplots
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+ParallelBOXPLOTs <- function(DATA, VARIABLE) {
+  DATA_VARIABLE <- DATA %>% filter(VARIABLE == !!VARIABLE)
+  MEDIAN_1990 <- DATA_VARIABLE %>% filter(YEAR == 1990) %>% pull(MEDIAN)
+  plot_ly(data = DATA_VARIABLE, x = ~as.factor(YEAR), 
+          lowerfence = ~LOWER_WHISKER, q1 = ~Q25, median = ~MEDIAN, q3 = ~Q75, upperfence = ~UPPER_WHISKER, 
+          type = "box", line = list(color = "#333333"), fillcolor = "#99FF99", name = "Boxplots"
+          # text = with(data = DATA_VARIABLE, expr = paste0("<b>COUNTRY: </b>", "Austria", "<br>", 
+          #                                                 "<b>Year: </b>", Year, "<br>",
+          #                                                 "<b>Upper Whisker: </b>", UPPER_WHISKER, "°C", "<br>",
+          #                                                 "<b>Quantile 0.75: </b>", Q75, "°C", "<br>",
+          #                                                 "<b>Median: </b>", MEDIAN, "°C", "<br>",
+          #                                                 "<b>Quantile 0.25: </b>", Q25, "°C", "<br>",
+          #                                                 "<b>Lower Whisker: </b>", LOWER_WHISKER, "°C")),
+          # hovertemplate = paste0("<b>COUNTRY: </b>", "Austria", "<br>", 
+          #                        "<b>Year: </b>", "%{x}", "<br>",
+          #                        "<b>Upper Whisker: </b>", "%{upperfence}", "°C", "<br>",
+          #                        "<b>Quantile 0.75: </b>", "%{q3}", "°C", "<br>",
+          #                        "<b>Median: </b>", "%{median}", "°C", "<br>",
+          #                        "<b>Quantile 0.25: </b>", "%{q1}", "°C", "<br>",
+          #                        "<b>Lower Whisker: </b>", "%{lowerfence}", "°C", "<extra></extra>")
+          ) %>%
+    add_trace(data = DATA_VARIABLE %>% unnest(OUTLIERs), x = ~as.factor(YEAR), y = ~OUTLIERs, name = "Outliers",
+              type = "scatter", mode = "markers", line = list(color = "transparent"), marker = list(color = "#333333", size = 5),
+              hovertemplate = paste0("<b>COUNTRY: </b>", "Austria", "<br>",
+                                     "<b>Year: </b>", "%{x}", "<br>",
+                                     # "<b>Value:</b> %{y}°C<br>",
+                                     "<b>Temperature:</b> %{y}°C<br>",
+                                     "<extra></extra>")) %>%
+    add_segments(x = min(DATA_VARIABLE$YEAR), xend = max(DATA_VARIABLE$YEAR), y = MEDIAN_1990, yend = MEDIAN_1990,
+                 line = list(color = "#FF9900", width = 1.25, dash = "solid"), name = "Median Value (1990)",
+                 hovertemplate = paste0("<b>COUNTRY: </b>", "Austria", "<br>", 
+                                        "<b>Year: </b>", "1990", "<br>",
+                                        "<b>Median: </b>", MEDIAN_1990, "°C", "<extra></extra>")) %>%
+    # style(textposition = "none", hoverinfo = "text") %>%
+    layout(title = paste("Variable:", VARIABLE), legend = list(x=1, y=0.5),
+           xaxis = list(title = "Year"), yaxis = list(title = "Temperature in °C"))}
+
+ParallelBOXPLOTs(Austria_ParallelBOXPLOTs, "T2M")
+```
+
+## Kernel Densities
+
+### All Years (1990-2020)
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+KDE <- function(DATA, VARIABLE) {
+  DATA_VARIABLE <- DATA %>% filter(VARIABLE == !!VARIABLE) %>% unnest(c(X, Y))
+  COLORs <- c(colorRampPalette(c("#FFFFCC", "#FF9900"))(15), 
+              colorRampPalette(c("#FF6600", "#FF0000"))(8), colorRampPalette(c("#DD0000", "#660000"))(8))
+  DENSITIEs <- plot_ly(DATA_VARIABLE, x = ~X, y = ~Y, 
+                       type = 'scatter', mode = 'lines', 
+                       line = list(width = 1), color = ~factor(YEAR), colors = COLORs, 
+                       hovertemplate = paste0("<b>COUNTRY: </b>", "Austria", "<br>", 
+                                              # "<b>Year: </b>", YEAR, "<br>",
+                                              "<b>Year: </b>", "%{customdata}", "<br>",
+                                              "<b>X Value: </b>", "%{x:.3f}", "°C", "<br>",
+                                              "<b>Y Value: </b>", "%{y:.3f}", "<extra></extra>"), customdata = ~YEAR) %>%
+    # style(textposition = "none", hoverinfo = "text") %>%
+    layout(xaxis = list(title = "Temperature in °C"), yaxis = list(title = "DENSITY"),
+           title = paste("Variable:", VARIABLE), legend = list(title = list(text = '<b>Year</b>'), x=1, y=0.5))
+  return(DENSITIEs)}
+
+KDE(Austria_KDE, "T2M")
+```
+
+### 5-Year Periods (1990-2020)
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+KDE_FIVE_YEARs <- function(DATA, VARIABLE) {
+  DATA_VARIABLE <- DATA %>% filter(VARIABLE == !!VARIABLE) %>% unnest(c(X, Y))
+  COLORs <- brewer.pal(7, "YlOrRd")[-1]
+  DENSITIEs <- plot_ly(DATA_VARIABLE, x = ~X, y = ~Y, 
+                       type = 'scatter', mode = 'lines', 
+                       line = list(width = 1), color = ~factor(Period), colors = COLORs,
+                       hovertemplate = paste0("<b>COUNTRY: </b>", "Austria", "<br>", 
+                                              # "<b>Period: </b>", ~Period, "<br>",
+                                              "<b>Period: </b>", "%{customdata}", "<br>",
+                                              "<b>X Value: </b>", "%{x:.3f}", "°C", "<br>",
+                                              "<b>Y Value: </b>", "%{y:.3f}", "<extra></extra>"), customdata = ~Period) %>%
+    # style(textposition = "none", hoverinfo = "text") %>%
+    layout(xaxis = list(title = "Temperature in °C"), yaxis = list(title = "DENSITY"),
+           title = paste("Variable:", VARIABLE), legend = list(title = list(text = '<b>Period</b>'), x=1, y=0.5))
+  return(DENSITIEs)}
+
+KDE_FIVE_YEARs(Austria_KDE_FIVE_YEARs, "T2M")
+```
+
+# Climate Data (All Countries)
+
+Data are taken from [MERRA-2](https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/data_access/):
+
+* Temporal Resolution: 1981-01-01 To 2024-12-31
+* All available Climate Parameters can be found [here](https://power.larc.nasa.gov/beta/parameters/)
+* Spatial Resolution: 0.5°x0.625° latitude/longitude Grid for Meteorology Parameters
+
+We have Time Series (1981-01-01 To 2024-12-31) for 4 variables:
+
+* `T2M` $\Rightarrow$ The mean air temperature at 2 meters above the surface of the earth in °C
+* `T2M_MIN` $\Rightarrow$ The minimum air temperature at 2 meters above the surface of the earth in °C
+* `T2M_MAX` $\Rightarrow$ The maximum air temperature at 2 meters above the surface of the earth in °C
+* `PRECTOTCORR` $\Rightarrow$ The mean bias corrected total precipitation at the surface of the earth in mm
+
+```{r}
+GeoDATA <- read_xlsx("UI_and_SERVER/CLIMINET-SHINYApps/Données/Geo/COUNTRIEs/CCMN_DATA.xlsx")
+
+CODEs <- data.frame()
+
+for (File in list.files(path = "../Données/Climate/Countries", pattern = "*.RData", full.names = TRUE)) {
+  
+  File_NAME <- basename(File)
+  
+  CODE <- sub("\\.RData", "", File_NAME)
+  
+  CODEs <- bind_rows(CODEs, data.frame(CODE = CODE))}
+
+X <- setdiff(GeoDATA$M49_CODE, CODEs$CODE)
+```
+
+We have 248 files:
+
+* 248/262 Countries/Territories (`NAME`) from `GeoDATA` (`NA` in `M49_CODE` $\Rightarrow$ No files)
+* 248/249 Numeric Code (`M49_CODE`) from [International Organization for Standardization (ISO)](https://www.iso.org/obp/ui/#search) (Channel Islands)
+
+We create a reduced climate data file for all countries:
+
+* Temporal Resolution: 1990 To 2020 (inclusive)
+* Parallel Boxplots: No Outliers (Minimum | Quantile 0.25 | Median | Quantile 0.75 | Maximum)
+
+```{r, message=FALSE, warning=FALSE}
+# for (File in list.files(path = "../Données/Climate/Countries", pattern = "*.RData", full.names = TRUE)) {
+# 
+#   File_NAME <- basename(File)
+# 
+#   CODE <- sub("\\.RData", "", File_NAME)
+# 
+#   load(File)
+# 
+#   print(COUNTRY_NAME <- GeoDATA %>% filter(M49_CODE == CODE) %>% pull(NAME))
+# 
+#   DATA <- X %>% mutate(YYYYMMDD = sub("^([0-9]{4}).*", "\\1", YYYYMMDD)) %>%
+#     rename(YEAR = 1, T2M = 2, T2M_MIN = 3, T2M_MAX = 4) %>% filter(YEAR >= "1990" & YEAR <= "2020")
+# 
+#   # DATA <- DATA %>% mutate(
+#   #   T2M = round(T2M, 5), T2M_MIN = round(T2M_MIN, 5), T2M_MAX = round(T2M_MAX, 5),
+#   #   PRECTOTCORR = ifelse(PRECTOTCORR < 1e-5 & PRECTOTCORR > 0, 1e-5, round(PRECTOTCORR, 5)))
+# 
+#   # DATA <- DATA %>% mutate(
+#   #   T2M = round(T2M, 5), T2M_MIN = round(T2M_MIN, 5), T2M_MAX = round(T2M_MAX, 5), PRECTOTCORR = round(PRECTOTCORR, 5))
+# 
+#   # DATA_ParallelBOXPLOTs  <- DATA %>%
+#   #   pivot_longer(cols = 2:5, names_to = "VARIABLE", values_to = "VALUE") %>%
+#   #   group_by(YEAR, VARIABLE) %>%
+#   #   summarise(
+#   #     MIN = min(VALUE), Q25 = quantile(VALUE, 0.25),
+#   #     MEDIAN = median(VALUE), Q75 = quantile(VALUE, 0.75), MAX = max(VALUE),
+#   #     IQR = Q75 - Q25, LOWER_Bound = Q25 - 1.5 * IQR, UPPER_Bound = Q75 + 1.5 * IQR,
+#   #     LOWER_WHISKER = max(MIN, LOWER_Bound), UPPER_WHISKER = min(MAX, UPPER_Bound),
+#   #     OUTLIERs = list(VALUE[VALUE < LOWER_Bound | VALUE > UPPER_Bound])) %>% select(-IQR)
+# 
+#   # DATA_ParallelBOXPLOTs <- DATA_ParallelBOXPLOTs %>% mutate(
+#   #   MIN = round(MIN, 5), Q25 = round(Q25, 5),
+#   #   MEDIAN = round(MEDIAN, 5), Q75 = round(Q75, 5),
+#   #   LOWER_Bound = round(LOWER_Bound, 5), UPPER_Bound = round(UPPER_Bound, 5),
+#   #   LOWER_WHISKER = round(LOWER_WHISKER, 5), UPPER_WHISKER = round(UPPER_WHISKER, 5))
+# 
+#   DATA_ParallelBOXPLOTs  <- DATA %>%
+#     pivot_longer(cols = 2:5, names_to = "VARIABLE", values_to = "VALUE") %>%
+#     group_by(YEAR, VARIABLE) %>%
+#     summarise(MIN = round(min(VALUE), 5), Q25 = round(quantile(VALUE, 0.25), 5),
+#               MEDIAN = round(median(VALUE), 5), Q75 = round(quantile(VALUE, 0.75), 5), MAX = round(max(VALUE), 5))
+# 
+#   VARIABLEs <- c("T2M", "T2M_MIN", "T2M_MAX", "PRECTOTCORR")
+# 
+#   DATA_KDE <- tibble()
+# 
+#   for (VARIABLE in VARIABLEs) {
+#     for (Year in unique(DATA$YEAR)) {
+#       DATA_YEAR <- DATA %>% filter(YEAR == Year)
+#       X <- DATA_YEAR[[VARIABLE]]
+#       Silverman <- 1.059 * min(sd(X), (quantile(X, 0.75) - quantile(X, 0.25)) / 1.349) * length(X)^{-1/5}
+#       BKDE <- data.frame(bkde(X, kernel = "normal", bandwidth = Silverman))
+#       colnames(BKDE) <- c("X", "Y")
+#       DATA_KDE <- DATA_KDE %>% bind_rows(tibble(YEAR = Year, VARIABLE = VARIABLE, X = list(BKDE$X), Y = list(BKDE$Y)))}}
+# 
+#   DATA_Reduced <- merge(DATA_ParallelBOXPLOTs, DATA_KDE, by = c("YEAR", "VARIABLE"))
+# 
+#   DATA_KDE_FIVE_YEARs <- tibble()
+# 
+#   for (VARIABLE in VARIABLEs) {
+#     for (YEAR in seq(from = 1990, to = 2015, by = 5)) {
+#       YEARs <- seq(from = YEAR, to = YEAR + 4)
+#       DATA_YEARs <- DATA %>% filter(YEAR %in% YEARs)
+#       X <- DATA_YEARs[[VARIABLE]]
+#       Silverman <- 1.059 * min(sd(X), (quantile(X, 0.75) - quantile(X, 0.25)) / 1.349) * length(X)^{-1/5}
+#       BKDE <- data.frame(bkde(X, kernel = "normal", bandwidth = Silverman))
+#       colnames(BKDE) <- c("X", "Y")
+#       DATA_KDE_FIVE_YEARs <- DATA_KDE_FIVE_YEARs %>%
+#         bind_rows(tibble(Period = paste0(YEAR, "-", YEAR + 5), VARIABLE = VARIABLE, X = list(BKDE$X), Y = list(BKDE$Y)))}}
+# 
+#   save(DATA_Reduced, DATA_KDE_FIVE_YEARs,
+#        file = paste0("UI_and_SERVER/CLIMINET-SHINYApps/Données/Climate/Reduced_Climate_Data/Countries/", CODE, ".RData"))}
+```
+
+We compare the similarities between the data used in section 2 and those used in this section (Austria).
+
+```{r}
+# load("../Données/Climate/Countries/040.RData")
+load("UI_and_SERVER/CLIMINET/Données/Climate/Reduced_Climate_Data/Countries/040.RData")
+```
+
+## Parallel Boxplots
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+X1 <- Austria_ParallelBOXPLOTs %>% 
+  mutate(YEAR = as.character(YEAR), Group = "Section 2") %>% filter(VARIABLE == "T2M")
+X2 <- DATA_Reduced %>% mutate(Group = "Section 7") %>% filter(VARIABLE == "T2M")
+X <- rbind(X1, X2)
+
+ParallelBOXPLOTs_Similarities <- plot_ly() %>%
+  add_trace(x = ~X$YEAR[X$Group == "Section 2"],
+            lowerfence = ~X$MIN[X$Group == "Section 2"], q1 = ~X$Q25[X$Group == "Section 2"],
+            median = ~X$MEDIAN[X$Group == "Section 2"], q3 = ~X$Q75[X$Group == "Section 2"], upperfence = ~X$MAX[X$Group == "Section 2"],
+            type = "box", line = list(color = "#333333"), fillcolor = "#FF9900", name = "Section 2") %>%
+  add_trace(x = ~X$YEAR[X$Group == "Section 7"],
+            lowerfence = ~X$MIN[X$Group == "Section 7"], q1 = ~X$Q25[X$Group == "Section 7"],
+            median = ~X$MEDIAN[X$Group == "Section 7"], q3 = ~X$Q75[X$Group == "Section 7"], upperfence = ~X$MAX[X$Group == "Section 7"],
+            type = "box", line = list(color = "#333333"), fillcolor = "#99FF99", name = "Section 7") %>%
+  layout(title = paste("Austria - Variable:", "T2M"), legend = list(x=1, y=0.5),
+         xaxis = list(title = "Year"), yaxis = list(title = "Temperature in °C"), boxmode = "group")
+ParallelBOXPLOTs_Similarities
+```
+
+## Kernel Densities 
+
+### All Years (1990-2020)
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+X1 <- Austria_KDE %>% 
+  mutate(YEAR = as.character(YEAR), Group = "Section 2") %>% filter(YEAR == "1990", VARIABLE == "T2M") %>% unnest(c(X, Y))
+X2 <- DATA_Reduced %>% filter(YEAR == "1990", VARIABLE == "T2M") %>% unnest(c(X, Y))
+
+KDE_Similarities <- plot_ly(type = "scatter", mode = "lines") %>%
+  add_trace(x = X1$X, y = X1$Y, name = "Section 2", line = list(width = 1)) %>%
+  add_trace(x = X2$X, y = X2$Y, name = "Section 7", line = list(width = 1)) %>%
+  layout(xaxis = list(title = "Temperature in °C"), yaxis = list(title = "DENSITY"),
+         title = paste("Austria - Variable:", "T2M (1990)"), legend = list(title = list(text = '<b>Group</b>'), x=1, y=0.5))
+KDE_Similarities
+```
+
+### 5-Year Periods (1990-2020)
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+X1 <- Austria_KDE_FIVE_YEARs %>% 
+  mutate(Group = "Section 2") %>% filter(Period == "1990-1995", VARIABLE == "T2M") %>% unnest(c(X, Y))
+X2 <- DATA_KDE_FIVE_YEARs %>% 
+  mutate(Group = "Section 7") %>% filter(Period == "1990-1995", VARIABLE == "T2M") %>% unnest(c(X, Y))
+
+KDE_FIVE_YEARs_Similarities <- plot_ly(type = "scatter", mode = "lines") %>%
+  add_trace(x = X1$X, y = X1$Y, name = "Section 2", line = list(width = 1)) %>%
+  add_trace(x = X2$X, y = X2$Y, name = "Section 7", line = list(width = 1)) %>%
+  layout(xaxis = list(title = "Temperature in °C"), yaxis = list(title = "DENSITY"),
+         title = paste("Austria - Variable:", "T2M (1990-1995)"), legend = list(title = list(text = '<b>Group</b>'), x=1, y=0.5))
+KDE_FIVE_YEARs_Similarities
+```
+
+# Climate Indicators
+
+Data are taken from [MERRA-2](https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/data_access/):
+
+* Temporal Resolution: 1981-01-01 To 2024-12-31
+* All available Climate Parameters can be found [here](https://power.larc.nasa.gov/beta/parameters/)
+* Spatial Resolution: 0.5°x0.625° latitude/longitude Grid for Meteorology Parameters
+
+We have Time Series (1981-01-01 To 2024-12-31) for 4 variables:
+
+* `T2M` $\Rightarrow$ The mean air temperature at 2 meters above the surface of the earth in °C
+* `T2M_MIN` $\Rightarrow$ The minimum air temperature at 2 meters above the surface of the earth in °C
+* `T2M_MAX` $\Rightarrow$ The maximum air temperature at 2 meters above the surface of the earth in °C
+* `PRECTOTCORR` $\Rightarrow$ The mean bias corrected total precipitation at the surface of the earth in mm
+
+## Temperatures Variables (Cell Level)
+
+Climate normals are computed over a reference period (1981-2010).
+
+We consider 3 classical variables, with the difference from normal temperatures defined as the deviation between the mean annual temperatures and the normal annual temperatures, which is computed over the reference period (1981-2010):
+
+* `T2M_Deviation` $\Rightarrow$ Difference from normal annual temperatures for the variable `T2M`
+* `T2M_MIN_Deviation` $\Rightarrow$ Difference from normal annual temperatures for the variable `T2M_MIN`
+* `T2M_MAX_Deviation` $\Rightarrow$ Difference from normal annual temperatures for the variable `T2M_MAX`
+
+We now consider less conventional variables, the first of which is a heatwave indicator derived from the [GHWR multi-method toolbox](https://doi.org/10.1038/sdata.2018.206). This indicator is based on a constant temperature threshold approach, which defines a heatwave as an event where temperatures exceed a fixed threshold for an extended period of time. In this case, we define a heatwave as at least five consecutive days with temperatures $>$ 35°C:
+
+* `GWHR_Heatwave_35` $\Rightarrow$ The number of days with at least five consecutive days of temperatures $>$ 35°C
+
+We now consider another approach to detect heatwaves, where the temperature thresholds are based on local climate data. A heatwave is defined as an event where temperatures exceed a localized threshold, such as quantile 0.90, for several consecutive days. A heatwave occurs in hot periods, and to select a summer period for heatwaves, we add the condition that the maximum temperature must exceed 28°C. We use the same approach to detect warm spells, which can occur at any time of the year. We use different annual climate indicators for the duration, frequency and severity of extreme heat events:
+
+* `WSD` $\Rightarrow$ The warm spell duration based on `T2M_MAX`
+* `WSDI` $\Rightarrow$ The warm spell duration index based on `T2M_MAX`
+* `WSEI` $\Rightarrow$ The warm spell excess index based on `T2M_MAX`
+* `HWD` $\Rightarrow$ The heat wave duration based on `T2M` with a constraint on `T2M_MAX` ($>$ 28°C)
+* `HWF` $\Rightarrow$ The heat wave frequency based on `T2M`
+* `HWEI` $\Rightarrow$ The heat wave excess index based on `T2M`
+
+At the cell level, these indicators are defined as follows:
+
+* `WSD` $\Rightarrow$ The duration of the longest warm spell
+* `WSDI` $\Rightarrow$ The count of days that fulfill the warm spell criteria for at least six consecutive days $>$ quantile 0.90
+* `WSEI` $\Rightarrow$ The average of maximum temperature excesses on days that meet the warm spell criteria (where the maximum temperature excess is defined as the absolute difference between the maximum temperature and the threshold)
+* `HWD` $\Rightarrow$ The duration of the longest heatwave
+* `HWF` $\Rightarrow$ The count of days that fulfill the heatwave criteria for at least three consecutive days $>$ quantile 0.90
+* `HWEI` $\Rightarrow$ The average of mean temperature excesses on days that meet the heatwave criteria (where the mean temperature excess is defined as the absolute difference between the mean temperature and the threshold)
+
+Our data will include variables for frequency, duration and intensity for both warm spells (`WSDI`, `WSD`, `WSEI`) and heatwaves (`HWF`, `HWD`, `HWEI`).
+
+## Precipitation Variables (Cell Level)
+
+We also consider the deviation between the annual precipitation and the normal annual precipitation, which is computed over the reference period (1981-2020):
+
+* `Precipitation_Deviation` $\Rightarrow$ The difference from normal annual precipitation for the variable `PRECTOTCORR`
+
+We consider 3 other precipitation variables:
+
+* `LCDD` $\Rightarrow$ The longest consecutive dry days (with less than 1mm of precipitation) in an annual period
+* `LCWD` $\Rightarrow$ The longest consecutive wet days (with more than 1mm of precipitation) in an annual period
+* `Max_Precipitation_5d` $\Rightarrow$ The maximum total precipitation (in mm) that falls over a period of 5 consecutive days in an annual period ([Climate Atlas of Canada](https://climateatlas.ca/variables))
+
+## Variables - Level 0 (Countries)
+
+We want to compute these indicators for all countries from those at the cell level. We also use population data to increase the importance of the most populated cells. Population data are taken from [LandScan](https://landscan.ornl.gov), available from 2000 to 2023. For 1981–1999, we use population data from 2000, and for 2024, we use population data from 2023. We obtain the annual indicators presented above for all countries from 1981 to 2024.
+
+```{r}
+load("../Données/Climate/Climate_Indicators.RData")
+Climate_Indicators <- final_indicator %>% st_drop_geometry()
+rm("final_indicator")
+
+Climate_Indicators <- Climate_Indicators %>% 
+  rename(SIREGION = region, ISO3 = iso3) %>% select(-matches("^CONTINENT\\.\\d+$")) %>% select(1:5, 37:652)
+
+#Variables Names
+Climate_Indicators <- Climate_Indicators %>%
+  rename_with(.fn = ~ sub(pattern = "^t2m_diff_(\\d+)$", replacement = "T2M_Deviation_\\1", .), .cols = starts_with("t2m_diff_")) %>%
+  rename_with(.fn = ~ sub(pattern = "^t2min_diff_(\\d+)$", replacement = "T2M_MIN_Deviation_\\1", .), .cols = starts_with("t2min_diff_")) %>%
+  rename_with(.fn = ~ sub(pattern = "^t2max_diff_(\\d+)$", replacement = "T2M_MAX_Deviation_\\1", .), .cols = starts_with("t2max_diff_")) %>%
+  rename_with(.fn = ~ sub(
+    pattern = "^prec_diff_(\\d+)$", replacement = "Precipitation_Deviation_\\1", .), .cols = starts_with("prec_diff_")) %>%
+  rename_with(.fn = ~ sub(pattern = "^dry_(\\d+)$", replacement = "LCDD_\\1", .), .cols = starts_with("dry_")) %>%
+  rename_with(.fn = ~ sub(pattern = "^wet_(\\d+)$", replacement = "LCWD_\\1", .), .cols = starts_with("wet_")) %>%
+  rename_with(.fn = ~ sub(
+    pattern = "^prec_5days_(\\d+)$", replacement = "Max_Precipitation_5d_\\1", .), .cols = starts_with("prec_5days_")) %>%
+  rename_with(.fn = ~ sub(pattern = "^wsdi_upp_(\\d+)$", replacement = "WSDI_\\1", .), .cols = starts_with("wsdi_upp_")) %>%
+  rename_with(.fn = ~ sub(pattern = "^wsd_upp_(\\d+)$", replacement = "WSD_\\1", .), .cols = starts_with("wsd_upp_")) %>%
+  rename_with(.fn = ~ sub(pattern = "^wsei_upp_(\\d+)$", replacement = "WSEI_\\1", .), .cols = starts_with("wsei_upp_")) %>%
+  rename_with(.fn = ~ sub(pattern = "^hwf_upp_(\\d+)$", replacement = "HWF_\\1", .), .cols = starts_with("hwf_upp_")) %>%
+  rename_with(.fn = ~ sub(pattern = "^hwd_upp_(\\d+)$", replacement = "HWD_\\1", .), .cols = starts_with("hwd_upp_")) %>%
+  rename_with(.fn = ~ sub(pattern = "^hwei_upp_(\\d+)$", replacement = "HWEI_\\1", .), .cols = starts_with("hwei_upp_")) %>%
+  rename_with(.fn = ~ sub(pattern = "^ghwr_35_(\\d+)$", replacement = "GWHR_Heatwave_35_\\1", .), .cols = starts_with("ghwr_35_"))
+```
+
+We also compute these indicators for 7 periods:
+
+* 1990-1995 | 1995-2000 | 2000-2005 | 2005-2010 | 2010-2015 | 2015-2020 | 2020-2025
+
+```{r}
+Variables <- c("T2M_Deviation", "T2M_MIN_Deviation", "T2M_MAX_Deviation", "Precipitation_Deviation", 
+               "LCDD", "LCWD", "Max_Precipitation_5d", "WSDI",  "WSD", "WSEI", "HWF", "HWD", "HWEI", "GWHR_Heatwave_35")   
+
+Periods <- list("1990_1995" = 1990:1994, "1995_2000" = 1995:1999, "2000_2005" = 2000:2004, 
+                "2005_2010" = 2005:2009, "2010_2015" = 2010:2014, "2015_2020" = 2015:2019, "2020_2025" = 2020:2024)
+
+for(Period in 1:length(Periods)) {
+  for(Variable in 1:length(Variables)) {
+    Climate_Indicators[[paste0(
+      Variables[Variable], "_", names(Periods)[Period])]] <- rowMeans(
+        Climate_Indicators[paste0(Variables[Variable], "_", Periods[[Period]])])}}
+
+Climate_Indicators_FIVE_YEARs <- Climate_Indicators %>% select(1:5, 622:719)
+
+Climate_Indicators <- Climate_Indicators %>% select(1:621) %>% select(-matches("_(198[1-9]|202[1-4])$"))
+
+Climate_Indicators <- Climate_Indicators %>%
+  pivot_longer(cols = 6:439, names_to = c("VARIABLE", "YEAR"), names_sep = "_(?=\\d{4}$)", values_to = "VALUE") %>% 
+  mutate(VALUE = round(VALUE, 5)) %>%
+  # mutate(VALUE = ifelse(VALUE < 1e-5 | VALUE > 1e5, signif(VALUE, digits = 6), round(VALUE, 5))) %>%
+  mutate(VALUE = ifelse(is.na(M49_CODE), NA, VALUE))
+
+# write.xlsx(Climate_Indicators, "UI_and_SERVER/CLIMINET/Données/Climate/Reduced_Climate_Data/Climate_Indicators/Climate_Indicators.xlsx")
+# saveRDS(Climate_Indicators, "UI_and_SERVER/CLIMINET/Données/Climate/Reduced_Climate_Data/Climate_Indicators/Climate_Indicators.rds")
+
+Climate_Indicators_FIVE_YEARs <- Climate_Indicators_FIVE_YEARs %>%
+  pivot_longer(cols = 6:103, names_to = c("VARIABLE", "Period"), names_sep = "_(?=\\d{4}_\\d{4}$)", values_to = "VALUE") %>%
+  mutate(VALUE = round(VALUE, 5), VALUE = ifelse(is.na(M49_CODE), NA, VALUE))
+
+# write.xlsx(Climate_Indicators_FIVE_YEARs,
+#            "UI_and_SERVER/CLIMINET/Données/Climate/Reduced_Climate_Data/Climate_Indicators/Climate_Indicators_FIVE_YEARs.xlsx")
+# saveRDS(Climate_Indicators_FIVE_YEARs,
+#         "UI_and_SERVER/CLIMINET/Données/Climate/Reduced_Climate_Data/Climate_Indicators/Climate_Indicators_FIVE_YEARs.rds")
+
+Climate_Indicators_FIVE_YEARs_Wide <- Climate_Indicators_FIVE_YEARs %>%
+  pivot_wider(names_from = c(VARIABLE, Period), values_from = VALUE, names_sep = "_")
+
+# write.xlsx(Climate_Indicators_FIVE_YEARs_Wide,
+#            "UI_and_SERVER/CLIMINET/Données/Climate/Reduced_Climate_Data/Climate_Indicators/Climate_Indicators_FIVE_YEARs_Wide.xlsx")
+# saveRDS(Climate_Indicators_FIVE_YEARs_Wide,
+#         "UI_and_SERVER/CLIMINET/Données/Climate/Reduced_Climate_Data/Climate_Indicators/Climate_Indicators_FIVE_YEARs_Wide.rds")
+
+# save(Climate_Indicators, Climate_Indicators_FIVE_YEARs, Climate_Indicators_FIVE_YEARs_Wide,
+#      file = "UI_and_SERVER/CLIMINET/Données/Climate/Reduced_Climate_Data/Climate_Indicators/Climate_Indicators.RData")
+```
+
+## Interactive Visualization
+
+### Variable: T2M_Deviation
+
+```{r, fig.width=8}
+# GeoDATA <- readRDS("UI_and_SERVER/CLIMINET/Données/Geo/COUNTRIEs/CCMN_GeoDATA.RDS")
+# GeoDATA <- readRDS("UI_and_SERVER/CLIMINET-SHINYApps/Données/Geo/COUNTRIEs/CCMN_GeoDATA.RDS")
+GeoDATA <- readRDS("UI_and_SERVER/CLIMINET-SHINYApps/Données/Geo/COUNTRIEs/CCMN_GeoDATA_Reduced.RDS")
+
+GeoDATA <- GeoDATA %>% left_join(Climate_Indicators_FIVE_YEARs_Wide %>% select(1, 6:103), by = c("NAME" = "NAME"))
+
+T2M_Deviation <- c(
+  GeoDATA$T2M_Deviation_1990_1995, GeoDATA$T2M_Deviation_1995_2000, GeoDATA$T2M_Deviation_2000_2005,
+  GeoDATA$T2M_Deviation_2005_2010, GeoDATA$T2M_Deviation_2010_2015, GeoDATA$T2M_Deviation_2015_2020, GeoDATA$T2M_Deviation_2020_2025)
+
+T2M_Deviation <- T2M_Deviation[!is.na(T2M_Deviation)]
+
+# KMeans <- kmeans(T2M_Deviation, centers = 8)
+KMeans <- kmeans(T2M_Deviation[T2M_Deviation < 0], centers = 4)
+KMeans <- classIntervals(var = T2M_Deviation[T2M_Deviation < 0], n = 4, "kmeans")
+KMeans_Positive <- kmeans(T2M_Deviation[T2M_Deviation >= 0], centers = 4) 
+KMeans_Positive <- classIntervals(var = T2M_Deviation[T2M_Deviation >= 0], n = 4, "kmeans")
+
+BREAKs <- sort(KMeans$centers)
+BREAKs <- sort(KMeans$brks) 
+BREAKs_Positive <- sort(KMeans_Positive$centers) 
+BREAKs_Positive <- sort(KMeans_Positive$brks) 
+BREAKs <- c(BREAKs, 0, BREAKs_Positive)
+BREAKs <- c(BREAKs[1:4], 0, BREAKs_Positive[-1])
+# BREAKs[1] <- min(T2M_Deviation)
+# BREAKs[9] <- max(T2M_Deviation)
+# BREAKs
+
+COLORs <- colorBin(palette = brewer.pal(n = 8, name = "RdBu"), domain = T2M_Deviation, bins = BREAKs, na.color = "#999999", reverse = TRUE)
+# COLORs <- colorBin(
+#   palette = brewer.pal(n = 9, name = "Reds"), domain = T2M_Deviation, bins = BREAKs, na.color = "#999999", reverse = FALSE)
+# COLORs <- colorBin(
+#   palette = brewer.pal(n = 9, name = "Blues"), domain = T2M_Deviation, bins = BREAKs, na.color = "#999999", reverse = FALSE)
+
+leaflet() %>%
+  addTiles(options = tileOptions(minZoom = 1, maxZoom = 10, maxNativeZoom = 18)) %>%
+  addScaleBar(position = "bottomleft") %>%
+  addPolygons(data = GeoDATA, group = "Mean Temperature Deviation - Period 1990-1995",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(T2M_Deviation_1990_1995), fillOpacity = 0.75, 
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "1990-1995", "<br>",
+                                     "<b>Temperature Deviation (Mean): </b>", round(T2M_Deviation_1990_1995, 3), "°C"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Mean Temperature Deviation - Period 1995-2000",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(T2M_Deviation_1995_2000), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "1995-2000", "<br>",
+                                     "<b>Temperature Deviation (Mean): </b>", round(T2M_Deviation_1995_2000, 3), "°C"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Mean Temperature Deviation - Period 2000-2005",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(T2M_Deviation_2000_2005), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2000-2005", "<br>",
+                                     "<b>Temperature Deviation (Mean): </b>", round(T2M_Deviation_2000_2005, 3), "°C"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Mean Temperature Deviation - Period 2005-2010",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(T2M_Deviation_2005_2010), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2005-2010", "<br>",
+                                     "<b>Temperature Deviation (Mean): </b>", round(T2M_Deviation_2005_2010, 3), "°C"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Mean Temperature Deviation - Period 2010-2015",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(T2M_Deviation_2010_2015), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2010-2015", "<br>",
+                                     "<b>Temperature Deviation (Mean): </b>", round(T2M_Deviation_2010_2015, 3), "°C"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Mean Temperature Deviation - Period 2015-2020",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(T2M_Deviation_2015_2020), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2015-2020", "<br>",
+                                     "<b>Temperature Deviation (Mean): </b>", round(T2M_Deviation_2015_2020, 3), "°C"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Mean Temperature Deviation - Period 2020-2025",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(T2M_Deviation_2020_2025), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2020-2025", "<br>",
+                                     "<b>Temperature Deviation (Mean): </b>", round(T2M_Deviation_2020_2025, 3), "°C"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  # addLegend(position = "topright",
+  #           pal = COLORs, values = T2M_Deviation, opacity = 1, title = "Value in °C") %>%
+  # addLegend(position = "topright",
+  #           pal = COLORs, values = T2M_Deviation, opacity = 1, title = "Temperature Deviation (°C)") %>%
+  # addLegend(position = "topright",
+  #           pal = COLORs, values = T2M_Deviation, opacity = 1, title = "Mean Temperature Deviation (°C)") %>%
+  addLegend(position = "topright",
+            colors = c("#2166AC", "#4393C3", "#92C5DE", "#D1E5F0", "#FDDBC7", "#F4A582", "#D6604D", "#B2182B", "#999999"), opacity = 1, 
+            labels = c("[-1.178;-0.506[", "[-0.506;-0.265[", "[-0.265;-0.111[", "[-0.111;0.000[", 
+                       "[0.000;0.291[", "[0.291;0.625[", "[0.625;1.130[", "[1.130;2.131]", "No Data Available"),
+            title = "Mean Temperature Deviation (°C)") %>%
+  addLayersControl(baseGroups = c(
+    "Mean Temperature Deviation - Period 1990-1995", 
+    "Mean Temperature Deviation - Period 1995-2000",
+    "Mean Temperature Deviation - Period 2000-2005", 
+    "Mean Temperature Deviation - Period 2005-2010",
+    "Mean Temperature Deviation - Period 2010-2015", 
+    "Mean Temperature Deviation - Period 2015-2020",
+    "Mean Temperature Deviation - Period 2020-2025"),
+    position = "bottomright", options = layersControlOptions(collapsed = TRUE)) %>%
+  hideGroup(c("Mean Temperature Deviation - Period 1995-2000",
+              "Mean Temperature Deviation - Period 2000-2005", 
+              "Mean Temperature Deviation - Period 2005-2010",
+              "Mean Temperature Deviation - Period 2010-2015", 
+              "Mean Temperature Deviation - Period 2015-2020",
+              "Mean Temperature Deviation - Period 2020-2025"))
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+# plot_ly() %>%
+#   add_sf(data = GeoDATA)
+```
+
+### Variable: GWHR_Heatwave_35 
+
+```{r, fig.width=8, eval=FALSE}
+GWHR_Heatwave_35 <- c(
+  GeoDATA$GWHR_Heatwave_35_1990_1995, GeoDATA$GWHR_Heatwave_35_1995_2000, 
+  GeoDATA$GWHR_Heatwave_35_2000_2005, GeoDATA$GWHR_Heatwave_35_2005_2010, 
+  GeoDATA$GWHR_Heatwave_35_2010_2015, GeoDATA$GWHR_Heatwave_35_2015_2020, GeoDATA$GWHR_Heatwave_35_2020_2025)
+
+GWHR_Heatwave_35 <- GWHR_Heatwave_35[!is.na(GWHR_Heatwave_35)]
+
+KMeans <- classIntervals(var = GWHR_Heatwave_35, n = 9, "kmeans")
+
+BREAKs <- KMeans$brks
+# BREAKs
+
+COLORs <- colorBin(
+  palette = brewer.pal(n = 9, name = "Reds"), domain = GWHR_Heatwave_35, bins = BREAKs, na.color = "#999999", reverse = FALSE)
+
+leaflet() %>%
+  addTiles(options = tileOptions(minZoom = 1, maxZoom = 10, maxNativeZoom = 18)) %>%
+  addScaleBar(position = "bottomleft") %>%
+  addPolygons(data = GeoDATA, group = "GWHR Heatwave (>35°) - Period 1990-1995",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(GWHR_Heatwave_35_1990_1995), fillOpacity = 0.75, 
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "1990-1995", "<br>",
+                                     "<b>GWHR Heatwave (>35°): </b>", round(GWHR_Heatwave_35_1990_1995, 3)), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "GWHR Heatwave (>35°) - Period 1995-2000",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(GWHR_Heatwave_35_1995_2000), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "1995-2000", "<br>",
+                                     "<b>GWHR Heatwave (>35°): </b>", round(GWHR_Heatwave_35_1995_2000, 3)), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "GWHR Heatwave (>35°) - Period 2000-2005",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(GWHR_Heatwave_35_2000_2005), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2000-2005", "<br>",
+                                     "<b>GWHR Heatwave (>35°): </b>", round(GWHR_Heatwave_35_2000_2005, 3)), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "GWHR Heatwave (>35°) - Period 2005-2010",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(GWHR_Heatwave_35_2005_2010), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2005-2010", "<br>",
+                                     "<b>GWHR Heatwave (>35°): </b>", round(GWHR_Heatwave_35_2005_2010, 3)), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "GWHR Heatwave (>35°) - Period 2010-2015",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(GWHR_Heatwave_35_2010_2015), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2010-2015", "<br>",
+                                     "<b>GWHR Heatwave (>35°): </b>", round(GWHR_Heatwave_35_2010_2015, 3)), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "GWHR Heatwave (>35°) - Period 2015-2020",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(GWHR_Heatwave_35_2015_2020), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2015-2020", "<br>",
+                                     "<b>GWHR Heatwave (>35°): </b>", round(GWHR_Heatwave_35_2015_2020, 3)), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "GWHR Heatwave (>35°) - Period 2020-2025",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(GWHR_Heatwave_35_2020_2025), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2020-2025", "<br>",
+                                     "<b>GWHR Heatwave (>35°): </b>", round(GWHR_Heatwave_35_2020_2025, 3)), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addLegend(position = "topright",
+            colors = c("#FFF5F0", "#FEE0D2", "#FCBBA1", "#FC9272", "#FB6A4A", 
+                       "#EF3B2C", "#CB181D", "#A50F15", "#67000D", "#999999"), opacity = 1,
+            labels = c("[0.000;4.729[", "[4.729;14.107[", "[14.107;25.241[", "[25.241;41.067[", "[41.067;60.478[",
+                       "[60.478;84.611[", "[84.611;119.344[", "[119.344;164.765[", "[164.765;229.637]", "No Data Available"),
+            title = "GWHR Heatwave (>35°)") %>%
+  addLayersControl(baseGroups = c(
+    "GWHR Heatwave (>35°) - Period 1990-1995", 
+    "GWHR Heatwave (>35°) - Period 1995-2000",
+    "GWHR Heatwave (>35°) - Period 2000-2005", 
+    "GWHR Heatwave (>35°) - Period 2005-2010",
+    "GWHR Heatwave (>35°) - Period 2010-2015", 
+    "GWHR Heatwave (>35°) - Period 2015-2020",
+    "GWHR Heatwave (>35°) - Period 2020-2025"),
+    position = "bottomright", options = layersControlOptions(collapsed = TRUE)) %>%
+  hideGroup(c("GWHR Heatwave (>35°) - Period 1995-2000",
+              "GWHR Heatwave (>35°) - Period 2000-2005", 
+              "GWHR Heatwave (>35°) - Period 2005-2010",
+              "GWHR Heatwave (>35°) - Period 2010-2015", 
+              "GWHR Heatwave (>35°) - Period 2015-2020",
+              "GWHR Heatwave (>35°) - Period 2020-2025"))
+```
+
+### Variable: Max_Precipitation_5d 
+
+```{r, fig.width=8, eval=FALSE}
+Max_Precipitation_5d <- c(
+  GeoDATA$Max_Precipitation_5d_1990_1995, GeoDATA$Max_Precipitation_5d_1995_2000, 
+  GeoDATA$Max_Precipitation_5d_2000_2005, GeoDATA$Max_Precipitation_5d_2005_2010, 
+  GeoDATA$Max_Precipitation_5d_2010_2015, GeoDATA$Max_Precipitation_5d_2015_2020, GeoDATA$Max_Precipitation_5d_2020_2025)
+
+Max_Precipitation_5d <- Max_Precipitation_5d[!is.na(Max_Precipitation_5d)]
+
+KMeans <- classIntervals(var = Max_Precipitation_5d, n = 9, "kmeans")
+
+BREAKs <- KMeans$brks
+# BREAKs
+
+COLORs <- colorBin(
+  palette = brewer.pal(n = 9, name = "Blues"), domain = Max_Precipitation_5d, bins = BREAKs, na.color = "#999999", reverse = FALSE)
+
+leaflet() %>%
+  addTiles(options = tileOptions(minZoom = 1, maxZoom = 10, maxNativeZoom = 18)) %>%
+  addScaleBar(position = "bottomleft") %>%
+  addPolygons(data = GeoDATA, group = "Max. 5-d Precipitation - Period 1990-1995",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(Max_Precipitation_5d_1990_1995), fillOpacity = 0.75, 
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "1990-1995", "<br>",
+                                     "<b>Max. 5-d Precipitation: </b>", round(Max_Precipitation_5d_1990_1995, 3), "mm"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Max. 5-d Precipitation - Period 1995-2000",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(Max_Precipitation_5d_1995_2000), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "1995-2000", "<br>",
+                                     "<b>Max. 5-d Precipitation: </b>", round(Max_Precipitation_5d_1995_2000, 3), "mm"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Max. 5-d Precipitation - Period 2000-2005",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(Max_Precipitation_5d_2000_2005), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2000-2005", "<br>",
+                                     "<b>Max. 5-d Precipitation: </b>", round(Max_Precipitation_5d_2000_2005, 3), "mm"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Max. 5-d Precipitation - Period 2005-2010",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(Max_Precipitation_5d_2005_2010), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2005-2010", "<br>",
+                                     "<b>Max. 5-d Precipitation: </b>", round(Max_Precipitation_5d_2005_2010, 3), "mm"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Max. 5-d Precipitation - Period 2010-2015",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(Max_Precipitation_5d_2010_2015), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2010-2015", "<br>",
+                                     "<b>Max. 5-d Precipitation: </b>", round(Max_Precipitation_5d_2010_2015, 3), "mm"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Max. 5-d Precipitation - Period 2015-2020",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(Max_Precipitation_5d_2015_2020), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2015-2020", "<br>",
+                                     "<b>Max. 5-d Precipitation: </b>", round(Max_Precipitation_5d_2015_2020, 3), "mm"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addPolygons(data = GeoDATA, group = "Max. 5-d Precipitation - Period 2020-2025",
+              stroke = TRUE, color = "#CCCCCC", weight = 0.5, opacity = 0.5,
+              fill = TRUE, fillColor = ~COLORs(Max_Precipitation_5d_2020_2025), fillOpacity = 0.75,
+              label = ~lapply(paste0("<b>Area: </b>", NAME, "<br>",
+                                     "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                     "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                     "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                     "<b>Period: </b>", "2020-2025", "<br>",
+                                     "<b>Max. 5-d Precipitation: </b>", round(Max_Precipitation_5d_2020_2025, 3), "mm"), htmltools::HTML),
+              highlightOptions = highlightOptions(
+                stroke = TRUE, color = "#99FF66", weight = 1.5, opacity = 0.75,
+                fill = TRUE, fillColor = NULL, fillOpacity = 1)) %>%
+  addLegend(position = "topright",
+            colors = c("#F7FBFF", "#DEEBF7", "#C6DBEF", "#9ECAE1", "#6BAED6", 
+                       "#4292C6", "#2171B5", "#08519C", "#08306B", "#999999"), opacity = 1,
+            labels = c("[6.878;40.894[", "[40.894;63.638[", "[63.638;84.006[", "[84.006;107.866[", "[107.866;136.509[",
+                       "[136.509;170.056[", "[170.056;221.525[", "[221.525;334.494[", "[334.494;460.277]", "No Data Available"),
+            title = "Max. 5-d Precipitation (mm)") %>%
+  addLayersControl(baseGroups = c(
+    "Max. 5-d Precipitation - Period 1990-1995", 
+    "Max. 5-d Precipitation - Period 1995-2000",
+    "Max. 5-d Precipitation - Period 2000-2005", 
+    "Max. 5-d Precipitation - Period 2005-2010",
+    "Max. 5-d Precipitation - Period 2010-2015", 
+    "Max. 5-d Precipitation - Period 2015-2020",
+    "Max. 5-d Precipitation - Period 2020-2025"),
+    position = "bottomright", options = layersControlOptions(collapsed = TRUE)) %>%
+  hideGroup(c("Max. 5-d Precipitation - Period 1995-2000",
+              "Max. 5-d Precipitation - Period 2000-2005", 
+              "Max. 5-d Precipitation - Period 2005-2010",
+              "Max. 5-d Precipitation - Period 2010-2015", 
+              "Max. 5-d Precipitation - Period 2015-2020",
+              "Max. 5-d Precipitation - Period 2020-2025"))
+```
+
+### ...
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+X0 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "T2M_Deviation")
+X1 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "T2M_MIN_Deviation")
+X2 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "T2M_MAX_Deviation")
+
+plot_ly(data = X0, x = ~YEAR, y = ~VALUE, 
+        type = 'scatter', name = 'Mean Temperature', 
+        mode = 'lines+markers', line = list(color = '#FA5A00'), marker = list(color = '#FA5A00'), 
+        text = with(X0, paste0("<b>Area: </b>", NAME, "<br>",
+                               "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                               "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                               "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                               "<b>Year: </b>", YEAR, "<br>",
+                               "<b>Temperature Deviation (Mean): </b>", round(VALUE, 3), "°C")), hoverinfo = "text") %>%
+  add_trace(data = X1, x = ~YEAR, y = ~VALUE, name = 'Minimum Temperature', line = list(color = '#0000FF'), marker = list(color = '#0000FF'),
+            text = with(X1, paste0("<b>Area: </b>", NAME, "<br>",
+                                   "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                   "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                   "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                   "<b>Year: </b>", YEAR, "<br>",
+                                   "<b>Temperature Deviation (Minimum): </b>", round(VALUE, 3), "°C")), hoverinfo = "text") %>%
+  add_trace(data = X2, x = ~YEAR, y = ~VALUE, name = 'Maximum Temperature', line = list(color = '#FF0000'), marker = list(color = '#FF0000'),
+            text = with(X2, paste0("<b>Area: </b>", NAME, "<br>",
+                                   "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                   "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                   "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                   "<b>Year: </b>", YEAR, "<br>",
+                                   "<b>Temperature Deviation (Maximum): </b>", round(VALUE, 3), "°C")), hoverinfo = "text") %>%
+  # layout(title = "Temperature Deviation in Austria (1990-2020)",
+  #        xaxis = list(title = "Year"), yaxis = list(title = "Difference from normal annual temperatures in °C"),
+  #        legend = list(x = 0.5, y = 1.05, xanchor = "center", orientation = "h"))
+  layout(title = "Temperature Deviation in Austria (1990-2020)",
+         xaxis = list(title = "Year"), yaxis = list(title = "Diff. from normal annual temperatures in °C"),
+         legend = list(x = 0.5, y = -0.20, xanchor = "center", orientation = "h"))
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+X0 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "Precipitation_Deviation")
+
+plot_ly(data = X0, x = ~YEAR, y = ~VALUE, 
+        type = 'scatter', name = 'Mean Precipitation', 
+        mode = 'lines+markers', line = list(color = '#0000FF'), marker = list(color = '#0000FF'), 
+        text = with(X0, paste0("<b>Area: </b>", NAME, "<br>",
+                               "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                               "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                               "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                               "<b>Year: </b>", YEAR, "<br>",
+                               "<b>Precipitation Deviation (Mean): </b>", round(VALUE, 3), "mm")), hoverinfo = "text") %>%
+  layout(title = "Precipitation Deviation in Austria (1990-2020)",
+         xaxis = list(title = "Year"), yaxis = list(title = "Difference from normal annual precipitation in mm"),
+         legend = list(x = 0.5, y = -0.20, xanchor = "center", orientation = "h"))
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+X0 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "HWF")
+X1 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "WSDI")
+X2 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "GWHR_Heatwave_35")
+
+plot_ly(data = X0, x = ~YEAR, y = ~VALUE, 
+        type = 'scatter', name = 'Heatwave', 
+        mode = 'lines+markers', line = list(color = '#FA5A00'), marker = list(color = '#FA5A00'), 
+        text = with(X0, paste0("<b>Area: </b>", NAME, "<br>",
+                               "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                               "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                               "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                               "<b>Year: </b>", YEAR, "<br>",
+                               "<b>Total Count (d) with Heatwave: </b>", round(VALUE, 3))), hoverinfo = "text") %>%
+  add_trace(data = X1, x = ~YEAR, y = ~VALUE, name = 'Warm Spell', line = list(color = '#008000'), marker = list(color = '#008000'),
+            text = with(X1, paste0("<b>Area: </b>", NAME, "<br>",
+                                   "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                   "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                   "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                   "<b>Year: </b>", YEAR, "<br>",
+                                   "<b>Total Count (d) with Warm Spell: </b>", round(VALUE, 3))), hoverinfo = "text") %>%
+  add_trace(data = X2, x = ~YEAR, y = ~VALUE, name = 'GWHR Heatwave (>35°C)', line = list(color = '#FF0000'), marker = list(color = '#FF0000'),
+            text = with(X2, paste0("<b>Area: </b>", NAME, "<br>",
+                                   "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                   "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                   "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                   "<b>Year: </b>", YEAR, "<br>",
+                                   "<b>Total Count (d) with GWHR Heatwave (>35°): </b>", round(VALUE, 3))), hoverinfo = "text") %>%
+  layout(title = "Total Count of Heatwaves and Warm Spells in Austria (1990-2020)",
+         xaxis = list(title = "Year"), yaxis = list(title = "Total Count (d)"),
+         legend = list(x = 0.5, y = -0.20, xanchor = "center", orientation = "h"))
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+X0 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "WSD")
+X1 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "HWD")
+
+plot_ly(data = X0, x = ~YEAR, y = ~VALUE, 
+        type = 'scatter', name = 'Warm Spell', 
+        mode = 'lines+markers', line = list(color = '#008000'), marker = list(color = '#008000'), 
+        text = with(X0, paste0("<b>Area: </b>", NAME, "<br>",
+                               "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                               "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                               "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                               "<b>Year: </b>", YEAR, "<br>",
+                               "<b>Maximum Warm Spell Duration: </b>", round(VALUE, 3))), hoverinfo = "text") %>%
+  add_trace(data = X1, x = ~YEAR, y = ~VALUE, name = 'Heatwave', line = list(color = '#FF0000'), marker = list(color = '#FF0000'),
+            text = with(X1, paste0("<b>Area: </b>", NAME, "<br>",
+                                   "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                   "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                   "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                   "<b>Year: </b>", YEAR, "<br>",
+                                   "<b>Maximum Heatwave Duration: </b>", round(VALUE, 3))), hoverinfo = "text") %>%
+  layout(title = "Maximum Duration of Warm Spells and Heatwaves in Austria (1990-2020)",
+         xaxis = list(title = "Year"), yaxis = list(title = "Maximum Duration (d)"),
+         legend = list(x = 0.5, y = -0.20, xanchor = "center", orientation = "h"))
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+X0 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "WSEI")
+X1 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "HWEI")
+
+plot_ly(data = X0, x = ~YEAR, y = ~VALUE, 
+        type = 'scatter', name = 'Maximum (Warm Spell)', 
+        mode = 'lines+markers', line = list(color = '#008000'), marker = list(color = '#008000'), 
+        text = with(X0, paste0("<b>Area: </b>", NAME, "<br>",
+                               "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                               "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                               "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                               "<b>Year: </b>", YEAR, "<br>",
+                               "<b>Maximum Temperature Excess: </b>", round(VALUE, 3), "°C")), hoverinfo = "text") %>%
+  add_trace(data = X1, x = ~YEAR, y = ~VALUE, name = 'Mean (Heatwave)', line = list(color = '#FF0000'), marker = list(color = '#FF0000'),
+            text = with(X1, paste0("<b>Area: </b>", NAME, "<br>",
+                                   "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                   "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                   "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                   "<b>Year: </b>", YEAR, "<br>",
+                                   "<b>Mean Temperature Excess: </b>", round(VALUE, 3), "°C")), hoverinfo = "text") %>%
+  layout(title = "Temperature Excess in Austria (1990-2020)",
+         xaxis = list(title = "Year"), yaxis = list(title = "Temperature Excess in °C"),
+         legend = list(x = 0.5, y = -0.20, xanchor = "center", orientation = "h"))
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+X0 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "LCDD")
+X1 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "LCWD")
+
+plot_ly(data = X0, x = ~YEAR, y = ~VALUE, 
+        type = 'scatter', name = 'Dry Days', 
+        mode = 'lines+markers', line = list(color = '#FF0000'), marker = list(color = '#FF0000'), 
+        text = with(X0, paste0("<b>Area: </b>", NAME, "<br>",
+                               "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                               "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                               "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                               "<b>Year: </b>", YEAR, "<br>",
+                               "<b>Maximum Consecutive Dry Days: </b>", round(VALUE, 3))), hoverinfo = "text") %>%
+  add_trace(data = X1, x = ~YEAR, y = ~VALUE, name = 'Wet Days', line = list(color = '#0000FF'), marker = list(color = '#0000FF'),
+            text = with(X1, paste0("<b>Area: </b>", NAME, "<br>",
+                                   "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                   "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                   "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                   "<b>Year: </b>", YEAR, "<br>",
+                                   "<b>Maximum Consecutive Wet Days: </b>", round(VALUE, 3))), hoverinfo = "text") %>%
+  layout(title = "Maximum Consecutive Dry and Wet Days in Austria (1990-2020)",
+         xaxis = list(title = "Year"), yaxis = list(title = "Maximum Consecutive Days"),
+         legend = list(x = 0.5, y = -0.20, xanchor = "center", orientation = "h"))
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=8.75, fig.height=4.25}
+X0 <- Climate_Indicators %>% filter(NAME == "AUSTRIA", VARIABLE == "Max_Precipitation_5d")
+
+plot_ly(data = X0, x = ~YEAR, y = ~VALUE, 
+        type = 'scatter', name = 'Max 5-d Precipitation', 
+        mode = 'lines+markers', line = list(color = '#0000FF'), marker = list(color = '#0000FF'), 
+        text = with(X0, paste0("<b>Area: </b>", NAME, "<br>",
+                               "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                               "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                               "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                               "<b>Year: </b>", YEAR, "<br>",
+                               "<b>Max. 5-d Precipitation: </b>", round(VALUE, 3), "mm")), hoverinfo = "text") %>%
+  layout(title = "Maximum 5-d Precipitation in Austria (1990-2020)",
+         xaxis = list(title = "Year"), yaxis = list(title = "Maximum 5-d Precipitation in mm"),
+         legend = list(x = 0.5, y = -0.20, xanchor = "center", orientation = "h"))
+```
