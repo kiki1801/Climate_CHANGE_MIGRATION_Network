@@ -2,7 +2,7 @@
 #####                CLIMATE CHANGE MIGRATION NETWORK                #####
 ##### Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques #####
 #####                   KYLLIAN JAMES | 2023-11-14                   #####
-#####                        Mod.: 2025-03-04                        #####
+#####                        Mod.: 2025-04-09                        #####
 #####                             SERVER                             #####
 ##########################################################################
 
@@ -20,12 +20,79 @@ library(dplyr)
 # library(geosphere)
 library(DescTools)
 library(plotly)
+library(ggplot2)
+library(cowplot)
+library(classInt)
+library(RColorBrewer)
+library(tidyr)
 
 ################
 ##### DATA #####
 ################
 
 source("DATA.R")
+
+####################
+##### THEME(s) #####
+####################
+
+#!DARK THEME
+Base <- bs_theme(
+  version = 5, #BootStrap Version 5.3.1
+  bg = "#FCFCFC", #BackGround COLOR
+  fg = "#1D1F21", #ForeGound COLOR (TEXT COLOR)
+  primary = "#007BC2", #PRIMARY COLOR (BUTTON(s) | LINK(s) | INTERACTIVE ELEMENT(s))
+  secondary = "#404040", #SECONDARY COLOR (ACCENT(s) | BORDER(s) | BUTTON(s))
+  base_font = font_google("DM Sans", local = TRUE), #New Default Font TYPEFACE
+  "font-size-base" = "0.875rem", #Font Size Base from 16px To 14px
+  "line-height-base" = "1.4285", #Line HEIGHT Base from 1.5 To 1.4285
+  "navbar-toggler-font-size" = "1rem", #TOGGLER Font Size from 1.09375rem To 1rem
+  "navbar-toggler-border-radius" = "5px", #TOGGLER Border Radius from 3px To 5px
+  "navbar-toggler-focus-width" = "0px", #Remove TOGGLER Focus (from 0.25rem to 5px)
+  "nav-tabs-border-radius" = "5px", #NAVIGATION Panel Radius from 3px To 5px
+  "btn-font-size" = "14px", #Action Button Font Size from 0.9375rem To 14px
+  "btn-font-weight" = "400", #Action Button Font WEIGHT from 500 To 400
+  "btn-border-radius" = "5px", #Action Button Border Radius from 3px To 5px
+  "card-border-width" = "0px", #Remove Card BORDER
+  "card-border-radius" = "16px", #Card BORDER Radius from 8px To 16px
+  "card-inner-border-radius" = "calc(var(--bs-card-border-radius) / 2)", #Card Rule => INNER = BORDER Radius / 2
+  "card-bg" = "#FEFEFE", #From "#FCFCFC" To "#FEFEFE"
+  "dropdown-bg" = "var(--bs-light)", #From "#FCFCFC" To "#E6E6E6"
+  "dropdown-border-color" = "none", #Remove Dropdown Menu BORDER
+  "dropdown-border-radius" = "5px", #Dropdown Menu Border Radius from 3px To 5px
+  "dropdown-link-color" = "var(--bs-nav-link-color)", #Dropdown ITEM(s) => TEXT => COLOR => !Active
+  "dropdown-link-hover-color" = "var(--bs-nav-link-hover-color)", #Dropdown ITEM(s) => TEXT => COLOR => HOVER
+  "dropdown-link-active-color" = "var(--bs-navbar-active-color)", #Dropdown ITEM(s) => TEXT => COLOR => Active
+  "dropdown-link-active-bg" = "#B0B0B0") #Dropdown ITEM(s) => TEXT => BACKGROUND => COLOR => Active
+
+#DARK THEME
+Dark_Mode <- bs_theme(
+  version = 5, #BootStrap Version 5.3.1
+  bg = "#1D1F21", #BackGround COLOR
+  fg = "#FCFCFC", #ForeGound COLOR (TEXT COLOR)
+  primary = "#007BC2", #PRIMARY COLOR (BUTTON(s) | LINK(s) | INTERACTIVE ELEMENT(s))
+  secondary = "#404040", #SECONDARY COLOR (ACCENT(s) | BORDER(s) | BUTTON(s))
+  base_font = font_google("DM Sans", local = TRUE), #New Default Font TYPEFACE
+  "font-size-base" = "0.875rem", #Font Size Base from 16px To 14px
+  "line-height-base" = "1.4285", #Line HEIGHT Base from 1.5 To 1.4285
+  "navbar-toggler-font-size" = "1rem", #TOGGLER Font Size from 1.09375rem To 1rem
+  "navbar-toggler-border-radius" = "5px", #TOGGLER Border Radius from 3px to 5px
+  "navbar-toggler-focus-width" = "0px", #Remove TOGGLER Focus (from 0.25rem to 5px)
+  "nav-tabs-border-radius" = "5px", #NAVIGATION Panel Radius from 3px To 5px
+  "btn-font-size" = "14px", #Action Button Font Size from 0.9375rem To 14px
+  "btn-font-weight" = "400", #Action Button Font WEIGHT from 500 To 400
+  "btn-border-radius" = "5px", #Action Button Border Radius from 3px To 5px
+  "card-border-width" = "0px", #Remove Card BORDER
+  "card-border-radius" = "16px", #Card BORDER Radius from 8px To 16px
+  "card-inner-border-radius" = "calc(var(--bs-card-border-radius) / 2)", #Card Rule => INNER = BORDER Radius / 2
+  "card-bg" = "var(--bs-secondary)", #From "#1D1F21" To "#404040"
+  "dropdown-bg" = "var(--bs-light)", #From "#1D1F21" To "#??????"
+  "dropdown-border-color" = "none", #Remove Dropdown Menu BORDER
+  "dropdown-border-radius" = "5px", #Dropdown Menu Border Radius from 3px To 5px
+  "dropdown-link-color" = "var(--bs-nav-link-color)", #Dropdown ITEM(s) => TEXT => COLOR => !Active
+  "dropdown-link-hover-color" = "var(--bs-nav-link-hover-color)", #Dropdown ITEM(s) => TEXT => COLOR => HOVER
+  "dropdown-link-active-color" = "var(--bs-navbar-active-color)", #Dropdown ITEM(s) => TEXT => COLOR => Active
+  "dropdown-link-active-bg" = "#B0B0B0") #Dropdown ITEM(s) => TEXT => BACKGROUND => COLOR => Active
 
 ##################
 ##### SERVER #####
@@ -638,7 +705,7 @@ server <- function(input, output, session) {
     fadeout = 500) #Fade out effect when screen is removed (Boolean OR Numeric)
   
   ##### WAITER MESSAGE(s) #####
-  MESSAGEs <- c("Load International Migrant Stock Data", "Load Geospatial Data")
+  MESSAGEs <- c("Load International Migrant Stock Data", "Load Geospatial Data", "Load Climate Data")
   
   ##### DROPDOWN-ITEM(s) #####
   observeEvent(input$DropdownI_Click_COUNTER, { #WHEN DROPDOWN-ITEM(s) are clicked
@@ -677,46 +744,46 @@ server <- function(input, output, session) {
   ##### World Map WAITER(s) #####
   
   ##### CREATE WAITER #####
-  World_Map_WAITER <- Waiter$new(
-    # id =  "MR_World_Map", #OVERLAY WAITER on MR_World_Map
-    html = tagList(
-      div(spin_orbiter(), style = "margin-bottom: 10px;"), #SPINNER
-      div(span("Load World Map Tiles"))), #MESSAGE+
-    color = "#1D1F21", #BackGround Color
-    fadeout = 500) #Fade out effect when screen is removed (Boolean OR Numeric)
+  # World_Map_WAITER <- Waiter$new(
+  #   # id =  "MR_World_Map", #OVERLAY WAITER on MR_World_Map
+  #   html = tagList(
+  #     div(spin_orbiter(), style = "margin-bottom: 10px;"), #SPINNER
+  #     div(span("Load World Map Tiles"))), #MESSAGE+
+  #   color = "#1D1F21", #BackGround Color
+  #   fadeout = 500) #Fade out effect when screen is removed (Boolean OR Numeric)
   
   ##### WAITER MESSAGE(s) #####
-  World_Map_WAITER_MESSAGEs <- c("Load World Map Tiles", "Draw World Administrative Boundaries")
+  # World_Map_WAITER_MESSAGEs <- c("Load World Map Tiles", "Draw World Administrative Boundaries")
   
   #World Map WAITER => POSITION
-  observe({runjs("function WorldMapWAITER_Position() { //Create WorldMapWAITER_Position() Function
-                    var Map = document.getElementById('MR_World_Map'); //Retrieve MR_World_Map
-                    var WAITER = document.querySelector('.waiter-overlay'); //Retrieve World_Map_WAITER
-                    if (Map && WAITER) { //Execute Code if Map/WAITER are retrieved with success
-                        var Map_Position = Map.getBoundingClientRect(); //Map POSITION
-                        WAITER.style.width = Map_Position.width + 'px'; //WAITER => WIDTH = Map-WIDTH
-                        WAITER.style.height = Map_Position.height + 'px'; //WAITER => HEIGHT = Map-HEIGHT
-                        WAITER.style.top = Map_Position.top + window.scrollY + 'px'; //WAITER => Top = Map-Top
-                        WAITER.style.left = Map_Position.left + window.scrollX + 'px'; //WAITER => LEFT = Map-LEFT
-                        }
-                    }
-                  //Call WorldMapWAITER_Position() Function
-                  WorldMapWAITER_Position();
-                  //Add EVENT-LISTENER To UPDATE WAITER Position when window is resized
-                  window.addEventListener('resize', function() {WorldMapWAITER_Position();});")})
-                  # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
-                  # window.addEventListener('scroll', function() {WorldMapWAITER_Position();});")})
-                  # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
-                  # window.addEventListener('scrollend', function() {WorldMapWAITER_Position();});")})
+  # observe({runjs("function WorldMapWAITER_Position() { //Create WorldMapWAITER_Position() Function
+  #                   var Map = document.getElementById('MR_World_Map'); //Retrieve MR_World_Map
+  #                   var WAITER = document.querySelector('.waiter-overlay'); //Retrieve World_Map_WAITER
+  #                   if (Map && WAITER) { //Execute Code if Map/WAITER are retrieved with success
+  #                       var Map_Position = Map.getBoundingClientRect(); //Map POSITION
+  #                       WAITER.style.width = Map_Position.width + 'px'; //WAITER => WIDTH = Map-WIDTH
+  #                       WAITER.style.height = Map_Position.height + 'px'; //WAITER => HEIGHT = Map-HEIGHT
+  #                       WAITER.style.top = Map_Position.top + window.scrollY + 'px'; //WAITER => Top = Map-Top
+  #                       WAITER.style.left = Map_Position.left + window.scrollX + 'px'; //WAITER => LEFT = Map-LEFT
+  #                       }
+  #                   }
+  #                 //Call WorldMapWAITER_Position() Function
+  #                 WorldMapWAITER_Position();
+  #                 //Add EVENT-LISTENER To UPDATE WAITER Position when window is resized
+  #                 window.addEventListener('resize', function() {WorldMapWAITER_Position();});")})
+  #                 # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
+  #                 # window.addEventListener('scroll', function() {WorldMapWAITER_Position();});")})
+  #                 # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
+  #                 # window.addEventListener('scrollend', function() {WorldMapWAITER_Position();});")})
   
   ##### CREATE WAITER #####
-  REGIONs_World_Map_WAITER <- Waiter$new(
-    id =  "MR_World_Map", #OVERLAY WAITER on MR_World_Map
-    html = tagList(
-      div(spin_orbiter(), style = "margin-bottom: 10px;"), #SPINNER
-      div(span("Draw World Administrative Boundaries"), style = "font-size: 14px; font-family: DM Sans")), #MESSAGE+ | FONT-SIZE | FONT-FAMILY
-    color = "#1D1F21", #BackGround Color
-    fadeout = 500) #Fade out effect when screen is removed (Boolean OR Numeric)
+  # REGIONs_World_Map_WAITER <- Waiter$new(
+  #   id =  "MR_World_Map", #OVERLAY WAITER on MR_World_Map
+  #   html = tagList(
+  #     div(spin_orbiter(), style = "margin-bottom: 10px;"), #SPINNER
+  #     div(span("Draw World Administrative Boundaries"), style = "font-size: 14px; font-family: DM Sans")), #MESSAGE+ | FONT-SIZE | FONT-FAMILY
+  #   color = "#1D1F21", #BackGround Color
+  #   fadeout = 500) #Fade out effect when screen is removed (Boolean OR Numeric)
   
   ################################
   ##### Reactive Values (RV) #####
@@ -758,17 +825,20 @@ server <- function(input, output, session) {
     shinyjs::hide(id = "MR_Top_Five_BIRTH_Card", anim = TRUE, animType = "slide", time = 0.25)
     #Activate Top Five BIRTH COUNTRIE(s) CHECKBOX
     shinyjs::enable(id = "MR_Top_Five_BIRTH")
+    #Make (DATA-SELECTION+PLOT-PARAMETER(s)) Card invisible
+    shinyjs::hide(id = "MR_DATA_SELECTION_and_Plot_PARAMETERs_Card", anim = TRUE, animType = "slide", time = 0.25)
+    #Make iMIGRANT-STOCK-DATA (COUNT(s)) Card invisible
+    shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_COUNTs_Card", anim = TRUE, animType = "slide", time = 0.25)
+    #Make iMIGRANT-STOCK-DATA (SHARE(s)) Card invisible
+    shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_SHAREs_Card", anim = TRUE, animType = "slide", time = 0.25)
     
-    #Make ... Card invisible
-    shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_Card", anim = TRUE, animType = "slide", time = 0.25)
-    
-    #Disable ...
+    #Disable => BIRTH VIEW CHOICE => REGION(s) CHOICE => RADIO BUTTONs
     # shinyjs::disable(id = "MR_BIRTH_View_Choice_REGIONs_CHOICE")
     
     #Top Five BIRTH COUNTRIE(s) CHECKBOX => Replace CHECKBOX Label Value => COUNTRIEs
     updateCheckboxInput(
       session = session, inputId = "MR_Top_Five_BIRTH",
-      label = "View Top 5 Birth Countries on World Map (5-Year Period, 1990-2020)",
+      label = "View Top 5 Birth Countries on World Map (5-Year Periods, 1990-2020)",
       value = FALSE) #Replace CHECKBOX Value => FALSE
     
     #CURSOR Class To WAIT
@@ -780,6 +850,9 @@ server <- function(input, output, session) {
     #Reinitialize Reactive Value To FALSE
     Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA <- FALSE
     
+    #Make NO-AVAILABLE-DATA Card invisible
+    shinyjs::hide(id = "MR_NO_AVAILABLE_DATA_Card", anim = TRUE, animType = "slide", time = 0.25)
+    
     #Reinitialize Reactive Value => DATA.FRAME => No Columns | No Rows
     Filtered_MIGRANT_STOCKs_DATA_RV$Filtered_MIGRANT_STOCKs_DATA <- data.frame()
     
@@ -790,7 +863,7 @@ server <- function(input, output, session) {
       shinyjs::show(id = "MR_World_Map_Card", anim = TRUE, animType = "fade", time = 0.25)
       
       ##### SHOW WAITER #####
-      World_Map_WAITER$show()
+      # World_Map_WAITER$show()
       
       #World Map
       output$MR_World_Map <- renderLeaflet({
@@ -913,28 +986,28 @@ server <- function(input, output, session) {
       } else { #Execute Code To SHOW WAITER ONLY if reactive value is TRUE
         
         ##### SHOW WAITER #####
-        World_Map_WAITER$show()
+        # World_Map_WAITER$show()
         
         #World Map WAITER => POSITION
-        observe({runjs("function WorldMapWAITER_Position() { //Create WorldMapWAITER_Position() Function
-                          var Map = document.getElementById('MR_World_Map'); //Retrieve MR_World_Map
-                          var WAITER = document.querySelector('.waiter-overlay'); //Retrieve World_Map_WAITER
-                          if (Map && WAITER) { //Execute Code if Map/WAITER are retrieved with success
-                              var Map_Position = Map.getBoundingClientRect(); //Map POSITION
-                              WAITER.style.width = Map_Position.width + 'px'; //WAITER => WIDTH = Map-WIDTH
-                              WAITER.style.height = Map_Position.height + 'px'; //WAITER => HEIGHT = Map-HEIGHT
-                              WAITER.style.top = Map_Position.top + window.scrollY + 'px'; //WAITER => Top = Map-Top
-                              WAITER.style.left = Map_Position.left + window.scrollX + 'px'; //WAITER => LEFT = Map-LEFT
-                              }
-                          }
-                        //Call WorldMapWAITER_Position() Function
-                        WorldMapWAITER_Position();
-                        //Add EVENT-LISTENER To UPDATE WAITER Position when window is resized
-                        setTimeout(function() {window.addEventListener('resize', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
-                        # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
-                        # setTimeout(function() {window.addEventListener('scroll', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
-                        # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
-                        # setTimeout(function() {window.addEventListener('scrollend', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
+        # observe({runjs("function WorldMapWAITER_Position() { //Create WorldMapWAITER_Position() Function
+        #                   var Map = document.getElementById('MR_World_Map'); //Retrieve MR_World_Map
+        #                   var WAITER = document.querySelector('.waiter-overlay'); //Retrieve World_Map_WAITER
+        #                   if (Map && WAITER) { //Execute Code if Map/WAITER are retrieved with success
+        #                       var Map_Position = Map.getBoundingClientRect(); //Map POSITION
+        #                       WAITER.style.width = Map_Position.width + 'px'; //WAITER => WIDTH = Map-WIDTH
+        #                       WAITER.style.height = Map_Position.height + 'px'; //WAITER => HEIGHT = Map-HEIGHT
+        #                       WAITER.style.top = Map_Position.top + window.scrollY + 'px'; //WAITER => Top = Map-Top
+        #                       WAITER.style.left = Map_Position.left + window.scrollX + 'px'; //WAITER => LEFT = Map-LEFT
+        #                       }
+        #                   }
+        #                 //Call WorldMapWAITER_Position() Function
+        #                 WorldMapWAITER_Position();
+        #                 //Add EVENT-LISTENER To UPDATE WAITER Position when window is resized
+        #                 setTimeout(function() {window.addEventListener('resize', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
+        #                 # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
+        #                 # setTimeout(function() {window.addEventListener('scroll', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
+        #                 # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
+        #                 # setTimeout(function() {window.addEventListener('scrollend', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
         
         }
     
@@ -963,12 +1036,12 @@ server <- function(input, output, session) {
       if (input$Map_Loaded) {
         
         ##### MESSAGE+ UPDATE(s) #####
-        for(World_Map_WAITER_MESSAGE in 1:length(World_Map_WAITER_MESSAGEs)){
-          World_Map_WAITER$update(html = tagList(
-            div(spin_orbiter(), style = "margin-bottom: 10px;"), #SPINNER
-            div(span(World_Map_WAITER_MESSAGEs[World_Map_WAITER_MESSAGE])))) #TEXT+
-          #!Execution in R For X SECONDs
-          Sys.sleep(1.25)}
+        # for(World_Map_WAITER_MESSAGE in 1:length(World_Map_WAITER_MESSAGEs)){
+        #   World_Map_WAITER$update(html = tagList(
+        #     div(spin_orbiter(), style = "margin-bottom: 10px;"), #SPINNER
+        #     div(span(World_Map_WAITER_MESSAGEs[World_Map_WAITER_MESSAGE])))) #TEXT+
+        #   #!Execution in R For X SECONDs
+        #   Sys.sleep(1.25)}
         
         #DEVELOPMENT LEVEL(s) => Group(s)
         # DevLevelsGroups <- c("2 Development Levels", "3 Development Levels", "5 Development Levels")
@@ -1028,7 +1101,7 @@ server <- function(input, output, session) {
       if (input$COUNTRIEs_POLYGONs_Rendered) {
         
         ##### HIDE WAITER #####
-        World_Map_WAITER$hide()
+        # World_Map_WAITER$hide()
         
         #CURSOR Class To Default
         session$sendCustomMessage(type = "CURSORwithinBODY", message = "default-cursor")
@@ -1057,17 +1130,20 @@ server <- function(input, output, session) {
     shinyjs::hide(id = "MR_Top_Five_BIRTH_Card", anim = TRUE, animType = "slide", time = 0.25)
     #Disable Top Five BIRTH AREA(s) CHECKBOX
     shinyjs::disable(id = "MR_Top_Five_BIRTH")
+    #Make (DATA-SELECTION+PLOT-PARAMETER(s)) Card invisible
+    shinyjs::hide(id = "MR_DATA_SELECTION_and_Plot_PARAMETERs_Card", anim = TRUE, animType = "slide", time = 0.25)
+    #Make iMIGRANT-STOCK-DATA (COUNT(s)) Card invisible
+    shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_COUNTs_Card", anim = TRUE, animType = "slide", time = 0.25)
+    #Make iMIGRANT-STOCK-DATA (SHARE(s)) Card invisible
+    shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_SHAREs_Card", anim = TRUE, animType = "slide", time = 0.25)
     
-    #Make ... Card invisible
-    shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_Card", anim = TRUE, animType = "slide", time = 0.25)
-    
-    #Disable ...
+    #Disable => BIRTH VIEW CHOICE => REGION(s) CHOICE => RADIO BUTTONs
     # shinyjs::disable(id = "MR_BIRTH_View_Choice_REGIONs_CHOICE")
     
     #Top Five BIRTH AREA(s) CHECKBOX => Replace CHECKBOX Label Value => REGIONs
     updateCheckboxInput(
       session = session, inputId = "MR_Top_Five_BIRTH",
-      label = "View Top 5 Birth Areas on World Map (5-Year Period, 1990-2020)",
+      label = "View Top 5 Birth Areas on World Map (5-Year Periods, 1990-2020)",
       value = FALSE) #Replace CHECKBOX Value => FALSE
     
     #CURSOR Class To WAIT
@@ -1079,6 +1155,9 @@ server <- function(input, output, session) {
     #Reinitialize Reactive Value To FALSE
     Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA <- FALSE
     
+    #Make NO-AVAILABLE-DATA Card invisible
+    shinyjs::hide(id = "MR_NO_AVAILABLE_DATA_Card", anim = TRUE, animType = "slide", time = 0.25)
+    
     #Reinitialize Reactive Value => DATA.FRAME => No Columns | No Rows
     Filtered_MIGRANT_STOCKs_DATA_RV$Filtered_MIGRANT_STOCKs_DATA <- data.frame()
     
@@ -1089,7 +1168,7 @@ server <- function(input, output, session) {
       shinyjs::show(id = "MR_World_Map_Card", anim = TRUE, animType = "fade", time = 0.25)
       
       ##### SHOW WAITER #####
-      World_Map_WAITER$show()
+      # World_Map_WAITER$show()
       
       #World Map
       output$MR_World_Map <- renderLeaflet({
@@ -1212,28 +1291,28 @@ server <- function(input, output, session) {
       } else { #Execute Code To SHOW WAITER ONLY if reactive value is TRUE
         
         ##### SHOW WAITER #####
-        World_Map_WAITER$show()
+        # World_Map_WAITER$show()
         
         #World Map WAITER => POSITION
-        observe({runjs("function WorldMapWAITER_Position() { //Create WorldMapWAITER_Position() Function
-                          var Map = document.getElementById('MR_World_Map'); //Retrieve MR_World_Map
-                          var WAITER = document.querySelector('.waiter-overlay'); //Retrieve World_Map_WAITER
-                          if (Map && WAITER) { //Execute Code if Map/WAITER are retrieved with success
-                              var Map_Position = Map.getBoundingClientRect(); //Map POSITION
-                              WAITER.style.width = Map_Position.width + 'px'; //WAITER => WIDTH = Map-WIDTH
-                              WAITER.style.height = Map_Position.height + 'px'; //WAITER => HEIGHT = Map-HEIGHT
-                              WAITER.style.top = Map_Position.top + window.scrollY + 'px'; //WAITER => Top = Map-Top
-                              WAITER.style.left = Map_Position.left + window.scrollX + 'px'; //WAITER => LEFT = Map-LEFT
-                              }
-                          }
-                        //Call WorldMapWAITER_Position() Function
-                        WorldMapWAITER_Position();
-                        //Add EVENT-LISTENER To UPDATE WAITER Position when window is resized
-                        setTimeout(function() {window.addEventListener('resize', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
-                        # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
-                        # setTimeout(function() {window.addEventListener('scroll', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
-                        # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
-                        # setTimeout(function() {window.addEventListener('scrollend', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
+        # observe({runjs("function WorldMapWAITER_Position() { //Create WorldMapWAITER_Position() Function
+        #                   var Map = document.getElementById('MR_World_Map'); //Retrieve MR_World_Map
+        #                   var WAITER = document.querySelector('.waiter-overlay'); //Retrieve World_Map_WAITER
+        #                   if (Map && WAITER) { //Execute Code if Map/WAITER are retrieved with success
+        #                       var Map_Position = Map.getBoundingClientRect(); //Map POSITION
+        #                       WAITER.style.width = Map_Position.width + 'px'; //WAITER => WIDTH = Map-WIDTH
+        #                       WAITER.style.height = Map_Position.height + 'px'; //WAITER => HEIGHT = Map-HEIGHT
+        #                       WAITER.style.top = Map_Position.top + window.scrollY + 'px'; //WAITER => Top = Map-Top
+        #                       WAITER.style.left = Map_Position.left + window.scrollX + 'px'; //WAITER => LEFT = Map-LEFT
+        #                       }
+        #                   }
+        #                 //Call WorldMapWAITER_Position() Function
+        #                 WorldMapWAITER_Position();
+        #                 //Add EVENT-LISTENER To UPDATE WAITER Position when window is resized
+        #                 setTimeout(function() {window.addEventListener('resize', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
+        #                 # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
+        #                 # setTimeout(function() {window.addEventListener('scroll', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
+        #                 # //Add EVENT-LISTENER To UPDATE WAITER Position when the PAGE is scrolled
+        #                 # setTimeout(function() {window.addEventListener('scrollend', WorldMapWAITER_Position());}, 225);")}) #DELAY EXECUTION => 225 MILLISECONDs
         
         }
         
@@ -1263,12 +1342,12 @@ server <- function(input, output, session) {
       if (input$Map_Loaded) {
         
         ##### MESSAGE+ UPDATE(s) #####
-        for(World_Map_WAITER_MESSAGE in 1:length(World_Map_WAITER_MESSAGEs)){
-          World_Map_WAITER$update(html = tagList(
-            div(spin_orbiter(), style = "margin-bottom: 10px;"), #SPINNER
-            div(span(World_Map_WAITER_MESSAGEs[World_Map_WAITER_MESSAGE])))) #TEXT+
-          #!Execution in R For X SECONDs
-          Sys.sleep(1.25)}
+        # for(World_Map_WAITER_MESSAGE in 1:length(World_Map_WAITER_MESSAGEs)){
+        #   World_Map_WAITER$update(html = tagList(
+        #     div(spin_orbiter(), style = "margin-bottom: 10px;"), #SPINNER
+        #     div(span(World_Map_WAITER_MESSAGEs[World_Map_WAITER_MESSAGE])))) #TEXT+
+        #   #!Execution in R For X SECONDs
+        #   Sys.sleep(1.25)}
         
         ##### REGIONs CHOICE RADIO BUTTONs #####
         observeEvent(input$MRR_REGIONs_CHOICE, { #WHEN REGIONs CHOICE RADIO BUTTONs are clicked
@@ -1277,15 +1356,21 @@ server <- function(input, output, session) {
           shinyjs::hide(id = "MR_Selected_Residence_Card", anim = TRUE, animType = "slide", time = 0.25)
           #Make Top Five BIRTH AREA(s) CHECKBOX invisible
           shinyjs::hide(id = "MR_Top_Five_BIRTH_Card", anim = TRUE, animType = "slide", time = 0.25)
-          
-          #Make ... Card invisible
-          shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_Card", anim = TRUE, animType = "slide", time = 0.25)
+          #Make (DATA-SELECTION+PLOT-PARAMETER(s)) Card invisible
+          shinyjs::hide(id = "MR_DATA_SELECTION_and_Plot_PARAMETERs_Card", anim = TRUE, animType = "slide", time = 0.25)
+          #Make iMIGRANT-STOCK-DATA (COUNT(s)) Card invisible
+          shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_COUNTs_Card", anim = TRUE, animType = "slide", time = 0.25)
+          #Make iMIGRANT-STOCK-DATA (SHARE(s)) Card invisible
+          shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_SHAREs_Card", anim = TRUE, animType = "slide", time = 0.25)
           
           #Top Five BIRTH AREA(s) CHECKBOX => Replace CHECKBOX Value => TRUE To FALSE
           if (input$MR_Top_Five_BIRTH) {updateCheckboxInput(session = session, inputId = "MR_Top_Five_BIRTH", value = FALSE)}
           
           #Reinitialize Reactive Value To FALSE
           Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA <- FALSE
+          
+          #Make NO-AVAILABLE-DATA Card invisible
+          shinyjs::hide(id = "MR_NO_AVAILABLE_DATA_Card", anim = TRUE, animType = "slide", time = 0.25)
           
           #Reinitialize Reactive Value => DATA.FRAME => No Columns | No Rows
           Filtered_MIGRANT_STOCKs_DATA_RV$Filtered_MIGRANT_STOCKs_DATA <- data.frame()
@@ -1294,22 +1379,22 @@ server <- function(input, output, session) {
           session$sendCustomMessage(type = "CURSORwithinBODY", message = "wait-cursor")
           
           ##### SHOW WAITER #####
-          REGIONs_World_Map_WAITER$show()
+          # REGIONs_World_Map_WAITER$show()
           
           #OVERLAY WAITER on MR_World_Map => FONT-SIZE | FONT-FAMILY
           # runjs("$('.waiter-overlay-content').css({'font-size': '14px', 'font-family': 'DM Sans'});")
           
           #REGIONs => WAITER on World Map => POSITION
-          observe({runjs("function REGIONs_WorldMapWAITER_Position() { //Create REGIONs_WorldMapWAITER_Position() Function
-                            $('.waiter-overlay.waiter-local').each(function() {
-                              var CurrentCSS = $(this).attr('style'); //WAITER => CURRENT-STYLE
-                              $(this).attr('style', CurrentCSS + 'position: relative !important; top: 0px !important; left: 0px !important;'); //WAITER => NEW-POSITION
-                              })
-                            }
-                            //Call REGIONs_WorldMapWAITER_Position() Function
-                            REGIONs_WorldMapWAITER_Position();
-                            //Add EVENT-LISTENER To UPDATE WAITER Position when window is resized
-                            window.addEventListener('resize', function() {REGIONs_WorldMapWAITER_Position();});")})
+          # observe({runjs("function REGIONs_WorldMapWAITER_Position() { //Create REGIONs_WorldMapWAITER_Position() Function
+          #                   $('.waiter-overlay.waiter-local').each(function() {
+          #                     var CurrentCSS = $(this).attr('style'); //WAITER => CURRENT-STYLE
+          #                     $(this).attr('style', CurrentCSS + 'position: relative !important; top: 0px !important; left: 0px !important;'); //WAITER => NEW-POSITION
+          #                     })
+          #                   }
+          #                   //Call REGIONs_WorldMapWAITER_Position() Function
+          #                   REGIONs_WorldMapWAITER_Position();
+          #                   //Add EVENT-LISTENER To UPDATE WAITER Position when window is resized
+          #                   window.addEventListener('resize', function() {REGIONs_WorldMapWAITER_Position();});")})
           
           #World Map Loaded => POLYGONs Rendered => Create Reactive Value 'REGIONs_POLYGONs_Rendered' == TRUE
           observe({runjs("var CheckMapLoaded = setInterval(function() { //Call Function EVERY X MILLISECONDs
@@ -1415,7 +1500,7 @@ server <- function(input, output, session) {
               
                 #DEVELOPMENT LEVEL(s) => Group(s)
                 DevLevelsGroups <- c("2 Development Levels", "3 Development Levels", "5 Development Levels")
-              
+                
                 #Maps Values To Colors
                 fCLR <- lapply(1:3, function(i) {colorFactor(
                   #Colors ordered with factor-level(s) in NAME
@@ -1482,17 +1567,23 @@ server <- function(input, output, session) {
                 
                 #DEVELOPMENT LEVEL(s) => Group(s) => CLEAR/Add LN To Map
                 observeEvent(input$MR_World_Map_groups, { #WHEN SWITCH Selected Group in LAYER(s) Control
-
+                  
                   #Make Selected Residence Card invisible
                   shinyjs::hide(id = "MR_Selected_Residence_Card", anim = TRUE, animType = "slide", time = 0.25)
                   #Make Top Five BIRTH AREA(s) CHECKBOX invisible
                   shinyjs::hide(id = "MR_Top_Five_BIRTH_Card", anim = TRUE, animType = "slide", time = 0.25)
-
-                  #Make ... Card invisible
-                  shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_Card", anim = TRUE, animType = "slide", time = 0.25)
+                  #Make (DATA-SELECTION+PLOT-PARAMETER(s)) Card invisible
+                  shinyjs::hide(id = "MR_DATA_SELECTION_and_Plot_PARAMETERs_Card", anim = TRUE, animType = "slide", time = 0.25)
+                  #Make iMIGRANT-STOCK-DATA (COUNT(s)) Card invisible
+                  shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_COUNTs_Card", anim = TRUE, animType = "slide", time = 0.25)
+                  #Make iMIGRANT-STOCK-DATA (SHARE(s)) Card invisible
+                  shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_SHAREs_Card", anim = TRUE, animType = "slide", time = 0.25)
                   
                   #Reinitialize Reactive Value To FALSE
                   Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA <- FALSE
+                  
+                  #Make NO-AVAILABLE-DATA Card invisible
+                  shinyjs::hide(id = "MR_NO_AVAILABLE_DATA_Card", anim = TRUE, animType = "slide", time = 0.25)
                   
                   #Reinitialize Reactive Value => DATA.FRAME => No Columns | No Rows
                   Filtered_MIGRANT_STOCKs_DATA_RV$Filtered_MIGRANT_STOCKs_DATA <- data.frame()
@@ -1606,10 +1697,10 @@ server <- function(input, output, session) {
         runjs("$('.leaflet .legend i').css({'margin-right': '2.5px', 'margin-top': '-1.225px'});")
         
         ##### HIDE WAITER #####
-        World_Map_WAITER$hide()
+        # World_Map_WAITER$hide()
         
         ##### HIDE WAITER #####
-        REGIONs_World_Map_WAITER$hide()
+        # REGIONs_World_Map_WAITER$hide()
         
         #CURSOR Class To Default
         session$sendCustomMessage(type = "CURSORwithinBODY", message = "default-cursor")
@@ -1627,21 +1718,37 @@ server <- function(input, output, session) {
   observeEvent(input$MR_World_Map_shape_click, { #WHEN POLYGON(s) is clicked
     
     #Make Selected Residence Card visible
-    shinyjs::show(id = "MR_Selected_Residence_Card", anim = TRUE, animType = "fade", time = 0.25)
+    # shinyjs::show(id = "MR_Selected_Residence_Card", anim = TRUE, animType = "fade", time = 0.25)
     #Make Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX visible
-    shinyjs::show(id = "MR_Top_Five_BIRTH_Card", anim = TRUE, animType = "fade", time = 0.25)
+    # shinyjs::show(id = "MR_Top_Five_BIRTH_Card", anim = TRUE, animType = "fade", time = 0.25)
+    #Make (DATA-SELECTION+PLOT-PARAMETER(s)) Card visible
+    # shinyjs::show(id = "MR_DATA_SELECTION_and_Plot_PARAMETERs_Card", anim = TRUE, animType = "fade", time = 0.25)
+    #Make iMIGRANT-STOCK-DATA (COUNT(s)) Card invisible
+    # shinyjs::show(id = "MR_MIGRANT_STOCK_DATA_COUNTs_Card", anim = TRUE, animType = "fade", time = 0.25)
+    #Make iMIGRANT-STOCK-DATA (SHARE(s)) Card invisible
+    # shinyjs::show(id = "MR_MIGRANT_STOCK_DATA_SHAREs_Card", anim = TRUE, animType = "fade", time = 0.25)
     
-    #Make ... Card visible
-    shinyjs::show(id = "MR_MIGRANT_STOCK_DATA_Card", anim = TRUE, animType = "fade", time = 0.25)
-    
-    #Disable ...
+    #Disable => BIRTH VIEW CHOICE => REGION(s) CHOICE => RADIO BUTTONs
     # shinyjs::disable(id = "MR_BIRTH_View_Choice_REGIONs_CHOICE")
     
+    #BIRTH VIEW CHOICE RADIO BUTTONs => MARGIN(s)+
+    # runjs("$('#MR_BIRTH_View_Choice-label').css('margin-bottom', '0px');")
+    #VARIABLE CHOICE RADIO BUTTONs => MARGIN(s)+
+    # runjs("$('#MR_Variable_Choice-label').css('margin-bottom', '0px');")
+    #Decimal CHOICE SLIDER => MARGIN(s)+
+    # runjs("$('#MR_Decimal_Choice-label').css('margin-bottom', '0px');")
+    #BIRTH VIEW CHOICE => REGION(s) CHOICE => RADIO BUTTONs => MARGIN(s)+
+    # runjs("$('#MR_BIRTH_View_Choice_REGIONs_CHOICE-label').css('margin-bottom', '0px');")
+    #BIRTH VIEW CHOICE RADIO BUTTONs | Decimal CHOICE SLIDER => POSITION
+    # runjs("$('.g-col-md-2.bslib-grid-item.bslib-gap-spacing.html-fill-container').css({'display': 'flex', 'justify-content': 'center'});")
+    #VARIABLE CHOICE RADIO BUTTONs => POSITION
+    # runjs("$('.g-col-md-3.bslib-grid-item.bslib-gap-spacing.html-fill-container').css({'display': 'flex', 'justify-content': 'center'});")
+    
     #Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX => Replace CHECKBOX Value => TRUE To FALSE
-    if (input$MR_Top_Five_BIRTH) {updateCheckboxInput(session = session, inputId = "MR_Top_Five_BIRTH", value = FALSE)}
+    # if (input$MR_Top_Five_BIRTH) {updateCheckboxInput(session = session, inputId = "MR_Top_Five_BIRTH", value = FALSE)}
 
     #Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX => MARGIN(s)+
-    runjs("$('.shiny-input-container .checkbox').css({'margin-bottom': '0px', 'height': '19.986px'});")
+    # runjs("$('.shiny-input-container .checkbox').css({'margin-bottom': '0px', 'height': '19.986px'});")
     
     #World Map => POLYGON(s) => Click => Selected Residence
     Selected_Residence <- SelectedResidence()
@@ -1659,7 +1766,27 @@ server <- function(input, output, session) {
       Selected_Residence <- sub(pattern = " \\d{4}$", replacement = "", x = Selected_Residence)}
 
     #CURSOR Class To WAIT
-    # session$sendCustomMessage(type = "CURSORwithinBODY", message = "wait-cursor")
+    session$sendCustomMessage(type = "CURSORwithinBODY", message = "wait-cursor")
+    
+    #POLYGON(s) + MIGRANT STOCK DATA Rendered => Create Reactive Value 'Selected_Residence_MIGRANT_STOCK_DATA_Rendered' == TRUE
+    # runjs("let CURSOR_COUNTER = 0; //Initialize CURSOR_COUNTER
+    #       //Shiny.setInputValue('Selected_Residence_MIGRANT_STOCK_DATA_Rendered', false); //Reactive Value To SERVER
+    #       let CURSOR_X = setInterval(function() { //Call CURSOR_X EVERY X MILLISECONDs
+    #         CURSOR_COUNTER++; //+1
+    #         //CURSOR_COUNTER === 35 => !Run ANYMORE
+    #         if (CURSOR_COUNTER === 35) {
+    #             Shiny.setInputValue('Selected_Residence_MIGRANT_STOCK_DATA_Rendered', true); //Reactive Value To SERVER
+    #             clearInterval(CURSOR_X);}}, 250);") #Run Function EVERY 250 MILLISECONDs
+    
+    #POLYGON(s) + MIGRANT STOCK DATA Rendered  => Create Reactive Value 'MIGRANT_STOCK_DATA_Rendered' == TRUE
+    # runjs("var CURSOR_X = setInterval(function() { //Call CURSOR_X EVERY X MILLISECONDs
+    #       var StackedBARs = document.getElementById('MR_Stacked_BARs_COUNTs'); //Retrieve MIGRANT-STOCK-DATA StackedBAR(s)
+    #       //MIGRANT-STOCK-DATA StackedBAR(s) => Rendered => Reactive Value To SERVER => TRUE
+    #       if (StackedBARs && StackedBARs.data) { //MIGRANT-STOCK-DATA StackedBAR(s) => Rendered
+    #           Shiny.setInputValue('MIGRANT_STOCK_DATA_Rendered', true); //Reactive Value To SERVER
+    #           clearInterval(CURSOR_X);} //MIGRANT-STOCK-DATA StackedBAR(s) => Rendered => !Run ANYMORE
+    #       //MIGRANT-STOCK-DATA StackedBAR(s) => !Rendered => Reactive Value To SERVER => FALSE
+    #       else {Shiny.setInputValue('MIGRANT_STOCK_DATA_Rendered', false);}}, 250);") #Run Function EVERY 250 MILLISECONDs
     
     #Top FIVE BIRTH COUNTRIE(s) => Group(s)
     TopFiveBirthCountriesGroups <- c("Top 5 Birth Countries - Year 1990", 
@@ -1688,7 +1815,7 @@ server <- function(input, output, session) {
         removeLayersControl() #Remove LAYER(s) Control (Top FIVE BIRTH AREA(s)/COUNTRIE(s))
       
       #Activate Top Five BIRTH COUNTRIE(s) CHECKBOX
-      shinyjs::enable(id = "MR_Top_Five_BIRTH")
+      # shinyjs::enable(id = "MR_Top_Five_BIRTH")
       
       Geo <- GeoDATA #GeoDATA
       POLYGONs_LAYER <- Geo$VISUALIZATION_NAME #World Map => POLYGONs => LAYER-NAME
@@ -1729,7 +1856,7 @@ server <- function(input, output, session) {
           removeLayersControl() #Remove LAYER(s) Control (Top FIVE BIRTH AREA(s)/COUNTRIE(s))
         
         #Activate Top Five BIRTH AREA(s) CHECKBOX
-        shinyjs::enable(id = "MR_Top_Five_BIRTH")
+        # shinyjs::enable(id = "MR_Top_Five_BIRTH")
         
         Geo <- GeoRDATA_ContinentalSIREGIONs #GeoRDATA
         RDATA <- RDATA_ContinentalSIREGIONs #RDATA
@@ -1831,9 +1958,161 @@ server <- function(input, output, session) {
     #Activate Top Five BIRTH AREA(s) CHECKBOX
     # observeEvent(input$Selected_Residence_Rendered, {if (Selected_Residence_RV$MR_Residence_View_Choice == "REGIONs") {shinyjs::enable(id = "MR_Top_Five_BIRTH")}})
     
+    #CURSOR Class To Default
+    # observeEvent(input$Selected_Residence_MIGRANT_STOCK_DATA_Rendered, { #WHEN POLYGON(s) + MIGRANT STOCK DATA are rendered
+    # 
+    #   #Reactive Value To TRUE => CURSOR Class To Default
+    #   if (input$Selected_Residence_MIGRANT_STOCK_DATA_Rendered) {
+    # 
+    #     #CURSOR Class To Default
+    #     session$sendCustomMessage(type = "CURSORwithinBODY", message = "default-cursor")
+    # 
+    #     #Reinitialize => Reactive Value 'Selected_Residence_MIGRANT_STOCK_DATA_Rendered'
+    #     runjs("Shiny.setInputValue('Selected_Residence_MIGRANT_STOCK_DATA_Rendered', false);") #Reactive Value To SERVER
+    # 
+    #     }
+    # 
+    #   })
+    
+    #CURSOR Class To Default
+    # observeEvent(input$MIGRANT_STOCK_DATA_Rendered, { #WHEN POLYGON(s) + MIGRANT STOCK DATA are rendered
+    #   
+    #   #Reactive Value To TRUE => CURSOR Class To Default
+    #   if (input$MIGRANT_STOCK_DATA_Rendered) {
+    #     
+    #     #CURSOR Class To Default
+    #     session$sendCustomMessage(type = "CURSORwithinBODY", message = "default-cursor")
+    # 
+    #     #Make Selected Residence Card visible
+    #     # shinyjs::show(id = "MR_Selected_Residence_Card", anim = TRUE, animType = "fade", time = 0.25)
+    #     #Make Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX visible
+    #     # shinyjs::show(id = "MR_Top_Five_BIRTH_Card", anim = TRUE, animType = "fade", time = 0.25)
+    #     #Make (DATA-SELECTION+PLOT-PARAMETER(s)) Card visible
+    #     # shinyjs::show(id = "MR_DATA_SELECTION_and_Plot_PARAMETERs_Card", anim = TRUE, animType = "fade", time = 0.25)
+    #     #Make iMIGRANT-STOCK-DATA (COUNT(s)) Card invisible
+    #     # shinyjs::show(id = "MR_MIGRANT_STOCK_DATA_COUNTs_Card", anim = TRUE, animType = "fade", time = 0.25)
+    #     #Make iMIGRANT-STOCK-DATA (SHARE(s)) Card invisible
+    #     # shinyjs::show(id = "MR_MIGRANT_STOCK_DATA_SHAREs_Card", anim = TRUE, animType = "fade", time = 0.25)
+    #     
+    #     #Reinitialize => Reactive Value 'MIGRANT_STOCK_DATA_Rendered'
+    #     runjs("Shiny.setInputValue('MIGRANT_STOCK_DATA_Rendered', false);") #Reactive Value To SERVER
+    #     
+    #     }
+    #   
+    #   })
+    
     #Selected Residence Code in iMIGRANT_STOCK_DATA_SHAREs => Reactive Value 'Selected_Residence_Code_in_MIGRANT_STOCK_DATA' == TRUE
     if (as.numeric(Selected_Residence_Code) %in% iMIGRANT_STOCK_DATA_SHAREs$ResidenceCode) {
-      Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA <- TRUE} else {Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA <- FALSE}
+      
+      #Make Selected Residence Card visible
+      shinyjs::show(id = "MR_Selected_Residence_Card", anim = TRUE, animType = "fade", time = 0.25)
+      #Make Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX visible
+      shinyjs::show(id = "MR_Top_Five_BIRTH_Card", anim = TRUE, animType = "fade", time = 0.25)
+      #Make (DATA-SELECTION+PLOT-PARAMETER(s)) Card visible
+      shinyjs::show(id = "MR_DATA_SELECTION_and_Plot_PARAMETERs_Card", anim = TRUE, animType = "fade", time = 0.25)
+      #Make iMIGRANT-STOCK-DATA (COUNT(s)) Card invisible
+      shinyjs::show(id = "MR_MIGRANT_STOCK_DATA_COUNTs_Card", anim = TRUE, animType = "fade", time = 0.25)
+      #Make iMIGRANT-STOCK-DATA (SHARE(s)) Card invisible
+      shinyjs::show(id = "MR_MIGRANT_STOCK_DATA_SHAREs_Card", anim = TRUE, animType = "fade", time = 0.25)
+      
+      #Make NO-AVAILABLE-DATA Card invisible
+      shinyjs::hide(id = "MR_NO_AVAILABLE_DATA_Card", anim = TRUE, animType = "fade", time = 0.25)
+      
+      #BIRTH VIEW CHOICE RADIO BUTTONs => MARGIN(s)+
+      runjs("$('#MR_BIRTH_View_Choice-label').css('margin-bottom', '0px');")
+      #VARIABLE CHOICE RADIO BUTTONs => MARGIN(s)+
+      runjs("$('#MR_Variable_Choice-label').css('margin-bottom', '0px');")
+      #Decimal CHOICE SLIDER => MARGIN(s)+
+      runjs("$('#MR_Decimal_Choice-label').css('margin-bottom', '0px');")
+      #BIRTH VIEW CHOICE => REGION(s) CHOICE => RADIO BUTTONs => MARGIN(s)+
+      runjs("$('#MR_BIRTH_View_Choice_REGIONs_CHOICE-label').css('margin-bottom', '0px');")
+      #BIRTH VIEW CHOICE RADIO BUTTONs | Decimal CHOICE SLIDER => POSITION
+      runjs("$('.g-col-md-2.bslib-grid-item.bslib-gap-spacing.html-fill-container').css({'display': 'flex', 'justify-content': 'center'});")
+      #VARIABLE CHOICE RADIO BUTTONs => POSITION
+      runjs("$('.g-col-md-3.bslib-grid-item.bslib-gap-spacing.html-fill-container').css({'display': 'flex', 'justify-content': 'center'});")
+      
+      #Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX => Replace CHECKBOX Value => TRUE To FALSE
+      if (input$MR_Top_Five_BIRTH) {updateCheckboxInput(session = session, inputId = "MR_Top_Five_BIRTH", value = FALSE)}
+      
+      #Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX => MARGIN(s)+
+      runjs("$('.shiny-input-container .checkbox').css({'margin-bottom': '0px', 'height': '19.986px'});")
+      
+      #POLYGON(s) + MIGRANT STOCK DATA Rendered  => Create Reactive Value 'MIGRANT_STOCK_DATA_Rendered' == TRUE
+      runjs("var CURSOR_X = setInterval(function() { //Call CURSOR_X EVERY X MILLISECONDs
+            var StackedBARs = document.getElementById('MR_Stacked_BARs_COUNTs'); //Retrieve MIGRANT-STOCK-DATA StackedBAR(s)
+            //MIGRANT-STOCK-DATA StackedBAR(s) => Rendered => Reactive Value To SERVER => TRUE
+            if (StackedBARs && StackedBARs.data) { //MIGRANT-STOCK-DATA StackedBAR(s) => Rendered
+                Shiny.setInputValue('MIGRANT_STOCK_DATA_Rendered', true); //Reactive Value To SERVER
+                clearInterval(CURSOR_X);} //MIGRANT-STOCK-DATA StackedBAR(s) => Rendered => !Run ANYMORE
+            //MIGRANT-STOCK-DATA StackedBAR(s) => !Rendered => Reactive Value To SERVER => FALSE
+            else {Shiny.setInputValue('MIGRANT_STOCK_DATA_Rendered', false);}}, 250);") #Run Function EVERY 250 MILLISECONDs
+      
+      #Reactive Value == "COUNTRIEs" => Activate Top Five BIRTH COUNTRIE(s) CHECKBOX
+      if (Selected_Residence_RV$MR_Residence_View_Choice == "COUNTRIEs") {shinyjs::enable(id = "MR_Top_Five_BIRTH")}
+      #Reactive Value == "REGIONs" => Selected REGION | #Activate Top Five BIRTH AREA(s) CHECKBOX
+      else if (Selected_Residence_RV$MR_Residence_View_Choice == "REGIONs") {
+        #REGIONs CHOICE RADIO BUTTONs => Selected REGION
+        Selected_REGION <- input$MRR_REGIONs_CHOICE
+        #Selected REGION => #Activate Top Five BIRTH AREA(s) CHECKBOX
+        if (Selected_REGION == "Continental Sub-Regions and Intermediate Regions") {shinyjs::enable(id = "MR_Top_Five_BIRTH")}}
+      
+      #Reactive Value 'Selected_Residence_Code_in_MIGRANT_STOCK_DATA' == TRUE
+      Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA <- TRUE
+      
+      #CURSOR Class To Default
+      observeEvent(input$MIGRANT_STOCK_DATA_Rendered, { #WHEN POLYGON(s) + MIGRANT STOCK DATA are rendered
+        #Reactive Value To TRUE => CURSOR Class To Default
+        if (input$MIGRANT_STOCK_DATA_Rendered) {
+          #CURSOR Class To Default
+          session$sendCustomMessage(type = "CURSORwithinBODY", message = "default-cursor")
+          #Reinitialize => Reactive Value 'MIGRANT_STOCK_DATA_Rendered'
+          runjs("Shiny.setInputValue('MIGRANT_STOCK_DATA_Rendered', false);")}})  #Reactive Value To SERVER
+      
+      } 
+    #Selected Residence Code in iMIGRANT_STOCK_DATA_SHAREs => Reactive Value 'Selected_Residence_Code_in_MIGRANT_STOCK_DATA' == FALSE
+    else {
+        
+      #Make Selected Residence Card visible
+      shinyjs::hide(id = "MR_Selected_Residence_Card", anim = TRUE, animType = "fade", time = 0.25)
+      #Make Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX visible
+      shinyjs::hide(id = "MR_Top_Five_BIRTH_Card", anim = TRUE, animType = "fade", time = 0.25)
+      #Make (DATA-SELECTION+PLOT-PARAMETER(s)) Card visible
+      shinyjs::hide(id = "MR_DATA_SELECTION_and_Plot_PARAMETERs_Card", anim = TRUE, animType = "fade", time = 0.25)
+      #Make iMIGRANT-STOCK-DATA (COUNT(s)) Card invisible
+      shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_COUNTs_Card", anim = TRUE, animType = "fade", time = 0.25)
+      #Make iMIGRANT-STOCK-DATA (SHARE(s)) Card invisible
+      shinyjs::hide(id = "MR_MIGRANT_STOCK_DATA_SHAREs_Card", anim = TRUE, animType = "fade", time = 0.25)
+      
+      #Make NO-AVAILABLE-DATA Card visible
+      shinyjs::show(id = "MR_NO_AVAILABLE_DATA_Card", anim = TRUE, animType = "fade", time = 0.25)
+        
+      #NO-AVAILABLE-DATA Card => MARGIN(s)+
+      runjs("$('#MR_NO_AVAILABLE_DATA_Card').css('margin-top', '-10px');")
+      
+      #Content in NO-AVAILABLE-DATA Card => Create Reactive Value 'Content_Rendered' == TRUE
+      runjs("var CURSOR_X = setInterval(function() { //Call CURSOR_X EVERY X MILLISECONDs
+            var T = document.getElementById('MR_NO_AVAILABLE_DATA'); //Retrieve NO-AVAILABLE-DATA Card
+            //Content in NO-AVAILABLE-DATA Card => Rendered => Reactive Value To SERVER => TRUE
+            if (T) { //NO-AVAILABLE-DATA Card => Rendered
+              let Content = T.innerText || T.textContent; //Retrieve Content
+              if (Content.includes('Data not available')) { //Content include 'Data not available'
+                Shiny.setInputValue('Content_Rendered', true); //Reactive Value To SERVER
+                clearInterval(CURSOR_X);}} //Content in NO-AVAILABLE-DATA Card => Rendered => !Run ANYMORE
+            else {Shiny.setInputValue('Content_Rendered', false);}}, 250);") #Run Function EVERY 250 MILLISECONDs
+      
+      #Reactive Value 'Selected_Residence_Code_in_MIGRANT_STOCK_DATA' == FALSE
+      Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA <- FALSE
+        
+      #CURSOR Class To Default
+      observeEvent(input$Content_Rendered, { #WHEN Content in NO-AVAILABLE-DATA Card is rendered
+        #Reactive Value To TRUE => CURSOR Class To Default
+        if (input$Content_Rendered) {
+          #CURSOR Class To Default
+          session$sendCustomMessage(type = "CURSORwithinBODY", message = "default-cursor")
+          #Reinitialize => Reactive Value 'Content_Rendered'
+          runjs("Shiny.setInputValue('Content_Rendered', false);")}}) #Reactive Value To SERVER
+      
+      }
 
     #Reactive Value 'Selected_Residence_Code_in_MIGRANT_STOCK_DATA' == TRUE => MIGRANT STOCK DATA => FILTER => RESIDENCE
     if (Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA) {
@@ -1842,7 +2121,7 @@ server <- function(input, output, session) {
         filter(ResidenceCode == as.numeric(Selected_Residence_Code))
       #Reactive Value 'Filtered_MIGRANT_STOCKs_DATA' == FilteredMIGRANT_STOCKs_DATA
       Filtered_MIGRANT_STOCKs_DATA_RV$Filtered_MIGRANT_STOCKs_DATA <- FilteredMIGRANT_STOCKs_DATA} else {Filtered_MIGRANT_STOCKs_DATA_RV$Filtered_MIGRANT_STOCKs_DATA <- data.frame()}
-
+    
     })
   
   ##### Selected Residence #####
@@ -1885,6 +2164,19 @@ server <- function(input, output, session) {
       #Replace Selected Residence Value (Top FIVE BIRTH AREA(s)/COUNTRIE(s))
       if (grepl(pattern = " \\d{4}$", x = Selected_Residence)) {
         Selected_Residence <- sub(pattern = " \\d{4}$", replacement = "", x = Selected_Residence)}
+      
+      #CURSOR Class To WAIT
+      session$sendCustomMessage(type = "CURSORwithinBODY", message = "wait-cursor")
+      
+      #POLYGON(s) Rendered => Create Reactive Value 'Top_FIVE_BIRTH_POLYGONs_Rendered' == TRUE
+      runjs("let Top_FIVE_BIRTH_COUNTER = 0; //Initialize Top_FIVE_BIRTH_COUNTER
+            //Shiny.setInputValue('Top_FIVE_BIRTH_POLYGONs_Rendered', false); //Reactive Value To SERVER
+            let Top_FIVE_BIRTH_CURSOR_X = setInterval(function() { //Call Top_FIVE_BIRTH_CURSOR_X EVERY X MILLISECONDs
+              Top_FIVE_BIRTH_COUNTER++; //+1
+              //Top_FIVE_BIRTH_COUNTER === 50 => !Run ANYMORE
+              if (Top_FIVE_BIRTH_COUNTER === 50) {
+                  Shiny.setInputValue('Top_FIVE_BIRTH_POLYGONs_Rendered', true); //Reactive Value To SERVER
+                  clearInterval(Top_FIVE_BIRTH_CURSOR_X);}}, 500);") #Run Function EVERY 250 MILLISECONDs
       
       #MIGRANT STOCK DATA => Filtered => RESIDENCE (Reactive Value 'Filtered_MIGRANT_STOCKs_DATA')
       FilteredMIGRANT_STOCKs_DATA <- Filtered_MIGRANT_STOCKs_DATA_RV$Filtered_MIGRANT_STOCKs_DATA
@@ -2299,113 +2591,190 @@ server <- function(input, output, session) {
           }
         }
       
+      #CURSOR Class To Default
+      observeEvent(input$Top_FIVE_BIRTH_POLYGONs_Rendered, { #WHEN POLYGON(s) are rendered
+      
+        #Reactive Value To TRUE => CURSOR Class To Default
+        if (input$Top_FIVE_BIRTH_POLYGONs_Rendered) {
+      
+          #CURSOR Class To Default
+          session$sendCustomMessage(type = "CURSORwithinBODY", message = "default-cursor")
+      
+          #Reinitialize => Reactive Value 'Top_FIVE_BIRTH_POLYGONs_Rendered'
+          runjs("Shiny.setInputValue('Top_FIVE_BIRTH_POLYGONs_Rendered', false);") #Reactive Value To SERVER
+      
+          }
+      
+        })
+      
       }
 
     })
   
-  ##### ... => Reactive Expression => ... #####
+  ##### BIRTH VIEW => CHOICE => Reactive Expression => Selected BIRTH View #####
   SelectedBirthView <- eventReactive(input$MR_BIRTH_View_Choice, {Selected_Birth_View <- input$MR_BIRTH_View_Choice})
   
-  ##### ... => Reactive Expression => ... #####
-  SelectedClassification <- eventReactive(input$MR_BIRTH_View_Choice_REGIONs_CHOICE, {Selected_Classification <- input$MR_BIRTH_View_Choice_REGIONs_CHOICE})
+  ##### BIRTH VIEW => CHOICE == REGION(s) => REGION(s) => CHOICE => Reactive Expression => Selected Classification #####
+  # SelectedClassification <- eventReactive(input$MR_BIRTH_View_Choice_REGIONs_CHOICE, {Selected_Classification <- input$MR_BIRTH_View_Choice_REGIONs_CHOICE})
   
-  ##### ... => Reactive Expression => ... #####
+  ##### VARIABLE => CHOICE => Reactive Expression => Selected Variable #####
   SelectedVariable <- eventReactive(input$MR_Variable_Choice, {Selected_Variable <- input$MR_Variable_Choice})
   
-  ##### ... => Reactive Expression => ... #####
+  ##### Decimal => CHOICE => Reactive Expression => Selected Decimal #####
   DecimalChoice <- eventReactive(input$MR_Decimal_Choice, {Decimal_Choice <- input$MR_Decimal_Choice})
   
-  #### ... #####
+  ##### BIRTH VIEW => CHOICE == REGION(s) => REGION(s) => CHOICE => Reactive Expression => Selected Classification #####
+  SelectedClassification <- eventReactive(input$MR_BIRTH_View_Choice_REGIONs_CHOICE, {Selected_Classification <- input$MR_BIRTH_View_Choice_REGIONs_CHOICE})
+  
+  #### Activate/Disable => BIRTH VIEW CHOICE => REGION(s) CHOICE => RADIO BUTTONs #####
   observeEvent(input$MR_BIRTH_View_Choice, {
+    #BIRTH VIEW => CHOICE == COUNTRIE(s) => Disable => BIRTH VIEW CHOICE => REGION(s) CHOICE => RADIO BUTTONs
     if (input$MR_BIRTH_View_Choice == "Countries") {shinyjs::disable(id = "MR_BIRTH_View_Choice_REGIONs_CHOICE")}
+    #BIRTH VIEW => CHOICE == REGION(s) => Activate => BIRTH VIEW CHOICE => REGION(s) CHOICE => RADIO BUTTONs
     else if (input$MR_BIRTH_View_Choice == "Regions") {shinyjs::enable(id = "MR_BIRTH_View_Choice_REGIONs_CHOICE")}})
   
-  ##### ... #####
+  ##### iMIGRANT-STOCK-DATA-Card = Stacked BAR(s) => COUNT(s) #####
   output$MR_Stacked_BARs_COUNTs <- renderPlotly({
     
+    #Reactive Value 'Selected_Residence_Code_in_MIGRANT_STOCK_DATA' == TRUE
     if (Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA) {
     
+      #MIGRANT STOCK DATA => Filtered => RESIDENCE (Reactive Value 'Filtered_MIGRANT_STOCKs_DATA')
       FilteredMIGRANT_STOCKs_DATA <- Filtered_MIGRANT_STOCKs_DATA_RV$Filtered_MIGRANT_STOCKs_DATA
       
+      #Replace Values in BIRTH To Reduce LN+ Width (COUNTRIE(s))
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Bonaire, Sint Eustatius and Saba", replacement = "Caribbean Netherlands", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Dem. People's Republic of Korea", replacement = "North Korea", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Democratic Republic of the Congo", replacement = "DR Congo", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Lao People's Democratic Republic", replacement = "Lao PDR", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Saint Helena, Ascension and Tristan da Cunha", replacement = "Saint Helena*", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Saint Vincent and the Grenadines", replacement = "Saint Vincent*", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "United Kingdom of Great Britain and Northern Ireland", replacement = "United Kingdom", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "United Republic of Tanzania", replacement = "Tanzania", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      
+      #Replace Values in BIRTH To Reduce LN+ Width (REGION(s))
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Least Developed Countries\\* \\(LDC\\*\\)", replacement = "LDC*", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Land-Locked Developing Countries\\* \\(LLDC\\*\\)", replacement = "LLDC*", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Small Island Developing States\\* \\(SIDS\\*\\)", replacement = "SIDS*", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      
+      #BIRTH VIEW => CHOICE == COUNTRIE(s)
       if (SelectedBirthView() == "Countries") {
         
+        #MIGRANT STOCK => FILTER => BIRTH == All COUNTRIE(s) + OTHER(s) | All YEAR(s)
         FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs <- FilteredMIGRANT_STOCKs_DATA %>%
           filter(BirthCode < 900 | BirthCode == 2003, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>% distinct(BirthCode, Year, .keep_all = TRUE)
         
+        #iMIGRANT_STOCK_DATA_SHAREs => COUNTRIE(s) => CLRCode + Level(s)
         COUNTRIEs_COLORs_LVs <- iMIGRANT_STOCK_DATA_SHAREs %>%
-          distinct(Residence, ResidenceCode) %>% filter(ResidenceCode < 900) %>%
+          distinct(Residence, ResidenceCode) %>% filter(ResidenceCode < 900) %>% #FILTER => BIRTH == All COUNTRIE(s)
           inner_join(DATA %>% select(VISUALIZATION_NAME, M49_CODE, ContinentalREGION, CLRCode) , by = c("Residence" = "VISUALIZATION_NAME")) %>%
-          arrange(ContinentalREGION, Residence) %>%
-          add_row(Residence = "Other", ResidenceCode = 2003, M49_CODE = "2003", ContinentalREGION = NA, CLRCode = "#999999")
+          arrange(ContinentalREGION, Residence) %>% #ORDER =>  ContinentalREGION => Alphabetical ORDER
+          add_row(Residence = "Other", ResidenceCode = 2003, M49_CODE = "2003", ContinentalREGION = NA, CLRCode = "#999999") #OTHER(s)
 
+        #Retrieve All COUNTRIE(s) in ORDER
         LVs <- COUNTRIEs_COLORs_LVs$Residence
+        
+        #Replace Values in Level(s) To MATCH with Values in FilteredMIGRANT_STOCKs_DATA$Birth
+        LVs <- gsub(pattern = "Bonaire, Sint Eustatius and Saba", replacement = "Caribbean Netherlands", x = LVs)
+        LVs <- gsub(pattern = "Dem. People's Republic of Korea", replacement = "North Korea", x = LVs)
+        LVs <- gsub(pattern = "Democratic Republic of the Congo", replacement = "DR Congo", x = LVs)
+        LVs <- gsub(pattern = "Lao People's Democratic Republic", replacement = "Lao PDR", x = LVs)
+        LVs <- gsub(pattern = "Saint Helena, Ascension and Tristan da Cunha", replacement = "Saint Helena*", x = LVs)
+        LVs <- gsub(pattern = "Saint Vincent and the Grenadines", replacement = "Saint Vincent*", x = LVs)
+        LVs <- gsub(pattern = "United Kingdom of Great Britain and Northern Ireland", replacement = "United Kingdom", x = LVs)
+        LVs <- gsub(pattern = "United Republic of Tanzania", replacement = "Tanzania", x = LVs)
+        
+        #Retrieve All CLRCode in ORDER
         COLORs <- COUNTRIEs_COLORs_LVs$CLRCode
         
+        #NUMBER ≠ COUNTRIE(s) in MIGRANT STOCK DATA (Filtered => RESIDENCE | BIRTH == All COUNTRIE(s) + OTHER(s) | All YEAR(s))
         X <- paste(Mode((FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs %>% group_by(Year) %>% summarize(Count = n_distinct(BirthCode)))$Count), "Countries")
         
         }
+      #BIRTH VIEW => CHOICE == REGION(s)
       else if (SelectedBirthView() == "Regions") {
         
+        
+        #Selected REGION => GeoRDATA | World Map => LN-HeadLINE + LAYER-NAME
+        # if (SelectedREGION == "Continental Regions") {
+          #GeoRDATA
+          #World Map => LN-HeadLINE
+          #World Map => LAYER-NAME
+        
+        #Selected Classification => CODE(s) | REGION(s) | CLRCode | NUMBER ≠ REGION(s)
         if (SelectedClassification() == "Continental Regions") {
-          REGIONs_CODEs = c(903, 935, 908, 904, 905, 909)
-          LVs <- c(GeoRDATA_ContinentalREGIONs$NAME, 'OTHER')
-          COLORs <- c(GeoRDATA_ContinentalREGIONs$CLRCode, "#999999")
-          X <- "6 Continental Regions"}
+          REGIONs_CODEs = c(903, 935, 908, 904, 905, 909) #All CODE(s) in ORDER
+          LVs <- c(GeoRDATA_ContinentalREGIONs$NAME, 'OTHER') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          COLORs <- c(GeoRDATA_ContinentalREGIONs$CLRCode, "#999999") #Retrieve All CLRCode in ORDER (+ OTHER)
+          X <- "6 Continental Regions"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "Continental Sub-Regions and Intermediate Regions") {
+          #All CODE(s) in ORDER
           REGIONs_CODEs <- c(910, 911, 912, 913, 914, 
                              5500, 906, 920, 5501, 922, 
                              923, 924, 925, 926,
                              915, 916, 931, 
                              905, #NORTHERN AMERICA => "Northern America"
                              927, 928, 954, 957)
-          LVs <- c(levels(GeoRDATA_ContinentalSIREGIONs$NAME), 'Other')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c(GeoRDATA_ContinentalSIREGIONs$CLRCode[order(GeoRDATA_ContinentalSIREGIONs$NAME)])
-          X <- "22 Continental Sub-Regions and Intermediate Regions"}
+          LVs <- c(levels(GeoRDATA_ContinentalSIREGIONs$NAME), 'Other') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          COLORs <- c(GeoRDATA_ContinentalSIREGIONs$CLRCode[order(GeoRDATA_ContinentalSIREGIONs$NAME)]) #Retrieve All CLRCode in ORDER
+          X <- "22 Continental Sub-Regions and Intermediate Regions"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "Geographic Regions") {
-          REGIONs_CODEs = c(927, 921, 1832, 1829, 1830, 1833, 1835, 947)
-          LVs <- c(levels(GeoRDATA_GeoREGIONs$NAME), 'Other')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c(GeoRDATA_GeoREGIONs$CLRCode[order(GeoRDATA_GeoREGIONs$NAME)])
-          X <- "8 Geographic Regions"}
+          REGIONs_CODEs = c(927, 921, 1832, 1829, 1830, 1833, 1835, 947) #All CODE(s) in ORDER
+          LVs <- c(levels(GeoRDATA_GeoREGIONs$NAME), 'Other') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          COLORs <- c(GeoRDATA_GeoREGIONs$CLRCode[order(GeoRDATA_GeoREGIONs$NAME)]) #Retrieve All CLRCode in ORDER
+          X <- "8 Geographic Regions"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "2 Development Levels") {
-          REGIONs_CODEs = c(901, 902)
-          LVs <- c(levels(GeoRDATA_MoreLess$NAME), 'Other')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c(GeoRDATA_MoreLess$CLRCode[order(GeoRDATA_MoreLess$NAME)])
-          X <- "2 Development Levels"}
+          REGIONs_CODEs = c(901, 902) #All CODE(s) in ORDER
+          LVs <- c(levels(GeoRDATA_MoreLess$NAME), 'Other') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          COLORs <- c(GeoRDATA_MoreLess$CLRCode[order(GeoRDATA_MoreLess$NAME)]) #Retrieve All CLRCode in ORDER
+          X <- "2 Development Levels"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "3 Development Levels") {
-          REGIONs_CODEs = c(901, 934, 941)
-          LVs <- c(levels(GeoRDATA_MoreLessLeast$NAME), 'Other')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c(GeoRDATA_MoreLessLeast$CLRCode[order(GeoRDATA_MoreLessLeast$NAME)])
-          X <- "3 Development Levels"}
+          REGIONs_CODEs = c(901, 934, 941) #All CODE(s) in ORDER
+          LVs <- c(levels(GeoRDATA_MoreLessLeast$NAME), 'Other') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          COLORs <- c(GeoRDATA_MoreLessLeast$CLRCode[order(GeoRDATA_MoreLessLeast$NAME)]) #Retrieve All CLRCode in ORDER
+          X <- "3 Development Levels"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "5 Development Levels") {
-          REGIONs_CODEs = c(942, 1638, 1639, 1640, 1641)
-          LVs <- c(levels(GeoRDATA_LDC_LLDC_SIDS$NAME), 'Other', 'Non-OHRLLS Countries')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c("#F1C40F", "#E74C3C", "#5B92E5", "#FF9900", "#72C02C", "#999999", "#555555")
-          X <- "5 Development Levels"}
+          REGIONs_CODEs = c(942, 1638, 1639, 1640, 1641) #All CODE(s) in ORDER
+          LVs <- c(levels(GeoRDATA_LDC_LLDC_SIDS$NAME), 'Other', 'Non-OHRLLS Countries') #Retrieve All REGION(s) in ORDER (+ OTHER + NON-OHRLLS COUNTRIE(s))
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          
+          #Replace Values in Level(s) To MATCH with Values in FilteredMIGRANT_STOCKs_DATA$Birth
+          LVs <- gsub(pattern = "Least Developed Countries\\* \\(LDC\\*\\)", replacement = "LDC*", x = LVs)
+          LVs <- gsub(pattern = "Land-Locked Developing Countries\\* \\(LLDC\\*\\)", replacement = "LLDC*", x = LVs)
+          LVs <- gsub(pattern = "Small Island Developing States\\* \\(SIDS\\*\\)", replacement = "SIDS*", x = LVs)
+          
+          COLORs <- c("#F1C40F", "#E74C3C", "#5B92E5", "#FF9900", "#72C02C", "#999999", "#555555") #Retrieve All CLRCode in ORDER
+          X <- "5 Development Levels"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "Income Levels") {
-          REGIONs_CODEs = c(1503, 1502, 1501, 1500)
-          LVs <- c(levels(GeoRDATA_IncomeLevels$NAME), 'Other')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c(GeoRDATA_IncomeLevels$CLRCode[order(GeoRDATA_IncomeLevels$NAME)])
-          X <- "4 Income Levels"}
+          REGIONs_CODEs = c(1503, 1502, 1501, 1500) #All CODE(s) in ORDER
+          LVs <- c(levels(GeoRDATA_IncomeLevels$NAME), 'Other') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          COLORs <- c(GeoRDATA_IncomeLevels$CLRCode[order(GeoRDATA_IncomeLevels$NAME)]) #Retrieve All CLRCode in ORDER
+          X <- "4 Income Levels"} #NUMBER ≠ REGION(s) in Classification
         
+        #MIGRANT STOCK => FILTER => BIRTH == All REGION(s) | All YEAR(s)
         FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs <- FilteredMIGRANT_STOCKs_DATA %>%
           filter(BirthCode %in% REGIONs_CODEs | BirthCode == 2003, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>% distinct(BirthCode, Year, .keep_all = TRUE)
         
+        ##### REGION(s) => CHOICE == 5 Development Levels => MIGRANT STOCK DATA => COUNT(s) => NON-OHRLLS COUNTRIE(s)
         if (SelectedClassification() == "5 Development Levels") {
         
+          #MIGRANT STOCK => FILTER => BIRTH == World | All YEAR(s)
           FilteredMIGRANT_STOCKs_DATA_World <- FilteredMIGRANT_STOCKs_DATA %>%
             filter(BirthCode == 900, #BIRTH == World
                    Year %in% c("1990", "1995", "2000", "2005", "2010", "2015", "2020")) %>% distinct(BirthCode, Year, .keep_all = TRUE)
           
+          #Retrieve Selected Residence Value
           Selected_Residence <- FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs %>% pull(Residence) %>% first()
           
+          #Retrieve Selected Residence Code Value
           Selected_Residence_Code <- FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs %>% pull(ResidenceCode) %>% first()
           
+          #MIGRANT STOCK DATA => COUNT(s) => NON-OHRLLS COUNTRIE(s)
           FilteredMIGRANT_STOCKs_DATA_NON_OHRLLS_COUNTRIEs <- FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs %>% group_by(Year) %>% 
             summarise(iMIGRANT_Stock_Total = sum(iMIGRANT_Stock_Total, na.rm = TRUE), iMIGRANT_Stock_Males = sum(iMIGRANT_Stock_Males, na.rm = TRUE), iMIGRANT_Stock_Females = sum(iMIGRANT_Stock_Females, na.rm = TRUE), 
                       Share_of_iMIGRANT_Stock_Total = 100 - sum(Share_of_iMIGRANT_Stock_Total, na.rm = TRUE), Share_of_iMIGRANT_Stock_Males = 100 - sum(Share_of_iMIGRANT_Stock_Males, na.rm = TRUE), Share_of_iMIGRANT_Stock_Females = 100 - sum(Share_of_iMIGRANT_Stock_Females, na.rm = TRUE)) %>%
@@ -2414,39 +2783,55 @@ server <- function(input, output, session) {
                    iMIGRANT_Stock_Females =  FilteredMIGRANT_STOCKs_DATA_World$iMIGRANT_Stock_Females[match(Year, FilteredMIGRANT_STOCKs_DATA_World$Year)] - iMIGRANT_Stock_Females,
                    Residence = Selected_Residence, ResidenceCode = Selected_Residence_Code, Birth = "Non-OHRLLS Countries", BirthCode = 2004) %>% select(8:11, 1:7)
           
+          #MIGRANT STOCK DATA => COUNT(s) => 5 Development Levels + NON-OHRLLS COUNTRIE(s)
           FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs <- rbind(FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs, FilteredMIGRANT_STOCKs_DATA_NON_OHRLLS_COUNTRIEs)
           
           }
         
+        #Replace Values in BIRTH To MATCH with Values in Level(s) (LVs)
+        if (SelectedClassification() == "Continental Regions") {
+          FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Other", replacement = "OTHER", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
+        else if (SelectedClassification() == "Continental Sub-Regions and Intermediate Regions") {
+          FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "NORTHERN AMERICA", replacement = "Northern America", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
+        else if (SelectedClassification() == "Geographic Regions (SDG)") {
+          FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Oceania \\(excluding Australia and New Zealand\\)", replacement = "Oceania*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
+        else if (SelectedClassification() == "3 Development Levels") {
+          FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Less Developed Countries \\(Least Developed Countries excluded\\)", replacement = "Less Developed Countries*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)
+          FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Least Developed Countries \\(LDC\\)", replacement = "Least Developed Countries", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
+        
         }
       
-      if (SelectedClassification() == "Continental Regions") {
-        FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Other", replacement = "OTHER", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
-      else if (SelectedClassification() == "Continental Sub-Regions and Intermediate Regions") {
-        FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "NORTHERN AMERICA", replacement = "Northern America", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
-      else if (SelectedClassification() == "Geographic Regions (SDG)") {
-        FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Oceania \\(excluding Australia and New Zealand\\)", replacement = "Oceania*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
-      else if (SelectedClassification() == "3 Development Levels") {
-        FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Less Developed Countries \\(Least Developed Countries excluded\\)", replacement = "Less Developed Countries*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)
-        FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Least Developed Countries \\(LDC\\)", replacement = "Least Developed Countries", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
+      #Replace Values in BIRTH To MATCH with Values in Level(s) (LVs)
+      # if (SelectedClassification() == "Continental Regions") {
+      #   FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Other", replacement = "OTHER", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
+      # else if (SelectedClassification() == "Continental Sub-Regions and Intermediate Regions") {
+      #   FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "NORTHERN AMERICA", replacement = "Northern America", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
+      # else if (SelectedClassification() == "Geographic Regions (SDG)") {
+      #   FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Oceania \\(excluding Australia and New Zealand\\)", replacement = "Oceania*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
+      # else if (SelectedClassification() == "3 Development Levels") {
+      #   FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Less Developed Countries \\(Least Developed Countries excluded\\)", replacement = "Less Developed Countries*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)
+      #   FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- gsub(pattern = "Least Developed Countries \\(LDC\\)", replacement = "Least Developed Countries", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth)}
 
       #Residence-Birth/Year To Year/Residence/Birth
       FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs <- FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs %>%
         group_by(Year, Residence, ResidenceCode, Birth, BirthCode) %>% summarise(
           iMIGRANT_Stock_Total, iMIGRANT_Stock_Males, iMIGRANT_Stock_Females, Share_of_iMIGRANT_Stock_Total, Share_of_iMIGRANT_Stock_Males, Share_of_iMIGRANT_Stock_Females)
       
+      #Selected Variable => NAME in FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs + Group
       if (SelectedVariable() == "Both Sexes Combined") {
-        Selected_Variable <- "iMIGRANT_Stock_Total"
-        Selected_Group <- "Both Sexes Combined"}
+        Selected_Variable <- "iMIGRANT_Stock_Total" #NAME
+        Selected_Group <- "Both Sexes Combined"} #Group
       else if (SelectedVariable() == "Males") {
-        Selected_Variable <- "iMIGRANT_Stock_Males"
-        Selected_Group <- "Males"}
-      else if (SelectedVariable() == "Females") {
-        Selected_Variable <- "iMIGRANT_Stock_Females"
-        Selected_Group <- "Females"}
+        Selected_Variable <- "iMIGRANT_Stock_Males" #NAME
+        Selected_Group <- "Males"} #Group
+      else if (SelectedVariable() =="Females") {
+        Selected_Variable <- "iMIGRANT_Stock_Females" #NAME
+        Selected_Group <- "Females"} #Group
       
+      #BITRH => FACTOR-LEVEL(s) => Stacked BAR(s) => COUNT(s)
       FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth <- factor(x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs$Birth, levels = rev(LVs))
       
+      #Stacked BAR(s) => COUNT(s)
       plot_ly(data = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs, x = ~Year, y = as.formula(paste0("~", Selected_Variable)),
               color = ~Birth, type = "bar", colors = rev(COLORs), legendgroup = 'Birth',
               text = with(data = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs, expr = paste0("<b>Residence: </b>", Residence, "<br>", 
@@ -2454,103 +2839,157 @@ server <- function(input, output, session) {
                                                                                                 "<b>Year: </b>", Year, "<br>", 
                                                                                                 "<b>International MIGRANT Stock (", Selected_Group, "): </b>", format(x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_COUNTs[[Selected_Variable]], trim = TRUE, scientific = FALSE, big.mark = " ")))) %>%
       
-        style(textposition = "none", hoverinfo = "text") %>%
+        style(textposition = "none", hoverinfo = "text") %>% #REPLACE-HOVER-TEXT with TEXT-ABOVE
         layout(barmode = "stack",
                yaxis = list(title = paste0("International Migrant Stock (", Selected_Group,")")),
                title = paste("International Migrant Stocks in", SelectedResidence(), "from", X, "(1990-2020)"),
-               legend = list(title = list(text = '<b>Birth</b>'), x=1, y=0.5),
+               # legend = list(title = list(text = '<b>Birth</b>'), x=1, y=0.5),
+               # legend = list(x=0.5, y=-0.50, xanchor = "center", orientation = "h", traceorder = "reversed"),
+               legend = if (SelectedBirthView() == "Countries") {list(title = list(text = '<b>Birth Countries</b>'), x = 1, y = 0.5)}
+                        else if (SelectedBirthView() == "Regions") {
+                          if (SelectedClassification() == "Continental Sub-Regions and Intermediate Regions") {list(title = list(text = '<b>Birth Areas</b>'), x = 1, y = 0.5)}
+                          else {list(x = 0.5, y = -0.20, xanchor = "center", orientation = "h", traceorder = "reversed")}},
                margin = list(t = 30))
       
       }
     
     })
   
-  ##### ... #####
+  ##### iMIGRANT-STOCK-DATA-Card = Stacked BAR(s) => SHARE(s) #####
   output$MR_Stacked_BARs_SHAREs <- renderPlotly({
     
+    #Reactive Value 'Selected_Residence_Code_in_MIGRANT_STOCK_DATA' == TRUE
     if (Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA) {
-    
+      
+      #MIGRANT STOCK DATA => Filtered => RESIDENCE (Reactive Value 'Filtered_MIGRANT_STOCKs_DATA')
       FilteredMIGRANT_STOCKs_DATA <- Filtered_MIGRANT_STOCKs_DATA_RV$Filtered_MIGRANT_STOCKs_DATA
       
+      #Replace Values in BIRTH To Reduce LN+ Width (COUNTRIE(s))
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Bonaire, Sint Eustatius and Saba", replacement = "Caribbean Netherlands", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Dem. People's Republic of Korea", replacement = "North Korea", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Democratic Republic of the Congo", replacement = "DR Congo", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Lao People's Democratic Republic", replacement = "Lao PDR", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Saint Helena, Ascension and Tristan da Cunha", replacement = "Saint Helena*", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Saint Vincent and the Grenadines", replacement = "Saint Vincent*", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "United Kingdom of Great Britain and Northern Ireland", replacement = "United Kingdom", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "United Republic of Tanzania", replacement = "Tanzania", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      
+      #Replace Values in BIRTH To Reduce LN+ Width (REGION(s))
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Least Developed Countries\\* \\(LDC\\*\\)", replacement = "LDC*", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Land-Locked Developing Countries\\* \\(LLDC\\*\\)", replacement = "LLDC*", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      FilteredMIGRANT_STOCKs_DATA$Birth <- gsub(pattern = "Small Island Developing States\\* \\(SIDS\\*\\)", replacement = "SIDS*", x = FilteredMIGRANT_STOCKs_DATA$Birth)
+      
+      #BIRTH VIEW => CHOICE == COUNTRIE(s)
       if (SelectedBirthView() == "Countries") {
         
+        #MIGRANT STOCK => FILTER => BIRTH == All COUNTRIE(s) + OTHER(s) | All YEAR(s)
         FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs <- FilteredMIGRANT_STOCKs_DATA %>%
           filter(BirthCode < 900 | BirthCode == 2003, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>% distinct(BirthCode, Year, .keep_all = TRUE)
         
+        #iMIGRANT_STOCK_DATA_SHAREs => COUNTRIE(s) => CLRCode + Level(s)
         COUNTRIEs_COLORs_LVs <- iMIGRANT_STOCK_DATA_SHAREs %>%
-          distinct(Residence, ResidenceCode) %>% filter(ResidenceCode < 900) %>%
+          distinct(Residence, ResidenceCode) %>% filter(ResidenceCode < 900) %>% #FILTER => BIRTH == All COUNTRIE(s)
           inner_join(DATA %>% select(VISUALIZATION_NAME, M49_CODE, ContinentalREGION, CLRCode) , by = c("Residence" = "VISUALIZATION_NAME")) %>%
-          arrange(ContinentalREGION, Residence) %>%
-          add_row(Residence = "Other", ResidenceCode = 2003, M49_CODE = "2003", ContinentalREGION = NA, CLRCode = "#999999")
-
+          arrange(ContinentalREGION, Residence) %>% #ORDER =>  ContinentalREGION => Alphabetical ORDER
+          add_row(Residence = "Other", ResidenceCode = 2003, M49_CODE = "2003", ContinentalREGION = NA, CLRCode = "#999999") #OTHER(s)
+        
+        #Retrieve All COUNTRIE(s) in ORDER
         LVs <- COUNTRIEs_COLORs_LVs$Residence
+        
+        #Replace Values in Level(s) To MATCH with Values in FilteredMIGRANT_STOCKs_DATA$Birth
+        LVs <- gsub(pattern = "Bonaire, Sint Eustatius and Saba", replacement = "Caribbean Netherlands", x = LVs)
+        LVs <- gsub(pattern = "Dem. People's Republic of Korea", replacement = "North Korea", x = LVs)
+        LVs <- gsub(pattern = "Democratic Republic of the Congo", replacement = "DR Congo", x = LVs)
+        LVs <- gsub(pattern = "Lao People's Democratic Republic", replacement = "Lao PDR", x = LVs)
+        LVs <- gsub(pattern = "Saint Helena, Ascension and Tristan da Cunha", replacement = "Saint Helena*", x = LVs)
+        LVs <- gsub(pattern = "Saint Vincent and the Grenadines", replacement = "Saint Vincent*", x = LVs)
+        LVs <- gsub(pattern = "United Kingdom of Great Britain and Northern Ireland", replacement = "United Kingdom", x = LVs)
+        LVs <- gsub(pattern = "United Republic of Tanzania", replacement = "Tanzania", x = LVs)
+        
+        #Retrieve All CLRCode in ORDER
         COLORs <- COUNTRIEs_COLORs_LVs$CLRCode
         
+        #NUMBER ≠ COUNTRIE(s) in MIGRANT STOCK DATA (Filtered => RESIDENCE | BIRTH == All COUNTRIE(s) + OTHER(s) | All YEAR(s))
         X <- paste(Mode((FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs %>% group_by(Year) %>% summarize(Count = n_distinct(BirthCode)))$Count), "Countries")
         
         }
+      #BIRTH VIEW => CHOICE == REGION(s)
       else if (SelectedBirthView() == "Regions") {
         
+        #Selected Classification => CODE(s) | REGION(s) | CLRCode | NUMBER ≠ REGION(s)
         if (SelectedClassification() == "Continental Regions") {
-          REGIONs_CODEs = c(903, 935, 908, 904, 905, 909)
-          LVs <- c(GeoRDATA_ContinentalREGIONs$NAME, 'OTHER')
-          COLORs <- c(GeoRDATA_ContinentalREGIONs$CLRCode, "#999999")
-          X <- "6 Continental Regions"}
+          REGIONs_CODEs = c(903, 935, 908, 904, 905, 909) #All CODE(s) in ORDER
+          LVs <- c(GeoRDATA_ContinentalREGIONs$NAME, 'OTHER') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          COLORs <- c(GeoRDATA_ContinentalREGIONs$CLRCode, "#999999") #Retrieve All CLRCode in ORDER (+ OTHER)
+          X <- "6 Continental Regions"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "Continental Sub-Regions and Intermediate Regions") {
+          #All CODE(s) in ORDER
           REGIONs_CODEs <- c(910, 911, 912, 913, 914, 
                              5500, 906, 920, 5501, 922, 
                              923, 924, 925, 926,
                              915, 916, 931, 
                              905, #NORTHERN AMERICA => "Northern America"
                              927, 928, 954, 957)
-          LVs <- c(levels(GeoRDATA_ContinentalSIREGIONs$NAME), 'Other')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c(GeoRDATA_ContinentalSIREGIONs$CLRCode[order(GeoRDATA_ContinentalSIREGIONs$NAME)])
-          X <- "22 Continental Sub-Regions and Intermediate Regions"}
+          LVs <- c(levels(GeoRDATA_ContinentalSIREGIONs$NAME), 'Other') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          COLORs <- c(GeoRDATA_ContinentalSIREGIONs$CLRCode[order(GeoRDATA_ContinentalSIREGIONs$NAME)]) #Retrieve All CLRCode in ORDER
+          X <- "22 Continental Sub-Regions and Intermediate Regions"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "Geographic Regions") {
-          REGIONs_CODEs = c(927, 921, 1832, 1829, 1830, 1833, 1835, 947)
-          LVs <- c(levels(GeoRDATA_GeoREGIONs$NAME), 'Other')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c(GeoRDATA_GeoREGIONs$CLRCode[order(GeoRDATA_GeoREGIONs$NAME)])
-          X <- "8 Geographic Regions"}
+          REGIONs_CODEs = c(927, 921, 1832, 1829, 1830, 1833, 1835, 947) #All CODE(s) in ORDER
+          LVs <- c(levels(GeoRDATA_GeoREGIONs$NAME), 'Other') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          COLORs <- c(GeoRDATA_GeoREGIONs$CLRCode[order(GeoRDATA_GeoREGIONs$NAME)]) #Retrieve All CLRCode in ORDER
+          X <- "8 Geographic Regions"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "2 Development Levels") {
-          REGIONs_CODEs = c(901, 902)
-          LVs <- c(levels(GeoRDATA_MoreLess$NAME), 'Other')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c(GeoRDATA_MoreLess$CLRCode[order(GeoRDATA_MoreLess$NAME)])
-          X <- "2 Development Levels"}
+          REGIONs_CODEs = c(901, 902) #All CODE(s) in ORDER
+          LVs <- c(levels(GeoRDATA_MoreLess$NAME), 'Other') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          COLORs <- c(GeoRDATA_MoreLess$CLRCode[order(GeoRDATA_MoreLess$NAME)]) #Retrieve All CLRCode in ORDER
+          X <- "2 Development Levels"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "3 Development Levels") {
-          REGIONs_CODEs = c(901, 934, 941)
-          LVs <- c(levels(GeoRDATA_MoreLessLeast$NAME), 'Other')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c(GeoRDATA_MoreLessLeast$CLRCode[order(GeoRDATA_MoreLessLeast$NAME)])
-          X <- "3 Development Levels"}
+          REGIONs_CODEs = c(901, 934, 941) #All CODE(s) in ORDER
+          LVs <- c(levels(GeoRDATA_MoreLessLeast$NAME), 'Other') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          COLORs <- c(GeoRDATA_MoreLessLeast$CLRCode[order(GeoRDATA_MoreLessLeast$NAME)]) #Retrieve All CLRCode in ORDER
+          X <- "3 Development Levels"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "5 Development Levels") {
-          REGIONs_CODEs = c(942, 1638, 1639, 1640, 1641)
-          LVs <- c(levels(GeoRDATA_LDC_LLDC_SIDS$NAME), 'Other', 'Non-OHRLLS Countries')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c("#F1C40F", "#E74C3C", "#5B92E5", "#FF9900", "#72C02C", "#999999", "#555555")
-          X <- "5 Development Levels"}
+          REGIONs_CODEs = c(942, 1638, 1639, 1640, 1641) #All CODE(s) in ORDER
+          LVs <- c(levels(GeoRDATA_LDC_LLDC_SIDS$NAME), 'Other', 'Non-OHRLLS Countries') #Retrieve All REGION(s) in ORDER (+ OTHER + NON-OHRLLS COUNTRIE(s))
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          
+          #Replace Values in Level(s) To MATCH with Values in FilteredMIGRANT_STOCKs_DATA$Birth
+          LVs <- gsub(pattern = "Least Developed Countries\\* \\(LDC\\*\\)", replacement = "LDC*", x = LVs)
+          LVs <- gsub(pattern = "Land-Locked Developing Countries\\* \\(LLDC\\*\\)", replacement = "LLDC*", x = LVs)
+          LVs <- gsub(pattern = "Small Island Developing States\\* \\(SIDS\\*\\)", replacement = "SIDS*", x = LVs)
+          
+          COLORs <- c("#F1C40F", "#E74C3C", "#5B92E5", "#FF9900", "#72C02C", "#999999", "#555555") #Retrieve All CLRCode in ORDER
+          X <- "5 Development Levels"} #NUMBER ≠ REGION(s) in Classification
         else if (SelectedClassification() == "Income Levels") {
-          REGIONs_CODEs = c(1503, 1502, 1501, 1500)
-          LVs <- c(levels(GeoRDATA_IncomeLevels$NAME), 'Other')
-          LVs <- LVs[LVs != 'Other Countries/Territories']
-          COLORs <- c(GeoRDATA_IncomeLevels$CLRCode[order(GeoRDATA_IncomeLevels$NAME)])
-          X <- "4 Income Levels"}
+          REGIONs_CODEs = c(1503, 1502, 1501, 1500) #All CODE(s) in ORDER
+          LVs <- c(levels(GeoRDATA_IncomeLevels$NAME), 'Other') #Retrieve All REGION(s) in ORDER (+ OTHER)
+          LVs <- LVs[LVs != 'Other Countries/Territories'] #Remove OTHER COUNTRIE(s)/TERRITORIE(s)
+          COLORs <- c(GeoRDATA_IncomeLevels$CLRCode[order(GeoRDATA_IncomeLevels$NAME)]) #Retrieve All CLRCode in ORDER
+          X <- "4 Income Levels"} #NUMBER ≠ REGION(s) in Classification
         
+        #MIGRANT STOCK => FILTER => BIRTH == All REGION(s) | All YEAR(s)
         FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs <- FilteredMIGRANT_STOCKs_DATA %>%
           filter(BirthCode %in% REGIONs_CODEs | BirthCode == 2003, Year == c(1990, 1995, 2000, 2005, 2010, 2015, 2020)) %>% distinct(BirthCode, Year, .keep_all = TRUE)
         
+        ##### REGION(s) => CHOICE == 5 Development Levels => MIGRANT STOCK DATA => SHARE(s) => NON-OHRLLS COUNTRIE(s)
         if (SelectedClassification() == "5 Development Levels") {
           
+          #MIGRANT STOCK => FILTER => BIRTH == World | All YEAR(s)
           FilteredMIGRANT_STOCKs_DATA_World <- FilteredMIGRANT_STOCKs_DATA %>%
             filter(BirthCode == 900, #BIRTH == World
                    Year %in% c("1990", "1995", "2000", "2005", "2010", "2015", "2020")) %>% distinct(BirthCode, Year, .keep_all = TRUE)
           
+          #Retrieve Selected Residence Value
           Selected_Residence <- FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs %>% pull(Residence) %>% first()
           
+          #Retrieve Selected Residence Code Value
           Selected_Residence_Code <- FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs %>% pull(ResidenceCode) %>% first()
           
+          #MIGRANT STOCK DATA => COUNT(s) => NON-OHRLLS COUNTRIE(s)
           FilteredMIGRANT_STOCKs_DATA_NON_OHRLLS_COUNTRIEs <- FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs %>% group_by(Year) %>% 
             summarise(iMIGRANT_Stock_Total = sum(iMIGRANT_Stock_Total, na.rm = TRUE), iMIGRANT_Stock_Males = sum(iMIGRANT_Stock_Males, na.rm = TRUE), iMIGRANT_Stock_Females = sum(iMIGRANT_Stock_Females, na.rm = TRUE), 
                       Share_of_iMIGRANT_Stock_Total = 100 - sum(Share_of_iMIGRANT_Stock_Total, na.rm = TRUE), Share_of_iMIGRANT_Stock_Males = 100 - sum(Share_of_iMIGRANT_Stock_Males, na.rm = TRUE), Share_of_iMIGRANT_Stock_Females = 100 - sum(Share_of_iMIGRANT_Stock_Females, na.rm = TRUE)) %>%
@@ -2559,51 +2998,104 @@ server <- function(input, output, session) {
                    iMIGRANT_Stock_Females =  FilteredMIGRANT_STOCKs_DATA_World$iMIGRANT_Stock_Females[match(Year, FilteredMIGRANT_STOCKs_DATA_World$Year)] - iMIGRANT_Stock_Females,
                    Residence = Selected_Residence, ResidenceCode = Selected_Residence_Code, Birth = "Non-OHRLLS Countries", BirthCode = 2004) %>% select(8:11, 1:7)
           
+          #MIGRANT STOCK DATA => COUNT(s) => 5 Development Levels + NON-OHRLLS COUNTRIE(s)
           FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs <- rbind(FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs, FilteredMIGRANT_STOCKs_DATA_NON_OHRLLS_COUNTRIEs)
           
           }
         
+        #Replace Values in BIRTH To MATCH with Values in Level(s) (LVs)
+        if (SelectedClassification() == "Continental Regions") {
+          FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Other", replacement = "OTHER", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
+        else if (SelectedClassification() == "Continental Sub-Regions and Intermediate Regions") {
+          FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "NORTHERN AMERICA", replacement = "Northern America", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
+        else if (SelectedClassification() == "Geographic Regions (SDG)") {
+          FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Oceania \\(excluding Australia and New Zealand\\)", replacement = "Oceania*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
+        else if (SelectedClassification() == "3 Development Levels") {
+          FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Less Developed Countries \\(Least Developed Countries excluded\\)", replacement = "Less Developed Countries*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)
+          FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Least Developed Countries \\(LDC\\)", replacement = "Least Developed Countries", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
+        
         }
       
-      if (SelectedClassification() == "Continental Regions") {
-        FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Other", replacement = "OTHER", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
-      else if (SelectedClassification() == "Continental Sub-Regions and Intermediate Regions") {
-        FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "NORTHERN AMERICA", replacement = "Northern America", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
-      else if (SelectedClassification() == "Geographic Regions (SDG)") {
-        FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Oceania \\(excluding Australia and New Zealand\\)", replacement = "Oceania*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
-      else if (SelectedClassification() == "3 Development Levels") {
-        FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Less Developed Countries \\(Least Developed Countries excluded\\)", replacement = "Less Developed Countries*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)
-        FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Least Developed Countries \\(LDC\\)", replacement = "Least Developed Countries", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
-
+      #Replace Values in BIRTH To MATCH with Values in Level(s) (LVs)
+      # if (SelectedClassification() == "Continental Regions") {
+      #   FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Other", replacement = "OTHER", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
+      # else if (SelectedClassification() == "Continental Sub-Regions and Intermediate Regions") {
+      #   FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "NORTHERN AMERICA", replacement = "Northern America", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
+      # else if (SelectedClassification() == "Geographic Regions (SDG)") {
+      #   FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Oceania \\(excluding Australia and New Zealand\\)", replacement = "Oceania*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
+      # else if (SelectedClassification() == "3 Development Levels") {
+      #   FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Less Developed Countries \\(Least Developed Countries excluded\\)", replacement = "Less Developed Countries*", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)
+      #   FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- gsub(pattern = "Least Developed Countries \\(LDC\\)", replacement = "Least Developed Countries", x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth)}
+      
       #Residence-Birth/Year To Year/Residence/Birth
       FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs <- FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs %>%
         group_by(Year, Residence, ResidenceCode, Birth, BirthCode) %>% summarise(
           iMIGRANT_Stock_Total, iMIGRANT_Stock_Males, iMIGRANT_Stock_Females, Share_of_iMIGRANT_Stock_Total, Share_of_iMIGRANT_Stock_Males, Share_of_iMIGRANT_Stock_Females)
       
+      #Selected Variable => NAME in FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs + Group
       if (SelectedVariable() == "Both Sexes Combined") {
-        Selected_Variable <- "Share_of_iMIGRANT_Stock_Total"
-        Selected_Group <- "Both Sexes Combined"}
+        Selected_Variable <- "Share_of_iMIGRANT_Stock_Total" #NAME
+        Selected_Group <- "Both Sexes Combined"} #Group
       else if (SelectedVariable() == "Males") {
-        Selected_Variable <- "Share_of_iMIGRANT_Stock_Males"
-        Selected_Group <- "Males"}
+        Selected_Variable <- "Share_of_iMIGRANT_Stock_Males" #NAME
+        Selected_Group <- "Males"} #Group
       else if (SelectedVariable() == "Females") {
-        Selected_Variable <- "Share_of_iMIGRANT_Stock_Females"
-        Selected_Group <- "Females"}
+        Selected_Variable <- "Share_of_iMIGRANT_Stock_Females" #NAME
+        Selected_Group <- "Females"} #Group
       
+      #BITRH => FACTOR-LEVEL(s) => Stacked BAR(s) => SHARE(s)
       FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth <- factor(x = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs$Birth, levels = rev(LVs))
       
+      #Stacked BAR(s) => SHARE(s)
       plot_ly(data = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs, x = ~Year, y = as.formula(paste0("~I(", Selected_Variable, "/100)")),
               color = ~Birth, type = "bar", colors = rev(COLORs), legendgroup = 'Birth',
               text = with(data = FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs, expr = paste0("<b>Residence: </b>", Residence, "<br>", 
                                                                                                 "<b>Birth: </b>", Birth, "<br>", 
                                                                                                 "<b>Year: </b>", Year, "<br>", 
                                                                                                 "<b>International MIGRANT Stock (", Selected_Group, "): </b>", round(FilteredMIGRANT_STOCKs_DATA_Stacked_BARs_SHAREs[[Selected_Variable]], DecimalChoice()), "%"))) %>%
-        style(textposition = "none", hoverinfo = "text") %>%
+        style(textposition = "none", hoverinfo = "text") %>% #REPLACE-HOVER-TEXT with TEXT-ABOVE
         layout(barmode = "stack",
                yaxis = list(title = paste0("International Migrant Stock (", Selected_Group,")"), tickformat = ".0%"),
                title = paste("Shares of International Migrant Stocks in", SelectedResidence(), "from", X, "(1990-2020)"),
-               legend = list(title = list(text = '<b>Birth</b>'), x=1, y=0.5),
+               # legend = list(title = list(text = '<b>Birth</b>'), x=1, y=0.5),
+               # legend = list(x=0.5, y=-0.50, xanchor = "center", orientation = "h", traceorder = "reversed"),
+               legend = if (SelectedBirthView() == "Countries") {list(title = list(text = '<b>Birth Countries</b>'), x = 1, y = 0.5)} 
+                        else if (SelectedBirthView() == "Regions") {
+                          if (SelectedClassification() == "Continental Sub-Regions and Intermediate Regions") {list(title = list(text = '<b>Birth Areas</b>'), x = 1, y = 0.5)}
+                          else {list(x = 0.5, y = -0.20, xanchor = "center", orientation = "h", traceorder = "reversed")}},
                margin = list(t = 30))
+      
+      }
+    
+    })
+  
+  ##### NO-AVAILABLE-DATA #####
+  output$MR_NO_AVAILABLE_DATA <- renderText({
+    
+    #Reactive Value 'Selected_Residence_Code_in_MIGRANT_STOCK_DATA' == FALSE
+    if (!Filtered_MIGRANT_STOCKs_DATA_RV$Selected_Residence_Code_in_MIGRANT_STOCK_DATA) {
+      
+      #World Map => POLYGON(s) => Click => Selected Residence
+      Selected_Residence <- SelectedResidence()
+      
+      #Replace Selected Residence Value
+      if (startsWith(x = Selected_Residence, prefix = "<b>")) {
+        Selected_Residence <- sub(pattern = ".*<b>Development Level: </b>", replacement = "", x = Selected_Residence)}
+      else if (Selected_Residence == "#FF9900") {Selected_Residence <- "Least Developed Countries"}
+      else if (Selected_Residence == "#FFCC00") {Selected_Residence <- "Less Developed Countries*"}
+      else if (Selected_Residence == "#339900") {Selected_Residence <- "More Developed Countries"}
+      else if (Selected_Residence == "#999999") {Selected_Residence <- "Other Countries/Territories"}
+      
+      #Replace Selected Residence Value (Top FIVE BIRTH AREA(s)/COUNTRIE(s))
+      if (grepl(pattern = " \\d{4}$", x = Selected_Residence)) {
+        Selected_Residence <- sub(pattern = " \\d{4}$", replacement = "", x = Selected_Residence)}
+      
+      #Content in Card
+      # HTML(paste("<b>Data not available. Please select another residence.</b>"))
+      #COUNTRIE(s) => Content in Card
+      if (Selected_Residence_RV$MR_Residence_View_Choice == "COUNTRIEs") {HTML(paste0("<b>Data not available for </b>", Selected_Residence, ".", "<b> Please select another residence country.</b>"))}
+      #REGION(s) => Content in Card
+      else if (Selected_Residence_RV$MR_Residence_View_Choice == "REGIONs") {HTML(paste0("<b>Data not available for </b>", Selected_Residence, ".", "<b> Please select another residence region</b>"))}
       
       }
     
@@ -2639,34 +3131,725 @@ server <- function(input, output, session) {
     
     })
   
+  ################################
+  ##### Reactive Values (RV) #####
+  ################################
+  
+  ##### COUNTRY CLIMATE DATA RV #####
+  COUNTRY_CLIMATE_DATA_RV <- reactiveValues(
+    COUNTRY_CLIMATE_DATA_Reduced = data.frame(), #Store Reduced CLIMATE DATA (Selected COUNTRY)
+    COUNTRY_CLIMATE_DATA_KDE_FIVE_YEARs = data.frame()) #Store KDE FIVE YEAR(s) DATA (Selected COUNTRY)
+
   ###################
   ##### CLIMATE #####
   ###################
   
   ##### COUNTRIEs ACTION BUTTON #####
-  observeEvent(input$CLIMATE_COUNTRIEs, { #WHEN COUNTRIEs ACTION BUTTON is clicked
+  # observeEvent(input$CLIMATE_COUNTRIEs, { #WHEN COUNTRIEs ACTION BUTTON is clicked
+  #   
+  #   #Add CSS class from COUNTRIEs ACTION BUTTON
+  #   shinyjs::addClass(id = "CLIMATE_COUNTRIEs", class = "active")
+  #   #Remove CSS class from REGIONs ACTION BUTTON
+  #   shinyjs::removeClass(id = "CLIMATE_REGIONs", class = "active")
+  #   #Make REGIONs CHOICE RADIO BUTTONs invisible
+  #   shinyjs::hide(id = "CLIMATE_R_REGIONs_CHOICE", anim = TRUE, animType = "slide", time = 0.25)
+  #   
+  #   })
+  
+  #Make REGIONs CHOICE RADIO BUTTONs invisible (first click will also be animated)
+  # shinyjs::hide(id = "CLIMATE_R_REGIONs_CHOICE", anim = FALSE)
+  
+  ##### REGIONs ACTION BUTTON #####
+  # observeEvent(input$CLIMATE_REGIONs, { #WHEN REGIONs ACTION BUTTON is clicked
+  #   
+  #   #Add CSS class from REGIONs ACTION BUTTON
+  #   shinyjs::addClass(id = "CLIMATE_REGIONs", class = "active")
+  #   #Remove CSS class from COUNTRIEs ACTION BUTTON
+  #   shinyjs::removeClass(id = "CLIMATE_COUNTRIEs", class = "active")
+  #   #Make REGIONs CHOICE RADIO BUTTONs visible
+  #   shinyjs::show(id = "CLIMATE_R_REGIONs_CHOICE", anim = TRUE, animType = "slide", time = 0.25)
+  #   
+  #   })
+  
+  #CLIMATE INDICATOR CHOICE => MARGIN(s)+
+  runjs("$('#CLIMATE_INDICATOR_CHOICE-label').css('margin-bottom', '0px');")
+  #CLIMATE TIME SLIDER => MARGIN(s)+
+  runjs("$('#Global_Climate_Time_SLIDER-label').css('margin-bottom', '0px');")
+  #CLIMATE TIME SLIDER => PLAY/PAUSE BUTTON => POSITION+
+  runjs("$('.slider-animate-container').css({'position': 'relative', 'text-align': 'right', 'top': '-32px', 'right': '-28px'});")
+  
+  ##### CLIMATE INDICATOR => CHOICE => Reactive Expression => Selected CLIMATE INDICATOR #####
+  SelectedClimateINDICATOR <- eventReactive(input$CLIMATE_INDICATOR_CHOICE, {Selected_Climate_INDICATOR <- input$CLIMATE_INDICATOR_CHOICE})
+  
+  ##### CLIMATE => TIME SLIDER => Reactive Expression => Selected CLIMATE Period #####
+  SelectedClimatePeriod <- eventReactive(input$Global_Climate_Time_SLIDER, {Selected_Climate_Period <- input$Global_Climate_Time_SLIDER})
+  
+  ##### ... #####
+  GeoDATA_Global_Climate <- left_join(GeoDATA_Global_Climate, Climate_Indicators_FIVE_YEARs_Wide %>% select(1, 6:103), by = "NAME") %>% select(1:36, 38:135, 37)
+  
+  ##### ... #####
+  LATITUDEs <- c(90:-90, -90:90, 90)
+  LONGITUDEs <- c(rep(c(180, -180), each = 181), 180)
+  Oceans <- st_sfc(st_polygon(list(cbind(LONGITUDEs, LATITUDEs))), crs = 4326) %>% st_sf()
+  Oceans <- st_transform(Oceans, crs = ESRI_54030)
+  Graticule <- st_graticule(lat = c(-89.9, seq(-80, 80, 20), 89.9))
+  Graticule <- st_transform(Graticule, crs = ESRI_54030) %>% select(4)
+  
+  ##### ... #####
+  GlobalClimateMaps <- eventReactive(list(input$CLIMATE_INDICATOR_CHOICE), {
+
+    #...
+    req(SelectedClimateINDICATOR() != "")
     
-    #Add CSS class from COUNTRIEs ACTION BUTTON
-    shinyjs::addClass(id = "CLIMATE_COUNTRIEs", class = "active")
-    #Remove CSS class from REGIONs ACTION BUTTON
-    shinyjs::removeClass(id = "CLIMATE_REGIONs", class = "active")
-    #Make REGIONs CHOICE RADIO BUTTONs invisible
-    shinyjs::hide(id = "CLIMATE_R_REGIONs_CHOICE", anim = TRUE, animType = "slide", time = 0.25)
+    #...
+    Years <- seq(1990, 2020, by = 5)
+    
+    #...
+    Variables <- paste(SelectedClimateINDICATOR(), Years, Years + 5, sep = "_")
+    
+    #...
+    All_Values <- c()
+    for (Variable in Variables) {
+      All_Values <- c(All_Values, GeoDATA_Global_Climate[[Variable]])}
+    
+    #...
+    All_Values <- All_Values[!is.na(All_Values)]
+    
+    #...
+    if (SelectedClimateINDICATOR() %in% c("T2M_MIN_Deviation", "T2M_Deviation", "T2M_MAX_Deviation", "Precipitation_Deviation")) {
+      #...
+      KMeans <- classIntervals(var = All_Values[All_Values < 0], n = 4, "kmeans")
+      KMeans_Positive <- classIntervals(var = All_Values[All_Values >= 0], n = 4, "kmeans")
+      #...
+      BREAKs <- sort(KMeans$brks) 
+      BREAKs_Positive <- sort(KMeans_Positive$brks) 
+      BREAKs <- c(BREAKs[1:4], 0, BREAKs_Positive[-1])} 
+    else {
+      #...
+      KMeans <- classIntervals(var = All_Values, n = 9, "kmeans")
+      #...
+      BREAKs <- KMeans$brks}
+    
+    #...
+    if (SelectedClimateINDICATOR() %in% c("T2M_MIN_Deviation", "T2M_Deviation", "T2M_MAX_Deviation")) {
+      Climate_Labels <- paste0("(", formatC(BREAKs[1:8], format = "f", digits = 3), "°C;", formatC(BREAKs[2:9], format = "f", digits = 3), "°C]")
+      Climate_Labels[1] <- paste0("[", formatC(BREAKs[1], format = "f", digits = 3), "°C;", formatC(BREAKs[2], format = "f", digits = 3), "°C]")
+      Climate_Labels[9] <- "No Data Available"}
+    else if (SelectedClimateINDICATOR() %in% c("Precipitation_Deviation")) {
+      Climate_Labels <- paste0("(", formatC(BREAKs[1:8], format = "f", digits = 3), "mm;", formatC(BREAKs[2:9], format = "f", digits = 3), "mm]")
+      Climate_Labels[1] <- paste0("[", formatC(BREAKs[1], format = "f", digits = 3), "mm;", formatC(BREAKs[2], format = "f", digits = 3), "mm]")
+      Climate_Labels[9] <- "No Data Available"}
+    else if (SelectedClimateINDICATOR() %in% c("WSEI", "HWEI")) {
+      Climate_Labels <- paste0("(", formatC(BREAKs[1:9], format = "f", digits = 3), "°C;", formatC(BREAKs[2:10], format = "f", digits = 3), "°C]")
+      Climate_Labels[1] <- paste0("[", formatC(BREAKs[1], format = "f", digits = 3), "°C;", formatC(BREAKs[2], format = "f", digits = 3), "°C]")
+      Climate_Labels[10] <- "No Data Available"}
+    else if (SelectedClimateINDICATOR() %in% c("Max_Precipitation_5d")) {
+      Climate_Labels <- paste0("(", formatC(BREAKs[1:9], format = "f", digits = 3), "mm;", formatC(BREAKs[2:10], format = "f", digits = 3), "mm]")
+      Climate_Labels[1] <- paste0("[", formatC(BREAKs[1], format = "f", digits = 3), "mm;", formatC(BREAKs[2], format = "f", digits = 3), "mm]")
+      Climate_Labels[10] <- "No Data Available"}
+    else {
+      Climate_Labels <- paste0("(", formatC(BREAKs[1:9], format = "f", digits = 3), "d;", formatC(BREAKs[2:10], format = "f", digits = 3), "d]")
+      Climate_Labels[1] <- paste0("[", formatC(BREAKs[1], format = "f", digits = 3), "d;", formatC(BREAKs[2], format = "f", digits = 3), "d]")
+      Climate_Labels[10] <- "No Data Available"}
+  
+    #...
+    if (SelectedClimateINDICATOR() %in% c("T2M_MIN_Deviation", "T2M_Deviation", "T2M_MAX_Deviation")) {
+      COLORs <- rev(brewer.pal(n = 8, name = "RdBu"))}
+    else if (SelectedClimateINDICATOR() == "Precipitation_Deviation") {
+      COLORs <- brewer.pal(n = 8, name = "RdBu")}
+    else if (SelectedClimateINDICATOR() %in% c("Max_Precipitation_5d", "LCWD")) {
+      COLORs <- brewer.pal(n = 9, name = "Blues")}
+    else {COLORs <- brewer.pal(n = 9, name = "Reds")}
+    
+    #...
+    Global_Climate_Maps <- list()
+    
+    #...
+    for (Time in Years) {
+      
+      #...
+      Column <- paste0(SelectedClimateINDICATOR(), "_", Time, "_", Time + 5)
+  
+      #...
+      GeoDATA_Global_Climate$Breaks <- cut(GeoDATA_Global_Climate[[Column]], breaks = BREAKs, include.lowest = TRUE, right = TRUE, dig.lab = 3)
+
+      #...
+      Global_Climate_Maps[[as.character(Time)]] <- ggplot() +
+        geom_sf(data = Oceans, color = "transparent", fill = "#F7FBFF", size = 0.5/.pt) +
+        geom_sf(data = Graticule, color = "#D3D3D3", size = 0.25/.pt) +
+        geom_sf(data = st_transform(GeoDATA_Global_Climate, crs = ESRI_54030), aes(fill = Breaks), size = 0.5/.pt) +
+        scale_fill_manual(values = COLORs, drop = FALSE, na.value = "#999999", name = NULL, labels = Climate_Labels,
+                          guide = guide_legend(direction = "horizontal", nrow = 1, label.position = "bottom")) +
+        geom_sf(data = Oceans, color = "#1D1F21", fill = "transparent", size = 0.5/.pt) +
+        labs(title = paste0(SelectedClimateINDICATOR(), " (", Time, "-", Time + 5, ")")) +
+        theme_map() + theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+                            legend.position = "bottom", legend.justification = "center", legend.title = element_blank())}
+    
+    #...
+    # saveRDS(Global_Climate_Maps,
+    #         file = paste0("R/UI_and_SERVER/CLIMINET-SHINYApps/Données/Climate/Reduced_Climate_Data/Climate_Indicators/Global_Climate_Maps/Global_Climate_Maps_", SelectedClimateINDICATOR(), ".RDS"))
+  
+    #...
+    return(Global_Climate_Maps)
     
     })
   
-  #Make REGIONs CHOICE RADIO BUTTONs invisible (first click will also be animated)
-  shinyjs::hide(id = "CLIMATE_R_REGIONs_CHOICE", anim = FALSE)
+  ##### ... #####
+  observeEvent(input$World_Map_with_Global_CLIMATE_INDICATORs_Card, {
+
+    if (input$World_Map_with_Global_CLIMATE_INDICATORs_Card == "Global_Climate_Maps") {
+
+      runjs("$('.tab-pane[data-value=Global_Climate_Maps_INFORMATION]').removeClass('active'); $('.tab-pane[data-value=Global_Climate_Maps]').addClass('active');")
+
+      }
+    else if (input$World_Map_with_Global_CLIMATE_INDICATORs_Card == "Global_Climate_Maps_INFORMATION") {
+
+      runjs("$('.tab-pane[data-value=Global_Climate_Maps]').removeClass('active'); $('.tab-pane[data-value=Global_Climate_Maps_INFORMATION]').addClass('active');")
+
+      }
+
+    })
   
-  ##### REGIONs ACTION BUTTON #####
-  observeEvent(input$CLIMATE_REGIONs, { #WHEN REGIONs ACTION BUTTON is clicked
+  ##### World Map => Global Climate INDICATOR(s) #####
+  output$World_Map_with_Global_CLIMATE_INDICATORs <- renderPlot({
     
-    #Add CSS class from REGIONs ACTION BUTTON
-    shinyjs::addClass(id = "CLIMATE_REGIONs", class = "active")
-    #Remove CSS class from COUNTRIEs ACTION BUTTON
-    shinyjs::removeClass(id = "CLIMATE_COUNTRIEs", class = "active")
-    #Make REGIONs CHOICE RADIO BUTTONs visible
-    shinyjs::show(id = "CLIMATE_R_REGIONs_CHOICE", anim = TRUE, animType = "slide", time = 0.25)
+    #...
+    Global_Climate_Maps <- GlobalClimateMaps()
+    
+    req(SelectedClimateINDICATOR() != "")
+    #...
+    req(SelectedClimatePeriod())
+    #...
+    req(length(Global_Climate_Maps) == 7)
+    
+    #...
+    print(Global_Climate_Maps[[as.character(SelectedClimatePeriod())]])
+    
+    #...
+    # return(Global_Climate_Maps[[as.character(SelectedClimatePeriod())]])
+    
+    })
+  
+  ##### COUNTRY CHOICE => CHOICE(s) #####
+  # Choices <- DATA %>% arrange(CONTINENT, VISUALIZATION_NAME) %>% split(.$CONTINENT) %>% lapply(function(x) x$VISUALIZATION_NAME)
+  # Choices <- DATA %>% arrange(CONTINENT, VISUALIZATION_NAME) %>% split(.$CONTINENT) %>% lapply(function(x) setNames(x$VISUALIZATION_NAME, x$VISUALIZATION_NAME))
+  Choices <- DATA %>% filter(!is.na(M49_CODE)) %>% arrange(CONTINENT, VISUALIZATION_NAME) %>% split(.$CONTINENT) %>% lapply(function(x) setNames(x$VISUALIZATION_NAME, x$VISUALIZATION_NAME))
+  RandomCOUNTRY <- sample(unlist(Choices, use.names = FALSE), 1) #Random COUNTRY From All COUNTRIE(s)
+  updateSelectizeInput(session = session, inputId = "CLIMATE_COUNTRY_CHOICE", choices = Choices, selected = RandomCOUNTRY) #COUNTRY CHOICE(s)
+  
+  #COUNTRY CHOICE => MARGIN(s)+
+  runjs("$('#CLIMATE_COUNTRY_CHOICE-label').css('margin-bottom', '0px');")
+  #CLIMATE VARIABLE CHOICE => MARGIN(s)+
+  runjs("$('#CLIMATE_VARIABLE_CHOICE-label').css('margin-bottom', '0px');")
+  #CLIMATE INDICATOR(s) CHOICE => MARGIN(s)+
+  runjs("$('#CLIMATE_INDICATORs_CHOICE-label').css('margin-bottom', '0px');")
+  
+  ##### COUNTRY => CHOICE => Reactive Expression => Selected CLIMATE COUNTRY #####
+  SelectedClimateCOUNTRY <- eventReactive(input$CLIMATE_COUNTRY_CHOICE, {Selected_Climate_COUNTRY <- input$CLIMATE_COUNTRY_CHOICE})
+  
+  ##### CLIMATE VARIABLE => CHOICE => Reactive Expression => Selected Climate Variable #####
+  SelectedClimateVariable <- eventReactive(input$CLIMATE_VARIABLE_CHOICE, {Selected_Climate_Variable <- input$CLIMATE_VARIABLE_CHOICE})
+  
+  ##### CLIMATE INDICATOR(s) => CHOICE => Reactive Expression => Selected CLIMATE INDICATOR(s) #####
+  SelectedClimateINDICATORs <- eventReactive(input$CLIMATE_INDICATORs_CHOICE, {Selected_Climate_INDICATORs <- input$CLIMATE_INDICATORs_CHOICE})
+  
+  ##### ..... #####
+  observeEvent(input$CLIMATE_COUNTRY_CHOICE, {
+
+    SelectedCOUNTRY <- input$CLIMATE_COUNTRY_CHOICE
+
+    CODE <- DATA %>% filter(VISUALIZATION_NAME == SelectedCOUNTRY) %>% pull(M49_CODE)
+
+    if (length(CODE) > 0) {
+      
+      if (is.na(CODE)) {
+        
+        print("Data Not Available")
+        
+        } 
+      else {
+        
+        load(paste0("Données/Climate/Reduced_Climate_Data/Countries/", CODE, ".RData"))
+        
+        COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_Reduced <- DATA_Reduced
+        
+        COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_KDE_FIVE_YEARs <- DATA_KDE_FIVE_YEARs
+        
+        }
+      
+      }
+
+    })
+  
+  ##### ... #####
+  observeEvent(input$CLIMATE_Parallel_BOXPLOT_Card, {
+    
+    if (input$CLIMATE_Parallel_BOXPLOT_Card == "Climate_Distribution") {
+      
+      runjs("$('.tab-pane[data-value=Climate_Distribution_INFORMATION]').removeClass('active'); $('.tab-pane[data-value=Climate_Distribution]').addClass('active');")
+      
+      } 
+    else if (input$CLIMATE_Parallel_BOXPLOT_Card == "Climate_Distribution_INFORMATION") {
+      
+      runjs("$('.tab-pane[data-value=Climate_Distribution]').removeClass('active'); $('.tab-pane[data-value=Climate_Distribution_INFORMATION]').addClass('active');")
+      
+      }
+    
+    })
+  
+  ##### ... #####
+  observe({
+    
+    #...
+    req(nrow(COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_Reduced) > 0)
+    
+    #...
+    req(SelectedClimateVariable() != "")
+    
+    #Make ... visible
+    shinyjs::show(id = "CLIMATEParallelBOXPLOTCard", anim = TRUE, animType = "slide", time = 0.25)
+    
+    #...
+    req(nrow(COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_KDE_FIVE_YEARs) > 0)
+    
+    #Make ... visible
+    shinyjs::show(id = "CLIMATE_KDECard", anim = TRUE, animType = "slide", time = 0.25)
+    
+    #...
+    # req(nrow(COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_KDE_FIVE_YEARs) > 0)
+    
+    #Make ... visible
+    # shinyjs::show(id = "CLIMATE_KDE_FIVE_YEARsCard", anim = TRUE, animType = "slide", time = 0.25)
+    
+    })
+  
+  ##### ... #####
+  output$CLIMATE_Parallel_BOXPLOT <- renderPlotly({
+
+    #...
+    req(nrow(COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_Reduced) > 0)
+    #...
+    # req(nrow(COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_KDE_FIVE_YEARs) > 0)
+    
+    #...
+    DATA_Reduced <- COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_Reduced
+    #...
+    # DATA_KDE_FIVE_YEARs <- COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_KDE_FIVE_YEARs
+
+    #...
+    req(SelectedClimateVariable() != "")
+    
+    #...
+    DATA_VARIABLE <- DATA_Reduced %>% filter(VARIABLE == SelectedClimateVariable())
+    
+    #...
+    MEDIAN_1990 <- DATA_VARIABLE %>% filter(YEAR == 1990) %>% pull(MEDIAN)
+    
+    #...
+    if (SelectedClimateVariable() == "T2M_MIN") {
+      Selected_Climate_Variable <- "Minimum Temperature"}
+    else if (SelectedClimateVariable() == "T2M") {
+      Selected_Climate_Variable <- "Mean Temperature"}
+    else if (SelectedClimateVariable() == "T2M_MAX") {
+      Selected_Climate_Variable <- "Maximum Temperature"}
+    else if (SelectedClimateVariable() == "PRECTOTCORR") {
+      Selected_Climate_Variable <- "Mean Bias Corrected Total Precipitation"}
+    
+    #...
+    plot_ly(data = DATA_VARIABLE, x = ~as.factor(YEAR), 
+            lowerfence = ~MIN, q1 = ~Q25, median = ~MEDIAN, q3 = ~Q75, upperfence = ~MAX, 
+            type = "box", line = list(color = "#333333"), fillcolor = "#99FF99", name = "Boxplots") %>%
+      add_segments(x = min(DATA_VARIABLE$YEAR), xend = max(DATA_VARIABLE$YEAR), y = MEDIAN_1990, yend = MEDIAN_1990,
+                   line = list(color = "#FF9900", width = 1.25, dash = "solid"), name = "Reference Median Value (1990)", 
+                   hovertemplate = paste0("<b>COUNTRY: </b>", SelectedClimateCOUNTRY(), "<br>", 
+                                          "<b>Reference Year: </b>", "1990", "<br>",
+                                          "<b>Median Value: </b>", round(MEDIAN_1990, 2), if (SelectedClimateVariable() == "PRECTOTCORR") {"mm"} else {"°C"}, "<extra></extra>")) %>%
+      # style(textposition = "none", hoverinfo = "text") %>% #REPLACE-HOVER-TEXT with TEXT-ABOVE
+      layout(xaxis = list(title = "Year"), 
+             yaxis = if (SelectedClimateVariable() == "PRECTOTCORR") {
+                         list(title = "Precipitation", ticksuffix = "mm")} 
+                     else {list(title = "Temperature", ticksuffix = "°C")}, 
+             legend = list(x = 0.5, y = -0.15, xanchor = "center", orientation = "h"),
+             title = list(text = paste0("<b>", Selected_Climate_Variable, " Distribution in ", SelectedClimateCOUNTRY(), " Over Time (1990-2020)</b>")))
+
+    })
+  
+  ##### ... #####
+  # observeEvent(input$CLIMATE_KDE_Card, {
+  #   
+  #   if (input$CLIMATE_KDE_Card == "Climate_KDE") {
+  #     
+  #     runjs("$('.tab-pane[data-value=Climate_KDE_INFORMATION]').removeClass('active'); $('.tab-pane[data-value=Climate_KDE]').addClass('active');")
+  #     
+  #     } 
+  #   else if (input$CLIMATE_KDE_Card == "Climate_KDE_INFORMATION") {
+  #     
+  #     runjs("$('.tab-pane[data-value=Climate_KDE]').removeClass('active'); $('.tab-pane[data-value=Climate_KDE_INFORMATION]').addClass('active');")
+  #     
+  #     }
+  #   
+  #   })
+  
+  ##### ... #####
+  observeEvent(input$CLIMATE_KDE_Card, {
+    
+    if (input$CLIMATE_KDE_Card == "Climate_KDE") {
+      
+      runjs("$('.tab-pane[data-value=Climate_KDE]').addClass('active');
+             $('.tab-pane[data-value=Climate_KDE_FIVE_YEARs]').removeClass('active');
+             $('.tab-pane[data-value=Climate_KDE_INFORMATION]').removeClass('active');")
+      
+      } 
+    else if (input$CLIMATE_KDE_Card == "Climate_KDE_FIVE_YEARs") {
+      
+      runjs("$('.tab-pane[data-value=Climate_KDE]').removeClass('active');
+             $('.tab-pane[data-value=Climate_KDE_FIVE_YEARs]').addClass('active');
+             $('.tab-pane[data-value=Climate_KDE_INFORMATION]').removeClass('active');")
+      
+      }
+    else if (input$CLIMATE_KDE_Card == "Climate_KDE_INFORMATION") {
+      
+      runjs("$('.tab-pane[data-value=Climate_KDE]').removeClass('active'); 
+             $('.tab-pane[data-value=Climate_KDE_FIVE_YEARs]').removeClass('active'); 
+             $('.tab-pane[data-value=Climate_KDE_INFORMATION]').addClass('active');")
+      
+      }
+    
+    })
+  
+  ##### ... #####
+  output$CLIMATE_KDE <- renderPlotly({
+    
+    #...
+    req(nrow(COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_Reduced) > 0)
+    #...
+    # req(nrow(COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_KDE_FIVE_YEARs) > 0)
+    
+    #...
+    DATA_Reduced <- COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_Reduced
+    #...
+    # DATA_KDE_FIVE_YEARs <- COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_KDE_FIVE_YEARs
+    
+    #...
+    req(SelectedClimateVariable() != "")
+    
+    #...
+    DATA_VARIABLE <- DATA_Reduced %>% filter(VARIABLE == SelectedClimateVariable()) %>% unnest(c(X, Y))
+    
+    #...
+    COLORs <- c(colorRampPalette(c("#FFFFCC", "#FF9900"))(15), 
+                colorRampPalette(c("#FF6600", "#FF0000"))(8), colorRampPalette(c("#DD0000", "#660000"))(8))
+    
+    #...
+    if (SelectedClimateVariable() == "T2M_MIN") {
+      Selected_Climate_Variable <- "Minimum Temperature"}
+    else if (SelectedClimateVariable() == "T2M") {
+      Selected_Climate_Variable <- "Mean Temperature"}
+    else if (SelectedClimateVariable() == "T2M_MAX") {
+      Selected_Climate_Variable <- "Maximum Temperature"}
+    else if (SelectedClimateVariable() == "PRECTOTCORR") {
+      Selected_Climate_Variable <- "Mean Bias Corrected Total Precipitation"}
+    
+    #...
+    HOVER_LINE <- if (SelectedClimateVariable() == "PRECTOTCORR") {
+      "<b>Precipitation: </b>%{x:.3f}mm<br>"} else {"<b>Temperature: </b>%{x:.3f}°C<br>"}
+    
+    #...
+    plot_ly(data = DATA_VARIABLE, x = ~X, y = ~Y, 
+            type = 'scatter', mode = 'lines', 
+            line = list(width = 1), color = ~factor(YEAR), colors = COLORs, 
+            hovertemplate = paste0("<b>Country: </b>", SelectedClimateCOUNTRY(), "<br>",
+                                   # "<b>Year: </b>", YEAR, "<br>",
+                                   "<b>Year: </b>", "%{customdata}", "<br>",
+                                   HOVER_LINE,
+                                   "<b>Density: </b>", "%{y:.3f}", "<extra></extra>"), customdata = ~YEAR, 
+            hoverlabel = list(font = list(family = "DM Sans"))) %>%
+      # style(textposition = "none", hoverinfo = "text") %>% #REPLACE-HOVER-TEXT with TEXT-ABOVE
+      layout(xaxis = if (SelectedClimateVariable() == "PRECTOTCORR") {
+                         list(title = "Precipitation", ticksuffix = "mm")}
+                     else {list(title = "Temperature", ticksuffix = "°C")},
+             # yaxis = list(title = "DENSITY"),
+             yaxis = list(title = list(text = "Density", font = list(family = "DM Sans"))),
+             legend = list(title = list(text = '<b>Year</b>'), x=1, y=0.5),
+             title = list(text = paste0("<b>Kernel Densities of ", Selected_Climate_Variable, " in ", SelectedClimateCOUNTRY(), " (1990-2020)</b>")))
+             # title = list(text = paste0("<b>Kernel Densities of ", Selected_Climate_Variable, " in ", SelectedClimateCOUNTRY(), " Over Time (1990-2020)</b>")))
+
+    })
+  
+  ##### ... #####
+  # observeEvent(input$CLIMATE_KDE_FIVE_YEARs_Card, {
+  #   
+  #   if (input$CLIMATE_KDE_FIVE_YEARs_Card == "Climate_KDE_FIVE_YEARs") {
+  #     
+  #     runjs("$('.tab-pane[data-value=Climate_KDE_FIVE_YEARs_INFORMATION]').removeClass('active'); $('.tab-pane[data-value=Climate_KDE_FIVE_YEARs]').addClass('active');")
+  #     
+  #     } 
+  #   else if (input$CLIMATE_KDE_FIVE_YEARs_Card == "Climate_KDE_FIVE_YEARs_INFORMATION") {
+  #     
+  #     runjs("$('.tab-pane[data-value=Climate_KDE_FIVE_YEARs]').removeClass('active'); $('.tab-pane[data-value=Climate_KDE_FIVE_YEARs_INFORMATION]').addClass('active');")
+  #     
+  #     }
+  #   
+  #   })
+  
+  ##### ... #####
+  output$CLIMATE_KDE_FIVE_YEARs <- renderPlotly({
+    
+    #...
+    # req(nrow(COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_Reduced) > 0)
+    #...
+    req(nrow(COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_KDE_FIVE_YEARs) > 0)
+    
+    #...
+    # DATA_Reduced <- COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_Reduced
+    #...
+    DATA_KDE_FIVE_YEARs <- COUNTRY_CLIMATE_DATA_RV$COUNTRY_CLIMATE_DATA_KDE_FIVE_YEARs
+    
+    #...
+    req(SelectedClimateVariable() != "")
+    
+    #...
+    DATA_VARIABLE <- DATA_KDE_FIVE_YEARs %>% filter(VARIABLE == SelectedClimateVariable()) %>% unnest(c(X, Y))
+    
+    #...
+    COLORs <- brewer.pal(7, "YlOrRd")[-1]
+    
+    #...
+    if (SelectedClimateVariable() == "T2M_MIN") {
+      Selected_Climate_Variable <- "Minimum Temperature"}
+    else if (SelectedClimateVariable() == "T2M") {
+      Selected_Climate_Variable <- "Mean Temperature"}
+    else if (SelectedClimateVariable() == "T2M_MAX") {
+      Selected_Climate_Variable <- "Maximum Temperature"}
+    else if (SelectedClimateVariable() == "PRECTOTCORR") {
+      Selected_Climate_Variable <- "Mean Bias Corrected Total Precipitation"}
+    
+    #...
+    HOVER_LINE <- if (SelectedClimateVariable() == "PRECTOTCORR") {
+      "<b>Precipitation: </b>%{x:.3f}mm<br>"} else {"<b>Temperature: </b>%{x:.3f}°C<br>"}
+    
+    #...
+    plot_ly(data = DATA_VARIABLE, x = ~X, y = ~Y, 
+            type = 'scatter', mode = 'lines', 
+            line = list(width = 1), color = ~factor(Period), colors = COLORs, 
+            hovertemplate = paste0("<b>Country: </b>", SelectedClimateCOUNTRY(), "<br>", 
+                                   # "<b>Period: </b>", ~Period, "<br>",
+                                   "<b>Period: </b>", "%{customdata}", "<br>",
+                                   HOVER_LINE,
+                                   "<b>Density: </b>", "%{y:.3f}", "<extra></extra>"), customdata = ~Period,
+            hoverlabel = list(font = list(family = "DM Sans"))) %>%
+      # style(textposition = "none", hoverinfo = "text") %>% #REPLACE-HOVER-TEXT with TEXT-ABOVE
+      layout(xaxis = if (SelectedClimateVariable() == "PRECTOTCORR") {
+                         list(title = "Precipitation", ticksuffix = "mm")}
+                     else {list(title = "Temperature", ticksuffix = "°C")},
+             # yaxis = list(title = "DENSITY"),
+             yaxis = list(title = list(text = "Density", font = list(family = "DM Sans"))),
+             # legend = list(title = list(text = '<b>Period</b>'), x=1, y=0.5),
+             # legend = list(x = 0.5, y = -0.20, xanchor = "center", orientation = "h"),
+             legend = list(title = list(text = '<b>Period</b>'), x = 0.5, y = -0.20, xanchor = "center", orientation = "h"),
+             title = list(text = paste0("<b>Kernel Densities of ", Selected_Climate_Variable, " in ", SelectedClimateCOUNTRY(), " (5-Year Periods, 1990-2020)</b>")))
+             # title = list(text = paste0("<b>Kernel Densities of ", Selected_Climate_Variable, " in ", SelectedClimateCOUNTRY(), " Over Time (5-Year Periods, 1990-2020)</b>")))
+
+    })
+  
+  ##### ... #####
+  observe({
+    
+    #...
+    req(Climate_Indicators)
+    #...
+    req(Climate_Indicators_FIVE_YEARs)
+    
+    #...
+    req(SelectedClimateCOUNTRY() != "")
+    #...
+    req(SelectedClimateINDICATORs() != "")
+    
+    #Make ... visible
+    shinyjs::show(id = "CLIMATEEvolutionCard", anim = TRUE, animType = "slide", time = 0.25)
+    
+    })
+  
+  ##### ... #####
+  observeEvent(input$CLIMATE_Evolution_Card, {
+
+    if (input$CLIMATE_Evolution_Card == "Climate_Evolution") {
+
+      runjs("$('.tab-pane[data-value=Climate_Evolution_INFORMATION]').removeClass('active'); $('.tab-pane[data-value=Climate_Evolution]').addClass('active');")
+
+      }
+    else if (input$CLIMATE_Evolution_Card == "Climate_Evolution_INFORMATION") {
+
+      runjs("$('.tab-pane[data-value=Climate_Evolution]').removeClass('active'); $('.tab-pane[data-value=Climate_Evolution_INFORMATION]').addClass('active');")
+
+      }
+
+    })
+  
+  ##### ... #####
+  output$CLIMATE_Evolution <- renderPlotly({
+    
+    #...
+    req(Climate_Indicators)
+    #...
+    req(Climate_Indicators_FIVE_YEARs)
+    #...
+    req(SelectedClimateINDICATORs() != "")
+    
+    #...
+    if (SelectedClimateINDICATORs() == "T2M_MIN_Deviation, T2M_Deviation and  T2M_MAX_Deviation") {
+      X0 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "T2M_Deviation")
+      X1 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "T2M_MIN_Deviation")
+      X2 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "T2M_MAX_Deviation")
+      Z0 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "T2M_Deviation") %>% head(-1)
+      Z1 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "T2M_MIN_Deviation") %>% head(-1)
+      Z2 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "T2M_MAX_Deviation") %>% head(-1)
+      NAME0 <- "T2M_Deviation"
+      NAME1 <- "T2M_MIN_Deviation"
+      NAME2 <- "T2M_MAX_Deviation"
+      COLOR0 <- "#008000"
+      COLOR1 <- "#0000FF"
+      COLOR2 <- "#FF0000"
+      SUFFIX <- "°C"
+      }
+    else if (SelectedClimateINDICATORs() == "WSEI and HWEI") {
+      X0 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "WSEI")
+      X1 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "HWEI")
+      Z0 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "WSEI") %>% head(-1)
+      Z1 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "HWEI") %>% head(-1)
+      NAME0 <- "WSEI"
+      NAME1 <- "HWEI"
+      COLOR0 <- "#008000"
+      COLOR1 <- "#FF0000"
+      SUFFIX <- "°C"
+      }
+    else if (SelectedClimateINDICATORs() == "HWF, WSDI and GWHR_Heatwave_35") {
+      X0 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "HWF")
+      X1 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "WSDI")
+      X2 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "GWHR_Heatwave_35")
+      Z0 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "HWF") %>% head(-1)
+      Z1 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "WSDI") %>% head(-1)
+      Z2 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "GWHR_Heatwave_35") %>% head(-1)
+      NAME0 <- "HWF"
+      NAME1 <- "WSDI"
+      NAME2 <- "GWHR_Heatwave_35"
+      COLOR0 <- "#FA5A00"
+      COLOR1 <- "#008000"
+      COLOR2 <- "#FF0000"
+      SUFFIX <- NULL
+      }
+    else if (SelectedClimateINDICATORs() == "WSD and HWD") {
+      X0 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "WSD")
+      X1 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "HWD")
+      Z0 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "WSD") %>% head(-1)
+      Z1 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "HWD") %>% head(-1)
+      NAME0 <- "WSD"
+      NAME1 <- "HWD"
+      COLOR0 <- "#008000"
+      COLOR1 <- "#FF0000"
+      SUFFIX <- NULL
+      }
+    else if (SelectedClimateINDICATORs() == "Precipitation_Deviation") {
+      X0 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "Precipitation_Deviation")
+      Z0 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "Precipitation_Deviation") %>% head(-1)
+      NAME0 <- "Precipitation_Deviation"
+      COLOR0 <- "#0000FF"
+      SUFFIX <- "mm"
+      }
+    else if (SelectedClimateINDICATORs() == "Max_Precipitation_5d") {
+      X0 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "Max_Precipitation_5d")
+      Z0 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "Max_Precipitation_5d") %>% head(-1)
+      NAME0 <- "Max_Precipitation_5d"
+      COLOR0 <- "#0000FF"
+      SUFFIX <- "mm"
+      }
+    else if (SelectedClimateINDICATORs() == "LCDD and LCWD") {
+      X0 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "LCDD")
+      X1 <- Climate_Indicators %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "LCWD")
+      Z0 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "LCDD") %>% head(-1)
+      Z1 <- Climate_Indicators_FIVE_YEARs %>% filter(VISUALIZATION_NAME == SelectedClimateCOUNTRY(), VARIABLE == "LCWD") %>% head(-1)
+      NAME0 <- "LCDD"
+      NAME1 <- "LCWD"
+      COLOR0 <- "#FF0000"
+      COLOR1 <- "#0000FF" 
+      SUFFIX <- NULL
+      }
+    
+    #...
+    Climate_Indicators_Evolution <- plot_ly(data = X0, x = ~YEAR, y = ~VALUE, 
+                                            type = 'scatter', name = NAME0, 
+                                            mode = 'lines', line = list(color = COLOR0), 
+                                            text = with(X0, paste0("<b>Country: </b>", SelectedClimateCOUNTRY(), "<br>",
+                                                                   "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                                                   "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                                                   "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                                                   "<b>Year: </b>", YEAR, "<br>",
+                                                                   "<b>", NAME0, ": </b>", round(VALUE, 3), SUFFIX)), hoverinfo = "text",
+                                            hoverlabel = list(font = list(family = "DM Sans"))) %>%
+      add_trace(data = Z0, x = ~sapply(strsplit(Period, "_"), function(x) mean(as.numeric(x))), y = ~VALUE,
+                type = 'scatter', name = paste(NAME0, "Mean over 5-Year Period", sep = " - "),
+                mode = 'markers', marker = list(color = COLOR0, size = 8),
+                text = with(Z0, paste0("<b>Country: </b>", SelectedClimateCOUNTRY(), "<br>",
+                                       "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                       "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                       "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                       "<b>Period: </b>", Period, "<br>",
+                                       "<b>", NAME0, ": </b>", round(VALUE, 3), SUFFIX)), hoverinfo = "text", line = NULL) %>%
+      # style(textposition = "none", hoverinfo = "text") %>% #REPLACE-HOVER-TEXT with TEXT-ABOVE
+      layout(xaxis = list(title = "Year"), 
+             yaxis = if (SelectedClimateINDICATORs() %in% c("HWF, WSDI and GWHR_Heatwave_35", "WSD and HWD", "LCDD and LCWD")) {
+                         list(title = SelectedClimateINDICATORs())} else {list(title = SelectedClimateINDICATORs(), ticksuffix = SUFFIX)},
+             legend = list(x = 0.5, y = -0.20, xanchor = "center", orientation = "h"), 
+             title = list(text = paste0("<b>Evolution of ", SelectedClimateINDICATORs(), " in ", SelectedClimateCOUNTRY(), " (1990-2020)</b>")))
+    
+    #...
+    if (!(SelectedClimateINDICATORs() %in% c("Precipitation_Deviation", "Max_Precipitation_5d"))) {  
+      
+      Climate_Indicators_Evolution <- Climate_Indicators_Evolution %>% add_trace(
+        data = X1, x = ~YEAR, y = ~VALUE, name = NAME1, line = list(color = COLOR1),
+        text = with(X1, paste0("<b>Country: </b>", SelectedClimateCOUNTRY(), "<br>",
+                               "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                               "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                               "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                               "<b>Year: </b>", YEAR, "<br>",
+                               "<b>", NAME1, ": </b>", round(VALUE, 3), SUFFIX)), hoverinfo = "text") %>%
+        add_trace(data = Z1, x = ~sapply(strsplit(Period, "_"), function(x) mean(as.numeric(x))), y = ~VALUE,
+                  type = 'scatter', name = paste(NAME1, "Mean over 5-Year Period", sep = " - "),
+                  mode = 'markers', marker = list(color = COLOR1, size = 8),
+                  text = with(Z1, paste0("<b>Country: </b>", SelectedClimateCOUNTRY(), "<br>",
+                                         "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                         "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                         "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                         "<b>Period: </b>", Period, "<br>",
+                                         "<b>", NAME1, ": </b>", round(VALUE, 3), SUFFIX)), hoverinfo = "text", line = NULL)
+    
+      }
+    
+    #...
+    if (SelectedClimateINDICATORs() %in% c("T2M_MIN_Deviation, T2M_Deviation and  T2M_MAX_Deviation", "HWF, WSDI and GWHR_Heatwave_35")) {  
+      
+      Climate_Indicators_Evolution <- Climate_Indicators_Evolution %>% add_trace(
+        data = X2, x = ~YEAR, y = ~VALUE, name = NAME2, line = list(color = COLOR2),
+        text = with(X2, paste0("<b>Country: </b>", SelectedClimateCOUNTRY(), "<br>",
+                               "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                               "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                               "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                               "<b>Year: </b>", YEAR, "<br>",
+                               "<b>", NAME2, ": </b>", round(VALUE, 3), SUFFIX)), hoverinfo = "text") %>%
+        add_trace(data = Z2, x = ~sapply(strsplit(Period, "_"), function(x) mean(as.numeric(x))), y = ~VALUE,
+                  type = 'scatter', name = paste(NAME2, "Mean over 5-Year Period", sep = " - "),
+                  mode = 'markers', marker = list(color = COLOR2, size = 8),
+                  text = with(Z2, paste0("<b>Country: </b>", SelectedClimateCOUNTRY(), "<br>",
+                                         "<b>Alpha-2 Code (ISO2): </b>", ISO2, "<br>",
+                                         "<b>Alpha-3 Code (ISO3): </b>", ISO3, "<br>",
+                                         "<b>Numeric Code (M49 Code): </b>", M49_CODE, "<br>",
+                                         "<b>Period: </b>", Period, "<br>",
+                                         "<b>", NAME2, ": </b>", round(VALUE, 3), SUFFIX)), hoverinfo = "text", line = NULL)
+      
+      }
+    
+    #...
+    Climate_Indicators_Evolution
     
     })
   

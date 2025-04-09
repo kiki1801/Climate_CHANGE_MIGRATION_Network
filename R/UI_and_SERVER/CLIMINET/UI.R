@@ -2,7 +2,7 @@
 #####                CLIMATE CHANGE MIGRATION NETWORK                #####
 ##### Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques #####
 #####                   KYLLIAN JAMES | 2023-11-14                   #####
-#####                        Mod.: 2025-03-03                        #####
+#####                        Mod.: 2025-04-09                        #####
 #####                               UI                               #####
 ##########################################################################
 
@@ -637,6 +637,9 @@ ui <- fluidPage(
   ##### SHINY JavaScript Initialization #####
   useShinyjs(),
   
+  ##### ... #####
+  withMathJax(),
+  
   ##### CSS Code #####
   tags$head(
     #WebPAGE => TITLE
@@ -662,7 +665,7 @@ ui <- fluidPage(
       "a.clickable-icon svg.bi.bi-info-circle {vertical-align: -3.5px !important; margin-top: 0px !important; margin-left: 3.75px !important;}", #ICON => POSITION
       "a.clickable-icon svg.bi.bi-info-circle:hover {color: #00629B !important;}", #HOVER => COLOR
       #HOME => Overview Card => HTML => <ol>...</ol> => MARGIN (Bottom: 0px)
-      # "ol {margin-bottom: 0px !important;}",
+      "ol {margin-bottom: 0px !important;}",
       #HOME => Overview Card => HTML => <ul>...</ul> => MARGIN (Bottom: 0px)
       "ul {margin-bottom: 0px !important;}",
       #HOME => PARTNER(s) Grid => SHRINK => Window < 580px => ROW => TWO 
@@ -693,7 +696,7 @@ ui <- fluidPage(
       ".redirection-button:active {background-color: #00629B !important; color: #FCFCFC !important; border-color: #E6E6E6; outline: 5px auto -webkit-focus-ring-color !important; outline-color: #FFA500 !important; outline-offset: -2px !important;}", #CSS pseudo-class :active when button is clicked
       #RESEARCH-RESULT(s) => FILTER => BUTTON => ICON => POSITION
       "svg.bi.bi-funnel {margin-right: 3.5px !important; margin-top: 0.5px !important;}",
-      ".tab-pane[data-value='Presentations'] svg.bi.bi-funnel {margin-top: 1px !important;}",
+      ".[data-value='Presentations'] svg.bi.bi-funnel {margin-top: 1px !important;}",
       #RESEARCH-RESULT(s) => FILTER => BUTTON => Appearance
       ".sort-button:hover {background-color: #E6E6E6; border-color: #E6E6E6;}", #CSS pseudo-class :hover when button is hover
       # ".sort-button:active {background-color: #E6E6E6; border-color: #E6E6E6; outline: 5px auto -webkit-focus-ring-color !important; outline-offset: -2px !important;}", #CSS pseudo-class :active when button is clicked
@@ -875,7 +878,7 @@ ui <- fluidPage(
       #    //Replace HREF() Attributes
       #    $('.nav.navbar-nav li a').each(function() { //Iterate over each <a> within NAVIGATION-BAR items
       #       var NavPanelTitle = $(this).text().trim(); //Retrieve Text Content (= NavPanel-TITLE)
-      #       var DOMAIN = 'https://www.climinet.com'; //DOMAIN-NAME
+      #       var DOMAIN = 'https://climinet.shinyapps.io/home/'; //DOMAIN-NAME
       #       var LINK = DOMAIN + '/' + NavPanelTitle.toLowerCase().replace(/ /g, '-'); //Construct HREF() Attribute
       #       //Replace HREF() Attribute
       #       $(this).attr('href', LINK);});});",
@@ -955,6 +958,12 @@ ui <- fluidPage(
       "Shiny.addCustomMessageHandler('CURSORwithinBODY', function(MESSAGE) {document.body.className = MESSAGE;});",
       #Disabled Data Exploration Application (DEA) NavPanel => DEA => !READY
       # "$(document).ready(function() {$('a[data-value=\"DEA_Menu\"]').addClass('disabled');});",
+      #Disabled MIGRATION and CLIMATE NavPanel => !READY
+      "$(document).ready(function() {$('a[data-value=\"Migration and Climate\"]').addClass('disabled');});",
+      #Disabled MIGRANT-BIRTH NavPanel => !READY
+      "$(document).ready(function() {$('a[data-value=\"Birth\"]').addClass('disabled');});",
+      #Disabled MIGRANT-RESIDENCE-REGION(s)-[Development Levels (x3)] RadioBUTTON => SERVER => DOWN
+      "$(document).ready(function() {$('input[type=radio][value=\"Development Levels (x3)\"]').prop('disabled', true);});",
       #FILTER => PUBLICATION(s) Card(s) => DATE
       "$(document).ready(function() {
          //Click-Event-Handler For Element with a certain id 
@@ -1173,7 +1182,22 @@ ui <- fluidPage(
         tags$div( #Modal Box => BODY => Creation
           class = "modal-body", #Modal Box => BODY
           HTML( #Modal Box => BODY => Content
-            '2020 ≠ 2023 => LDC|LLDC|SIDS => DATA (x2) => 3 TO 5 => DATA (x1) => Σ5 < Σ3'))))),
+            '<p>There are 3 development levels from <a href="https://www.un.org/ohrlls/">OHRLLS</a> in International Migrant Stock Data (<a href="https://www.un.org/development/desa/pd/content/international-migrant-stock">UN | Population Division</a>):</p>
+                <ul>
+                    <li>Least Developed Countries (LDC)</li>
+                    <li>Land-Locked Developing Countries (LLDC)</li>
+                    <li>Small Island Developing States (SIDS)</li>
+                </ul> <br>
+             <p>The <a href="https://unstats.un.org/unsd/methodology/m49/">United Nations Statistic Division (UNSD)</a> lists areas/countries as LDC | LLDC | SIDS. Three variables represent this classification (LDC | LLDC | SIDS), and a small cross (x) indicates whether an area is part of one level. An area can belong to 2 levels at once, but it cannot be part of both LLDC and SIDS at the same time.</p>
+             <p>We have created a new variable with 5 modalities:</p>
+                <ul>
+                    <li>Least Developed Countries* (LDC*)</li>
+                    <li>Land-Locked Developing Countries* (LLDC*)</li>
+                    <li>Small Island Developing States* (SIDS*)</li>
+                    <li>LDC | LLDC</li>
+                    <li>LDC | SIDS</li>
+                </ul> <br>
+             <p>We have rows based on LDC | LLDC | SIDS in International Migrant Stock Data. Note that data for an area could be included multiple times under this classification. To address this, we have created new rows to retrieve data that follow our new variable. With the move from 3 to 5 modalities, data for an area is now included once in International Migrant Stock Data. As a result, the sum of the data for the new classification (5 modalities) is lower than the sum of the data for the previous classification (3 modalities).</p>'))))),
   
   ##### Responsive 12-Column Grid #####
   layout_columns(
@@ -1190,8 +1214,7 @@ ui <- fluidPage(
     # title = "CLIMINET",
     #NAVIGATION BAR HEADLINE => CLIMINET => LOGO => Clickable
     title = tags$a(
-      href = "https://www.climinet.com", #Link To CLIMINET WEBSITE
-      # href = "https://www.climinet.com/#home", #Link To CLIMINET WEBSITE
+      href = "https://climinet.shinyapps.io/home/", #Link To CLIMINET WEBSITE
       #CLIMINET => LOGO
       tags$img(
         src = "CLIMINET/Arrows/CLIMINET-GREEN-Arrows.svg", #PATH OR LINK To LOGO
@@ -1253,7 +1276,7 @@ ui <- fluidPage(
           #Card => Headline
           card_header(
             #Full PROJECT Title
-            "International Migration, Climate Change and Network effects: A Worldwide Study",
+            "International Migration, Climate Change and Network Effects: A Worldwide Study",
             #Clickable ICON
             tags$a(
               href = 'https://www.belmontforum.org/archives/projects/international-migration-climate-change-and-network-effects-a-worldwide-study', #Link To PROJECT Profile on Belmont Forum
@@ -1463,6 +1486,34 @@ ui <- fluidPage(
       
       ##### MIGRANT STOCK #####
       nav_panel(title = "Migrant Stock", #tabPanel()
+                
+        ##### (DATA-OVERVIEW + Tutorial) Card #####
+        tags$div( #(DATA-OVERVIEW + Tutorial) Card => MARGIN
+          style = "margin-bottom: -10px !important;", #MARGIN
+          card(
+            #Card => Headline
+            card_header("Data Overview and Exploration Tutorial"),
+            #DATA-OVERVIEW + Tutorial
+            card_body(
+              #DATA-OVERVIEW + Tutorial
+              HTML(
+                "<p>Data are obtained from the <a href='https://www.un.org/development/desa/pd/content/international-migrant-stock' target='_blank'>United Nations - Population Division</a>. <strong>Estimates of the number (or “stock”) of international migrants (1990-2020)</strong> are available for <strong>235 countries</strong> and <strong>47 regions</strong> of the world. The international migrant population corresponds to the total number of migrants present in a given country/region at a given moment in time (foreign-born). Tourists are not counted among migrants.</p>
+                <p>Data are organized on the basis of <strong>residence-birth pairs</strong> according to certain <strong>classifications</strong> (<a href='https://unstats.un.org/unsd/methodology/m49/' target='_blank'>continental regions</a>, sub-regions and intermediate regions, <a href='https://unstats.un.org/sdgs/indicators/regional-groups/' target='_blank'>geographic regions</a>, development levels, <a href='https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups' target='_blank'>income levels</a>) or <strong>countries</strong>.</p>
+                <p>You can <strong>explore</strong> these data in the visualization section below. <strong>Need help?</strong> Follow the <strong>tutorial</strong>:</p>
+                <p>
+                  1. Click on <strong>\"Residence\"</strong> to view data for a selected residence country/region and all its birth countries/regions. Vice versa, when <strong>\"Birth\"</strong> is clicked, it shows similar data for a selected birth country/region.<br>
+                  2. Click on <strong>\"Countries Button\"</strong> to <strong>select a residence/birth country</strong> from all available countries on an <strong>interactive world map</strong>. When <strong>\"Regions Button\"</strong> is clicked, choose one of the classifications mentioned above, then <strong>select a residence/birth region</strong>.<br>
+                  3. Wait a few seconds, and the <strong>international migrant stock data</strong> for the <strong>selected residence/birth country/region</strong> will appear <strong>below the map</strong>. Feel free to explore the data.<br>
+                  4. You can also <strong>visualize</strong> on the interactive world map the <strong>top 5 birth/residence countries/regions</strong> for 6 periods of 5 years. This makes it possible to observe whether <strong>migration decisions</strong> are primarly based on <strong>proximity (neighboring countries/regions)</strong> or influenced through <strong>other factors</strong>.</p>"),
+              #Card_BODY => ARGu.
+              fillable = TRUE, #FLEXBOX CONTAINER
+              padding = c(0, 16, 8, 16), #PADDING => TOP To 0px | BOTTOM To 8px | LEFT/RIGHT To 16px
+              fill = FALSE #Content => Fixed Size => !Allowed To Scroll
+              ),
+            #Card => ARGu.
+            full_screen = FALSE, #!Expand Card To Fit Screen Size
+            fill = FALSE)), #Content => Fixed Size => !Allowed To Scroll
+                
         #Contains Multiple Tabs
         navset_tab( #tabsetPanel()
           #Selected Tab Panel
@@ -1482,7 +1533,7 @@ ui <- fluidPage(
               #MARGIN (Top: 10px)
               # style = "margin-top: 10px;",
               ##### REGIONs CHOICE RADIO BUTTONs #####
-              div(style = "min-width: 1296px;", #RADIO BUTTONs' container minimum width (don't shrink choices)
+              tags$div(style = "min-width: 1296px;", #RADIO BUTTONs' container minimum width (don't shrink choices)
                 radioButtons(inputId = "MRR_REGIONs_CHOICE", label  = NULL, 
                   #International MIGRANT Stock Data Classifications
                   choices = c(
@@ -1500,18 +1551,21 @@ ui <- fluidPage(
                 card_header("Interactive World Map"),
                 #World Map
                 card_body(
-                  leafletOutput("MR_World_Map", width = "100%", height = 720), #Interactive World Map
+                  # leafletOutput("MR_World_Map", width = "100%", height = 720), #Interactive World Map
+                  # leafletOutput("MR_World_Map", width = "100%", height = 685), #Interactive World Map (R-STUDIO)
+                  leafletOutput("MR_World_Map", width = "100%", height = 585), #Interactive World Map (GOOGLE)
                   #Card_BODY => ARGu.
                   fillable = TRUE, #FLEXBOX CONTAINER
                   min_height = "510px", max_height = "510px", #World Map => HEIGHT => !Full_Screen
-                  max_height_full_screen = "720px", #World Map => HEIGHT => Full_Screen
+                  # max_height_full_screen = "720px", #World Map => HEIGHT => Full_Screen
+                  # max_height_full_screen = "685px", #World Map => HEIGHT => Full_Screen (R-STUDIO)
+                  max_height_full_screen = "585px", #World Map => HEIGHT => Full_Screen (GOOGLE)
                   padding = 0, #Remove PADDING
                   fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
                 #World Map => GeoSpatial Data => Source(s)
                 card_footer(
                   "Sources:", HTML("<a href='https://gis-who.hub.arcgis.com/datasets/95a475ae34af4f54b63ca6e4a6f67fbd_0/explore' target='_blank'>World Health Organization (WHO)</a>"), "|", #Link To World Health OrGanization (WHO) - Countries GeoSpatial Data 
-                  # HTML("<a href='...' target='_blank'>Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques</a>"), "|",
-                  "Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques", "|", 
+                  HTML("<a href='https://doi.org/10.57745/ABJ8OQ' target='_blank'>Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques</a>"), "|", #Link To Fondation Jean-Jacques Laffont (TSE) - Countries GeoSpatial Data
                   HTML("<a href='https://gadm.org/download_world.html' target='_blank'>Global Administrative Areas (GADM)</a>"), "from", HTML("<a href='https://cran.r-project.org/web/packages/geodata/index.html' target='_blank'>GEODATA</a>")),  #Link To Global Administrative Areas (GADM) GeoSpatial Data 
                 #Card => ARGu.
                 full_screen = TRUE, #Expand Card To Fit Screen Size
@@ -1520,8 +1574,8 @@ ui <- fluidPage(
             
             ##### Responsive 12-Column Grid #####
             layout_columns(
-            #Responsive 12-Column Grid => MARGIN(s)+ | OVERFLOW+
-            style = "margin-top: 0px !important; margin-bottom: 0px !important; max-height: none !important; overflow: visible !important",
+              #Responsive 12-Column Grid => MARGIN(s)+ | OVERFLOW+
+              style = "margin-top: 0px !important; margin-bottom: 0px !important; max-height: none !important; overflow: visible !important",
               ##### Selected Residence Card #####
               hidden( #Card => Hidden
                 card(
@@ -1545,13 +1599,13 @@ ui <- fluidPage(
               hidden( #Card => Hidden
                 card(
                   #Card => Headline 
-                  # card_header("View Top 5 Birth Countries on World Map (5-Year Period, 1990-2020)"),
-                  # card_header("View Top Birth Countries on World Map (5-Year Period, 1990-2020)"),
+                  # card_header("View Top 5 Birth Countries on World Map (5-Year Periods, 1990-2020)"),
+                  # card_header("View Top Birth Countries on World Map (5-Year Periods, 1990-2020)"),
                   #Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX
                   card_body(
                     checkboxInput(inputId = "MR_Top_Five_BIRTH", #Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX
-                                  label = "View Top 5 Birth Countries on World Map (5-Year Period, 1990-2020)", value = FALSE, width = "100%"), #CHECKBOX => Label | Value
-                                  # label = "View Top Birth Countries on World Map (5-Year Period, 1990-2020)", value = FALSE, width = "100%"), #CHECKBOX => Label | Value
+                                  label = "View Top 5 Birth Countries on World Map (5-Year Periods, 1990-2020)", value = FALSE, width = "100%"), #CHECKBOX => Label | Value
+                                  # label = "View Top Birth Countries on World Map (5-Year Periods, 1990-2020)", value = FALSE, width = "100%"), #CHECKBOX => Label | Value
                     #Card_BODY => ARGu.
                     fillable = TRUE, #FLEXBOX CONTAINER
                     # min_height = "28.05px", max_height = "28.05px", # Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX => HEIGHT => !Full_Screen
@@ -1562,160 +1616,128 @@ ui <- fluidPage(
                   #Card => ARGu.
                   full_screen = FALSE, #!Expand Card To Fit Screen Size
                   fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
-                  id = "MR_Top_Five_BIRTH_Card")), #Make  Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX Card Visible/Invisible
+                  id = "MR_Top_Five_BIRTH_Card")), #Make Top Five BIRTH AREA(s)/COUNTRIE(s) CHECKBOX Card Visible/Invisible
               ##### Columns #####
               col_widths = c(6, 6)),
             
-            
-            
-            ##### iMIGRANT-STOCK-DATA-Card #####
+            ##### NO-AVAILABLE-DATA Card #####
+            hidden( #Card => Hidden
+              card(
+                #NO-AVAILABLE-DATA
+                card_body(
+                  htmlOutput("MR_NO_AVAILABLE_DATA"), #NO-AVAILABLE-DATA
+                  #Card_BODY => ARGu.
+                  fillable = TRUE, #FLEXBOX CONTAINER
+                  min_height = "36.05px", max_height = "36.05px", #NO-AVAILABLE-DATA => HEIGHT => !Full_Screen
+                  padding = c(8, 16), #PADDING+
+                  fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
+                #Card => ARGu.
+                full_screen = FALSE, #!Expand Card To Fit Screen Size
+                fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
+                id = "MR_NO_AVAILABLE_DATA_Card")), #Make NO-AVAILABLE-DATA Card Visible/Invisible
+
+            ##### (DATA-SELECTION+PLOT-PARAMETER(s)) Card #####
             hidden( #Card => Hidden
               card(
                 #Card => Headline
-                card_header("International Migrant Stock Data"),
-                #Stacked BAR(s) => DATA-SELECTION | Plot-PARAMETER(s)
-                layout_sidebar(
-                  #Stacked BAR(s) Card(s)
-                  card_body(
-                    ##### Responsive 12-Column Grid #####
-                    layout_columns(
-                      #Responsive 12-Column Grid => MARGIN(s)+ | OVERFLOW+
-                      style = "margin-top: 0px !important; margin-bottom: 0px !important; max-height: none !important; overflow: visible !important",
-                      ##### Stacked BAR(s) (COUNT(s)) Card #####
-                      # hidden( #Card => Hidden
-                      card(
-                        #Card => Headline
-                        card_header("International Migrant Stock Data - Counts"),
-                        #Stacked BAR(s) => COUNT(s)
-                        card_body(
-                          plotlyOutput("MR_Stacked_BARs_COUNTs", width = "100%", height = "425px"), #...
-                          #Card_BODY => ARGu.
-                          fillable = TRUE, #FLEXBOX CONTAINER
-                          min_height = "425px", max_height = "425px", #Stacked BAR(s) Card(s) => HEIGHT => !Full_Screen
-                          max_height_full_screen = "510px", #Stacked BAR(s) Card(s) => HEIGHT => Full_Screen
-                          padding = c(8, 16), #PADDING+
-                          fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
-                        #Stacked BAR(s) => COUNT(s) => International MIGRANT Stock Data => Source(s)
-                        card_footer(
-                          "Sources:", HTML("<a href='https://www.un.org/development/desa/pd/content/international-migrant-stock' target='_blank'>United Nations - Population Division</a>"), "|", #Link To International MIGRANT Stock Data
-                          HTML("<a href='https://github.com/kiki1801/Climate_CHANGE_MIGRATION_Network/blob/main/R/UI_and_SERVER/CLIMINET/Donn%C3%A9es/ims_sex_residence_and_birth_with_shares_2020.xlsx' target='_blank'>Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques</a>")), #Link To Enhanced Version of International MIGRANT Stock Data
-                        #Card => ARGu.
-                        full_screen = TRUE, #Expand Card To Fit Screen Size
-                        fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
-                        id = "MR_Stacked_BARs_COUNTs_Card"),
-                      # ), #Make ... Card Visible/Invisible
-                      ##### Stacked BAR(s) (SHARE(s)) Card #####
-                      # hidden( #Card => Hidden
-                      card(
-                        #Card => Headline
-                        card_header("International Migrant Stock Data - Shares"),
-                        #Stacked BAR(s) => SHARE(s)
-                        card_body(
-                          plotlyOutput("MR_Stacked_BARs_SHAREs", width = "100%", height = "425px"), #...
-                          #Card_BODY => ARGu.
-                          fillable = TRUE, #FLEXBOX CONTAINER
-                          min_height = "425px", max_height = "425px", #Stacked BAR(s) Card(s) => HEIGHT => !Full_Screen
-                          max_height_full_screen = "510px", #Stacked BAR(s) Card(s) => HEIGHT => Full_Screen
-                          padding = c(8, 16), #PADDING+
-                          fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
-                        #Stacked BAR(s) => SHARE(s) => International MIGRANT Stock Data => Source(s)
-                        card_footer(
-                          "Sources:", HTML("<a href='https://www.un.org/development/desa/pd/content/international-migrant-stock' target='_blank'>United Nations - Population Division</a>"), "|", #Link To International MIGRANT Stock Data
-                          HTML("<a href='https://github.com/kiki1801/Climate_CHANGE_MIGRATION_Network/blob/main/R/UI_and_SERVER/CLIMINET/Donn%C3%A9es/ims_sex_residence_and_birth_with_shares_2020.xlsx' target='_blank'>Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques</a>")), #Link To Enhanced Version of International MIGRANT Stock Data
-                        #Card => ARGu.
-                        full_screen = TRUE, #Expand Card To Fit Screen Size
-                        fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
-                        id = "MR_Stacked_BARs_SHAREs_Card"),
-                      # ), #Make ... Card Visible/Invisible
-                      ##### Columns #####
-                      col_widths = c(6, 6)),
-                    #Card_BODY => ARGu.
-                    fillable = TRUE, #FLEXBOX CONTAINER
-                    min_height = "510px", max_height = "510px", #Stacked BAR(s) Card(s) => HEIGHT => !Full_Screen
-                    max_height_full_screen = "720px", #Stacked BAR(s) Card(s) => HEIGHT => Full_Screen
-                    padding = c(8, 16), #PADDING+
-                    fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
-                  #Stacked BAR(s) => DATA-SELECTION | Plot-PARAMETER(s) => UI-ELEMENT(s)+
-                  sidebar = sidebar(
-                    h5("Data Selection", class = "sidebar-title"),
-                    # selectInput(
-                    #   inputId = "MR_BIRTH_View_Choice",
-                    #   # inputId = "MR_BIRTH_Data_Choice",
-                    #   label = "Birth View",
-                    #   # label = "Birth Data",
-                    #   choices = c("Countries", "Regions"),
-                    #   selected = "Countries",
-                    #   multiple = FALSE,
-                    #   width = "100%"),
-                    radioButtons(
-                      inputId = "MR_BIRTH_View_Choice",
-                      label = "Birth View",
-                      choices = c("Countries", "Regions"),
-                      selected = "Countries",
-                      inline = FALSE),
-                    selectInput(
-                      inputId = "MR_BIRTH_View_Choice_REGIONs_CHOICE",
-                      # label = "Classification",
-                      label = "Classification of Regions",
+                card_header(
+                  "Data Selection and Plot Parameters", #HeadLine+
+                  style = "padding: 8px 16px 0px 16px !important;"), #PADDING+
+                #DATA-SELECTION | PLOT-PARAMETER(s) => UI-ELEMENT(s)+
+                card_body(
+                  ##### Responsive 12-Column Grid #####
+                  layout_columns(
+                    #Responsive 12-Column Grid => MARGIN(s)+ | OVERFLOW+ | Container minimum width (don't shrink choices)
+                    style = "margin-top: 0px !important; margin-bottom: 0px !important; max-height: none !important; overflow: visible !important; min-width: 1310px;",
+                  #DATA-SELECTION => UI-ELEMENT(s)+
+                  radioButtons( #BIRTH VIEW CHOICE RADIO BUTTONs
+                    inputId = "MR_BIRTH_View_Choice", label = "Birth View", #"MR_BIRTH_Data_Choice" | "Birth Data"
+                    #Birth View Choices | Selected Birth View | Render choices inline
+                    choices = c("Countries", "Regions"), selected = "Countries", inline = TRUE),
+                  radioButtons( #VARIABLE CHOICE RADIO BUTTONs
+                    inputId = "MR_Variable_Choice", label = "Gender", #"Variable" | "Group" | "Population Group"
+                    #Variable Choices
+                    choices = c("Both Sexes Combined", "Males", "Females"), #c("Both Sexes Combined" = "iMIGRANT_Stock_Total", "Males" = "iMIGRANT_Stock_Males", "Females" = "iMIGRANT_Stock_Females")
+                    #Selected Variable | Render choices inline
+                    selected = "Both Sexes Combined", inline = TRUE),
+                  #PLOT-PARAMETER(s) => UI-ELEMENT(s)+
+                  sliderInput( #Decimal CHOICE SLIDER
+                    inputId = "MR_Decimal_Choice", label = "Decimal Choice",
+                    #VALUE => MIN | MAX | Selected | Interval 
+                    min = 0, max = 5, value = 2, step = 1,
+                    ticks = FALSE, width = "100%"), #HIDE Tick Marks | Width+
+                  ##### Columns #####
+                  col_widths = c(2, 3, 2)),
+                  #DATA-SELECTION => UI-ELEMENT(s)+
+                  tags$div(style = "margin-top: -10px; min-width: 1310px;", #MARGIN (Top: -10px) | #RADIO BUTTONs' container minimum width (don't shrink choices)
+                    radioButtons( #BIRTH VIEW CHOICE => REGION(s) CHOICE => RADIO BUTTONs
+                      inputId = "MR_BIRTH_View_Choice_REGIONs_CHOICE", label = "Classification of Regions", #"Classification"
+                      #International MIGRANT Stock Data Classifications
                       choices = c(
                         "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "2 Development Levels", "3 Development Levels", "5 Development Levels", "Income Levels"),
-                      selected = "Continental Regions",
-                      multiple = FALSE,
-                      width = "100%"),
-                    # radioButtons(
-                    #   inputId = "MR_BIRTH_View_Choice_REGIONs_CHOICE",
-                    #   label = "Classification of Regions",
-                    #   choices = c(
-                    #     "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "2 Development Levels", "3 Development Levels", "5 Development Levels", "Income Levels"),
-                    #   selected = "Continental Regions",
-                    #   inline = FALSE),
-                    # selectInput( #Hidden OR !Enable
-                    #   inputId = "MR_Variable_Choice",
-                    #   # label = "Variable",
-                    #   # label = "Group",
-                    #   # label = "Population Group",
-                    #   label = "Gender",
-                    #   choices = c("Both Sexes Combined", "Males", "Females"),
-                    #   # choices = c("Both Sexes Combined" = "iMIGRANT_Stock_Total", "Males" = "iMIGRANT_Stock_Males", "Females" = "iMIGRANT_Stock_Females"),
-                    #   selected = "Both Sexes Combined",
-                    #   multiple = FALSE,
-                    #   width = "100%"),
-                    radioButtons(
-                      inputId = "MR_Variable_Choice",
-                      label = "Gender",
-                      choices = c("Both Sexes Combined", "Males", "Females"),
-                      selected = "Both Sexes Combined",
-                      inline = FALSE),
-                    h5("Plot Parameters", class = "sidebar-title"),
-                    sliderInput(
-                      inputId = "MR_Decimal_Choice", 
-                      label = "Decimal Choice", 
-                      min = 0,
-                      max = 5,
-                      value = 2,
-                      step = 1,
-                      ticks = FALSE, 
-                      width = "100%"),
-                    width = 225, #SideBAR-CONTAINER => Width+
-                    position = "left", #SideBAR-CONTAINER => POSITION
-                    open = "desktop", #SideBAR-CONTAINER => STATE => TIME = 1 => OPEN on DeskTop Screen | Close on Mobile
-                    id = "MR_MIGRANT_STOCK_DATA_Card_SideBAR", #SideBAR-CONTAINER => IDENTIFIER+
-                    bg = "#FCFCFC", #SideBAR-CONTAINER => BACKGround => COLOR+
-                    fg = "#1D1F21", #SideBAR-CONTAINER => FOREGround => COLOR+
-                    padding = c(8, 16)), #SideBAR-CONTAINER => PADDING+
-                  #Stacked BAR(s) => DATA-SELECTION | PARAMETER(s) => ARGu.
+                      #Selected Classification | Render choices inline
+                      selected = "Continental Regions", inline = TRUE)),
+                  #Card_BODY => ARGu.
                   fillable = TRUE, #FLEXBOX CONTAINER
-                  fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
-                  bg = "#FCFCFC", #MAIN-CONTAINER => BACKGround => COLOR+
-                  padding = 0, #MAIN-CONTAINER => PADDING+
-                  height = "510px"), #MAIN-CONTAINER => HEIGHT => !Full_Screen
+                  min_height = "125px", max_height = "125px", #(DATA-SELECTION+PLOT-PARAMETER(s)) Card => HEIGHT => !Full_Screen
+                  padding = c(0, 16, 8, 16), #PADDING+
+                  fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
                 #Card => ARGu.
-                full_screen = TRUE, #Expand Card To Fit Screen Size
+                full_screen = FALSE, #!Expand Card To Fit Screen Size
                 fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
-                id = "MR_MIGRANT_STOCK_DATA_Card")) #Make ... Card Visible/Invisible
+                id = "MR_DATA_SELECTION_and_Plot_PARAMETERs_Card")), #Make (DATA-SELECTION+PLOT-PARAMETER(s)) Card Visible/Invisible
             
-            
-            
+            ##### Responsive 12-Column Grid #####
+            layout_columns(
+              #Responsive 12-Column Grid => MARGIN(s)+ | OVERFLOW+
+              style = "margin-top: 0px !important; margin-bottom: 0px !important; max-height: none !important; overflow: visible !important",
+              ##### iMIGRANT-STOCK-DATA-Card => COUNT(s) #####
+              hidden( #Card => Hidden
+                card(
+                  #Card => Headline
+                  card_header("International Migrant Stock Data - Counts"),
+                  #Stacked BAR(s) => COUNT(s)
+                  card_body(
+                    plotlyOutput("MR_Stacked_BARs_COUNTs", width = "100%", height = "585px"), #Stacked BAR(s) => COUNT(s)
+                    #Card_BODY => ARGu.
+                    fillable = TRUE, #FLEXBOX CONTAINER
+                    min_height = "510px", max_height = "510px", #iMIGRANT-STOCK-DATA-Card(s) => HEIGHT => !Full_Screen
+                    max_height_full_screen = "585px", #iMIGRANT-STOCK-DATA-Card(s) => HEIGHT => Full_Screen
+                    padding = c(4, 8), #PADDING+
+                    fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
+                  #iMIGRANT-STOCK-DATA-Card(s) => Source(s)
+                  card_footer(
+                    "Sources:", HTML("<a href='https://www.un.org/development/desa/pd/content/international-migrant-stock' target='_blank'>United Nations - Population Division</a>"), "|", #Link To International MIGRANT Stock Data
+                    HTML("<a href='https://github.com/kiki1801/Climate_CHANGE_MIGRATION_Network/blob/main/R/UI_and_SERVER/CLIMINET/Donn%C3%A9es/ims_sex_residence_and_birth_with_shares_2020.xlsx' target='_blank'>Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques</a>")), #Link To Enhanced Version of International MIGRANT Stock Data
+                  #Card => ARGu.
+                  full_screen = TRUE, #Expand Card To Fit Screen Size
+                  fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
+                  id = "MR_MIGRANT_STOCK_DATA_COUNTs_Card")), #Make iMIGRANT-STOCK-DATA (COUNT(s)) Card Visible/Invisible
+              ##### iMIGRANT-STOCK-DATA-Card => SHARE(s) #####
+              hidden( #Card => Hidden
+                card(
+                  #Card => Headline
+                  card_header("International Migrant Stock Data - Shares"),
+                  #Stacked BAR(s) => SHARE(s)
+                  card_body(
+                    plotlyOutput("MR_Stacked_BARs_SHAREs", width = "100%", height = "585px"), #Stacked BAR(s) => SHARE(s)
+                    #Card_BODY => ARGu.
+                    fillable = TRUE, #FLEXBOX CONTAINER
+                    min_height = "510px", max_height = "510px", #iMIGRANT-STOCK-DATA-Card(s) => HEIGHT => !Full_Screen
+                    max_height_full_screen = "585px", #iMIGRANT-STOCK-DATA-Card(s) => HEIGHT => Full_Screen
+                    padding = c(4, 8), #PADDING+
+                    fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
+                  #iMIGRANT-STOCK-DATA-Card(s) => Source(s)
+                  card_footer(
+                    "Sources:", HTML("<a href='https://www.un.org/development/desa/pd/content/international-migrant-stock' target='_blank'>United Nations - Population Division</a>"), "|", #Link To International MIGRANT Stock Data
+                    HTML("<a href='https://github.com/kiki1801/Climate_CHANGE_MIGRATION_Network/blob/main/R/UI_and_SERVER/CLIMINET/Donn%C3%A9es/ims_sex_residence_and_birth_with_shares_2020.xlsx' target='_blank'>Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques</a>")), #Link To Enhanced Version of International MIGRANT Stock Data
+                  #Card => ARGu.
+                  full_screen = TRUE, #Expand Card To Fit Screen Size
+                  fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
+                  id = "MR_MIGRANT_STOCK_DATA_SHAREs_Card")), #Make iMIGRANT-STOCK-DATA (SHARE(s)) Card Visible/Invisible
+              ##### Columns #####
+              col_widths = c(6, 6)), 
+
             ),
         
           ##### BIRTH #####
@@ -1748,27 +1770,491 @@ ui <- fluidPage(
       
       ##### CLIMATE #####
       nav_panel(title = "Climate", #tabPanel()
+                
         ##### COUNTRIEs ACTION BUTTON #####
-        actionButton(inputId = "CLIMATE_COUNTRIEs", label = "Countries"),
+        # actionButton(inputId = "CLIMATE_COUNTRIEs", label = "Countries"),
         ##### REGIONs ACTION BUTTON #####
-        actionButton(inputId = "CLIMATE_REGIONs", label = "Regions"), 
+        # actionButton(inputId = "CLIMATE_REGIONs", label = "Regions"), 
         #Conditional Panel visible when REGIONs ACTION BUTTON is clicked
-        conditionalPanel(condition = "input.CLIMATE_REGIONs > 0", 
-          #MARGIN (Top: 10px)
-          style = "margin-top: 10px;",
-          ##### REGIONs CHOICE RADIO BUTTONs #####
-          div(style = "min-width: 1296px;", #RADIO BUTTONs' container minimum width (don't shrink choices)
-            radioButtons(inputId = "CLIMATE_R_REGIONs_CHOICE", label  = NULL, 
-              #International MIGRANT Stock Data Classifications
-              choices = c(
-                "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Development Levels (x3)", "Income Levels"),
-              #Selected Classification | Render choices inline
-              selected = "Continental Regions", inline = TRUE
-              )
-            )
-          )
+        # conditionalPanel(condition = "input.CLIMATE_REGIONs > 0", 
+        #   #MARGIN (Top: 10px)
+        #   style = "margin-top: 10px;",
+        #   ##### REGIONs CHOICE RADIO BUTTONs #####
+        #   div(style = "min-width: 1296px;", #RADIO BUTTONs' container minimum width (don't shrink choices)
+        #     radioButtons(inputId = "CLIMATE_R_REGIONs_CHOICE", label  = NULL, 
+        #       #International MIGRANT Stock Data Classifications
+        #       choices = c(
+        #         "Continental Regions", "Continental Sub-Regions and Intermediate Regions", "Geographic Regions", "Development Levels (x3)", "Income Levels"),
+        #       #Selected Classification | Render choices inline
+        #       selected = "Continental Regions", inline = TRUE
+        #       )
+        #     )
+        #   )
+        
+        ##### (DATA-OVERVIEW + Tutorial) Card #####
+        tags$div( #(DATA-OVERVIEW + Tutorial) Card => MARGIN
+          style = "margin-bottom: -6px !important;", #MARGIN
+          card(
+            #Card => Headline
+            card_header("Data Overview and Exploration Tutorial"),
+            #DATA-OVERVIEW + Tutorial
+            card_body(
+              #DATA-OVERVIEW + Tutorial
+              HTML(
+                "<p>We use <strong>MERRA-2</strong> data from the <a href='https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/data_access/' target='_blank'>Global Modeling and Assimilation Office (GMAO) - NASA</a>, produced from 1980 at a 0.5°×0.625° spatial resolution, for meteorology parameters. The data cover the entire globe, represented with spatial points.</p>
+                <p>We work with time series from <strong>1981-01-01 to 2024-12-31</strong> for <strong>4 climate variables</strong>:</p>
+                  <ul>
+                    <li>The <strong>mean air temperature</strong> at 2 meters above the surface of the earth in °C (<strong>T2M</strong>);</li>
+                    <li>The <strong>minimum air temperature</strong> at 2 meters above the surface of the earth in °C (<strong>T2M_MIN</strong>);</li>
+                    <li>The <strong>maximum air temperature</strong> at 2 meters above the surface of the earth in °C (<strong>T2M_MAX</strong>);</li>
+                    <li>The <strong>mean bias corrected total precipitation</strong> at the surface of the earth in mm (<strong>PRECTOTCORR</strong>).</li>
+                  </ul>
+                <p>We construct <strong>14 annual climate indicators</strong>. First, we transform the data from spatial points into cells. Then, we compute <strong>climate normals</strong> over a <strong>reference period (1981-2010)</strong>. Next, we calculate the climate indicators at <strong>cell level</strong>.</p>
+                <p>We compute these indicators for <strong>all countries</strong> from those at the cell level. We  use <strong>population data</strong> to increase the importance of the most populated cells. Population data are taken from <a href='https://landscan.ornl.gov/' target='_blank'>LandScan</a>, available from 2000 to 2023. For 1981–1999, we use population data from 2000, and for 2024, we use population data from 2023. We obtain the annual indicators presented above for all countries from 1981 to 2024. We also compute these indicators for <strong>7 periods of 5 years</strong> (1990-1995, 1995-2000, 2000-2005, 2005-2010, 2010-2015, 2015-2020, and 2020-2025).</p>
+                <p>You can <strong>explore</strong> these data in the visualization section below. <strong>Need help?</strong> Follow the <strong>tutorial</strong>:</p>
+                <p>
+                  1. Select <strong>one of the 14 available climate indicators</strong> to view a <strong>world map</strong> that illustrates the selected indicator across 7 periods of 5 years. You can visualize <strong>climate change</strong> on a <strong>global scale over time</strong>.<br>
+                  2. Below the map, select a <strong>country</strong> and <strong>one of the 4 climate variables</strong> to explore its <strong>distributions</strong> and <strong>densities</strong> across all years for the selected country.<br>
+                  3. You can also select a <strong>country</strong> and a <strong>group of climate indicators</strong> to see how these climate indicators have changed over time in that country.</p>"),
+              #Card_BODY => ARGu.
+              fillable = TRUE, #FLEXBOX CONTAINER
+              padding = c(0, 16, 8, 16), #PADDING => TOP To 0px | BOTTOM To 8px | LEFT/RIGHT To 16px
+              fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
+            #Card => ARGu.
+            full_screen = FALSE, #!Expand Card To Fit Screen Size
+            fill = FALSE)), #Content => Fixed Size => !Allowed To Scroll
+        
+        ##### CLIMATE INDICATOR CHOICE #####
+        # selectizeInput(
+        #   inputId = "CLIMATE_INDICATOR_CHOICE", label = "Select Climate Indicator",
+        #   #CLIMATE INDICATOR CHOICE(s)
+        #   choices = list(
+        #     "Temperature Indicators" = c(
+        #       "T2M_MIN_Deviation", "T2M_Deviation", "T2M_MAX_Deviation",
+        #       "WSEI", "HWEI",
+        #       "HWF", "WSDI", "GWHR_Heatwave_35",
+        #       "WSD", "HWD",
+        #       "LCDD"),
+        #     "Precipitation Indicators" = c("Precipitation_Deviation", "Max_Precipitation_5d", "LCWD")),
+        #   #CLIMATE INDICATOR CHOICE(s)
+        #   # choices = list(
+        #   #   "Temperature Indicators" = c(
+        #   #     "Minimum Temperature Deviation", "Mean Temperature Deviation", "Maximum Temperature Deviation", "Warm Spell Excess Index", "Heatwave Excess Index",
+        #   #     "Total Count of Heatwaves", "Total Count of Warm Spells", "Total Count of GWHR Heatwaves", "Warm Spells Duration", "Heatwaves Duration", "Consecutive Dry Days"),
+        #   #   "Precipitation Indicators" = c("Precipitation_Deviation", "Maximum 5-d Precipitation", "Consecutive Wet Days")),
+        #   selected = NULL, multiple = FALSE, width = "275px",
+        #   options = list(
+        #     placeholder = '...', selectOnTab = TRUE,
+        #     onInitialize = I('function() {this.setValue("");}'))),
+        
+        ##### Responsive 12-Column Grid #####
+        layout_columns(
+          #Responsive 12-Column Grid => MARGIN(s)+ | OVERFLOW+ | POSITION+
+          style = "margin-top: 10px !important; display: flex !important; max-height: none !important; overflow: visible !important; align-items: center !important; gap: 24px !important;",
+          #CLIMATE INDICATOR CHOICE
+          selectizeInput(
+            inputId = "CLIMATE_INDICATOR_CHOICE", label = "Select Climate Indicator",
+            #CLIMATE INDICATOR CHOICE(s)
+            choices = list(
+              "Temperature Indicators" = c(
+                "T2M_MIN_Deviation", "T2M_Deviation", "T2M_MAX_Deviation",
+                "WSEI", "HWEI",
+                "HWF", "WSDI", "GWHR_Heatwave_35",
+                "WSD", "HWD",
+                "LCDD"),
+              "Precipitation Indicators" = c("Precipitation_Deviation", "Max_Precipitation_5d", "LCWD")),
+            #CLIMATE INDICATOR CHOICE(s)
+            # choices = list(
+            #   "Temperature Indicators" = c(
+            #     "Minimum Temperature Deviation", "Mean Temperature Deviation", "Maximum Temperature Deviation", "Warm Spell Excess Index", "Heatwave Excess Index",
+            #     "Total Count of Heatwaves", "Total Count of Warm Spells", "Total Count of GWHR Heatwaves", "Warm Spells Duration", "Heatwaves Duration", "Consecutive Dry Days"),
+            #   "Precipitation Indicators" = c("Precipitation_Deviation", "Maximum 5-d Precipitation", "Consecutive Wet Days")),
+            # selected = NULL, multiple = FALSE, width = "215px",
+            selected = "HWF", multiple = FALSE, width = "215px",
+            # selected = NULL, multiple = FALSE, width = "275px",
+            # options = list(
+            #   placeholder = '...', selectOnTab = TRUE,
+            #   onInitialize = I('function() {this.setValue("");}'))
+            ),
+          #CLIMATE TIME SLIDER
+          sliderInput(inputId = "Global_Climate_Time_SLIDER", label = "Select 5-Year Period (Start Year)", #"Select Start Year of 5-Year Period"
+                      min = 1990, max = 2020, value = 2020, step = 5, sep = "", ticks = TRUE, width = "100%", 
+                      animate = animationOptions(interval = 2500, loop = TRUE,
+                                                 playButton = bsicons::bs_icon(name = "play-circle", size = "20px"),
+                                                 pauseButton = bsicons::bs_icon(name = "pause-circle", size = "20px"))),
+          ##### Columns #####
+          col_widths = c(6, 6)),
+        
+        ##### World Map => Global Climate INDICATOR(s) => Card(.) #####
+        # # hidden( #Card => Hidden
+        #   card(
+        #     #Card => Headline
+        #     card_header("Global Climate Indicators Over Time (5-Year Periods, 1990-2025)"),
+        #     #World Map => Global Climate INDICATOR(s)
+        #     card_body(
+        #       plotOutput("World_Map_with_Global_CLIMATE_INDICATORs", width = "100%", height = 585), #World Map => Global Climate INDICATOR(s) (GOOGLE)
+        #       #Card_BODY => ARGu.
+        #       fillable = TRUE, #FLEXBOX CONTAINER
+        #       min_height = "510px", max_height = "510px", #World Map => Global Climate INDICATOR(s) => HEIGHT => !Full_Screen
+        #       max_height_full_screen = "585px", #World Map => Global Climate INDICATOR(s) => HEIGHT => Full_Screen (GOOGLE)
+        #       padding = 0, #Remove PADDING
+        #       fill = FALSE), #Content => Fixed Size => !Allowed To Scroll
+        #     #World Map => Global Climate INDICATOR(s) => Source(s)
+        #     card_footer(
+        #       "Sources:", HTML("<a href='https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/data_access/' target='_blank'>Global Modeling and Assimilation Office (GMAO) - NASA</a>"), "|", #Link To MERRA-2 Data
+        #       HTML("<a href='https://landscan.ornl.gov/' target='_blank'>LandScan</a>"), "|", #Link To LandScan Data
+        #       HTML("<a href='https://doi.org/10.57745/ABJ8OQ' target='_blank'>Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques</a>")), #Link To Fondation Jean-Jacques Laffont (TSE) - Countries GeoSpatial Data
+        #     #Card => ARGu.
+        #     full_screen = TRUE, #Expand Card To Fit Screen Size
+        #     fill = FALSE, #Content => Fixed Size => !Allowed To Scroll
+        #     id = "World_Map_with_Global_CLIMATE_INDICATORs_Card"),
+        #   # ), #World Map => Global Climate INDICATOR(s) => Card(.) => Visible/Invisible
+        
+        ##### ... #####
+        # hidden( #Card => Hidden
+          div(id = "WorldMap_with_GlobalCLIMATEINDICATORsCard", #Make ... Visible/Invisible
+              navset_card_tab(
+                #...
+                nav_panel(
+                  title = "Global Climate Indicators Over Time (5-Year Periods, 1990-2025)",
+                  plotOutput("World_Map_with_Global_CLIMATE_INDICATORs", width = "100%", height = 510), #World Map => Global Climate INDICATOR(s) (GOOGLE)
+                  #... => Source(s)
+                  HTML("
+                  <div style='font-size: 12px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;'>
+                    <span>Sources:</span>
+                    <a href='https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/data_access/' target='_blank'>Global Modeling and Assimilation Office (GMAO) - NASA</a>
+                      <span>|</span>
+                      <a href='https://landscan.ornl.gov/' target='_blank'>LandScan</a>
+                      <span>|</span>
+                      <a href='https://doi.org/10.57745/ABJ8OQ' target='_blank'>Fondation Jean-Jacques Laffont - Toulouse Sciences Economiques</a>
+                  </div>"), #Link To MERRA-2 Data | Link To LandScan Data | Link To Fondation Jean-Jacques Laffont (TSE) - Countries GeoSpatial Data
+                  value = "Global_Climate_Maps"), #...
+                #...
+                nav_panel(
+                  #BOOTSTRAP_ICON
+                  bsicons::bs_icon(
+                    name = "info-circle", #INFO ICON from https://icons.getbootstrap.com/
+                    size = "20px"), #ICON => HEIGHT and WIDTH
+                  #...
+                  HTML(
+                    "<h4 style='margin-bottom: 0px;'>Temperatures Variables</h4>
+                    <p>Climate normals are computed over a reference period (1981-2010).</p>
+                    <p>We consider 3 classical variables, with the difference from normal temperatures defined as the deviation between the mean annual temperatures and the normal annual temperatures, which is computed over the reference period (1981-2010):</p>
+                    <ul>
+                      <li><strong>T2M_Deviation</strong> \\( \\Rightarrow \\) Difference from normal annual temperatures for the variable <strong>T2M</strong></li>
+                      <li><strong>T2M_MIN_Deviation</strong> \\( \\Rightarrow \\) Difference from normal annual temperatures for the variable <strong>T2M_MIN</strong></li>
+                      <li><strong>T2M_MAX_Deviation</strong> \\( \\Rightarrow \\) Difference from normal annual temperatures for the variable <strong>T2M_MAX</strong></li>
+                    </ul>
+                    <p>We now consider less conventional variables, the first of which is a heatwave indicator derived from the <a href='https://doi.org/10.1038/sdata.2018.206' target='_blank'>GHWR multi-method toolbox</a>. This indicator is based on a constant temperature threshold approach, which defines a heatwave as an event where temperatures exceed a fixed threshold for an extended period of time. In this case, we define a heatwave as at least five consecutive days with temperatures above 35°C:</p>
+                    <ul>
+                      <li><strong>GWHR_Heatwave_35</strong> \\( \\Rightarrow \\) The number of days with at least five consecutive days of temperatures above 35°C</li>
+                    </ul>
+                    <p>We now consider another approach to detect heatwaves, where the temperature thresholds are based on local climate data. A heatwave is defined as an event where temperatures exceed a localized threshold, such as quantile 0.90, for several consecutive days. A heatwave occurs in hot periods, and to select a summer period for heatwaves, we add the condition that the maximum temperature must exceed 28°C. We use the same approach to detect warm spells, which can occur at any time of the year. We use different annual climate indicators for the duration, frequency and severity of extreme heat events:</p>
+                    <ul>
+                      <li><strong>WSD</strong> \\( \\Rightarrow \\) The warm spell duration based on <strong>T2M_MAX</strong></li>
+                      <li><strong>WSDI</strong> \\( \\Rightarrow \\) The warm spell duration index based on <strong>T2M_MAX</strong></li>
+                      <li><strong>WSEI</strong> \\( \\Rightarrow \\) The warm spell excess index based on <strong>T2M_MAX</strong></li>
+                      <li><strong>HWD</strong> \\( \\Rightarrow \\) The heat wave duration based on <strong>T2M</strong> with a constraint on <strong>T2M_MAX</strong> (&gt; 28°C)</li>
+                      <li><strong>HWF</strong> \\( \\Rightarrow \\) The heat wave frequency based on <strong>T2M</strong></li>
+                      <li><strong>HWEI</strong> \\( \\Rightarrow \\) The heat wave excess index based on <strong>T2M</strong></li>
+                    </ul>
+                    <p>At the cell level, these indicators are defined as follows:</p>
+                    <ul>
+                      <li><strong>WSD</strong> \\( \\Rightarrow \\) The duration of the longest warm spell</li>
+                      <li><strong>WSDI</strong> \\( \\Rightarrow \\) The count of days that fulfill the warm spell criteria for at least six consecutive days (&gt; quantile 0.90)</li>
+                      <li><strong>WSEI</strong> \\( \\Rightarrow \\) The average of maximum temperature excesses on days that meet the warm spell criteria (where the maximum temperature excess is defined as the absolute difference between the maximum temperature and the threshold)</li>
+                      <li><strong>HWD</strong> \\( \\Rightarrow \\) The duration of the longest heatwave</li>
+                      <li><strong>HWF</strong> \\( \\Rightarrow \\) The count of days that fulfill the heatwave criteria for at least three consecutive days (&gt; quantile 0.90)</li>
+                      <li><strong>HWEI</strong> \\( \\Rightarrow \\) The average of mean temperature excesses on days that meet the heatwave criteria (where the mean temperature excess is defined as the absolute difference between the mean temperature and the threshold)</li>
+                    </ul>
+                    <h4 style='margin-bottom: 0px;'>Precipitation Variables</h4>
+                    <p>We also consider the deviation between the annual precipitation and the normal annual precipitation, which is computed over the reference period (1981-2020):</p>
+                    <ul>
+                      <li><strong>Precipitation_Deviation</strong> \\( \\Rightarrow \\) The difference from normal annual precipitation for the variable <strong>PRECTOTCORR</strong></li>
+                    </ul>
+                    <p>We consider 3 other precipitation variables:</p>
+                    <ul>
+                      <li><strong>LCDD</strong> \\( \\Rightarrow \\) The longest consecutive dry days (with less than 1mm of precipitation) in an annual period</li>
+                      <li><strong>LCWD</strong> \\( \\Rightarrow \\) The longest consecutive wet days (with more than 1mm of precipitation) in an annual period</li>
+                      <li><strong>Max_Precipitation_5d</strong> \\( \\Rightarrow \\) The maximum total precipitation (in mm) that falls over a period of 5 consecutive days in an annual period (<a href='https://climateatlas.ca/variables' target='_blank'>Climate Atlas of Canada</a>)</li>
+                    </ul>"),
+                  value = "Global_Climate_Maps_INFORMATION"), #...
+                #Card => ARGu.
+                id = "World_Map_with_Global_CLIMATE_INDICATORs_Card", #...
+                selected = "Global_Climate_Maps", #Selected Tab Panel
+                height = 635, #... => HEIGHT => !Full_Screen
+                full_screen = TRUE)),
+          # ), #Expand Card To Fit Screen Size
+        
+        ##### Responsive 12-Column Grid #####
+        layout_columns(
+          #Responsive 12-Column Grid => MARGIN(s)+ | OVERFLOW+
+          style = "margin-top: 10px !important; display: flex !important; max-height: none !important; overflow: visible !important;",
+          #COUNTRY CHOICE
+          selectizeInput(
+            inputId = "CLIMATE_COUNTRY_CHOICE", label = "Select Country",
+            choices = NULL, selected = NULL, multiple = FALSE, width = "415px",
+            options = list(placeholder = '...', selectOnTab = TRUE, onInitialize = I('function() {this.setValue("");}'))),
+          #CLIMATE VARIABLE CHOICE
+          selectizeInput(
+            inputId = "CLIMATE_VARIABLE_CHOICE", label = "Select Climate Variable",
+            #CLIMATE VARIABLE CHOICE(s)
+            choices = c("T2M_MIN", "T2M", "T2M_MAX", "PRECTOTCORR"),
+            #CLIMATE VARIABLE CHOICE(s)
+            # choices = c("Minimum Temperature", "Mean Temperature", "Maximum Temperature", "Precipitation"),
+            # selected = NULL, multiple = FALSE, width = "155px",
+            selected = "T2M_MAX", multiple = FALSE, width = "155px",
+            # selected = NULL, multiple = FALSE, width = "215px",
+            # options = list(
+            #   placeholder = '...', selectOnTab = TRUE,
+            #   onInitialize = I('function() {this.setValue("");}'))
+            ),
+          #CLIMATE INDICATOR(s) CHOICE
+          selectizeInput(
+            inputId = "CLIMATE_INDICATORs_CHOICE", label = "Select Climate Indicator(s)",
+            #CLIMATE INDICATOR(s) CHOICE(s)
+            choices = c("T2M_MIN_Deviation, T2M_Deviation and  T2M_MAX_Deviation", "WSEI and HWEI",
+                        "HWF, WSDI and GWHR_Heatwave_35",  "WSD and HWD",
+                        "Precipitation_Deviation", "Max_Precipitation_5d", "LCDD and LCWD"),
+            #CLIMATE INDICATOR(s) CHOICE(s)
+            # choices = c("Temperature Deviation", "Temperature Excess",
+            #             "Total Count of Heatwaves and Warm Spells",  "Maximum Duration of Warm Spells and Heatwaves",
+            #             "Precipitation Deviation", "Maximum 5-d Precipitation", "Maximum Consecutive Dry and Wet Days"),
+            # selected = NULL, multiple = FALSE, width = "480px",
+            selected = "T2M_MIN_Deviation, T2M_Deviation and  T2M_MAX_Deviation", multiple = FALSE, width = "480px",
+            # options = list(
+            #   placeholder = '...', selectOnTab = TRUE,
+            #   onInitialize = I('function() {this.setValue("");}'))
+            ),
+          ##### Columns #####
+          col_widths = c(4, 4, 4)),
+        
+        ##### ... #####
+        hidden( #Card => Hidden
+          div(id = "CLIMATEParallelBOXPLOTCard", #Make ... Visible/Invisible
+            navset_card_tab(
+              #...
+              nav_panel(
+                title = "Climate Variable Distribution Over Time (1990-2020)",
+                plotlyOutput("CLIMATE_Parallel_BOXPLOT", width = "100%", height = "510px"), #...
+                #... => Source(s)
+                HTML("
+                  <div style='font-size: 12px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;'>
+                    <span>Sources:</span>
+                    <a href='https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/data_access/' target='_blank'>Global Modeling and Assimilation Office (GMAO) - NASA</a>
+                  </div>"), #Link To MERRA-2 Data | Link To LandScan Data
+                value = "Climate_Distribution"), #...
+              #...
+              nav_panel(
+                #BOOTSTRAP_ICON
+                bsicons::bs_icon(
+                  name = "info-circle", #INFO ICON from https://icons.getbootstrap.com/
+                  size = "20px"), #ICON => HEIGHT and WIDTH
+                #...
+                HTML(
+                  "<p>To <strong>examine climate change</strong>, we use parallel boxplots to visualize the distribution of each climate variable across all years. This helps reveal <strong>central tendencies</strong> and <strong>extremes</strong> over time.</p>
+                  <p style='font-weight: 600;'>Temperature Variables:</p>
+                    <ul>
+                      <li>The <strong>mean air temperature</strong> at 2 meters above the surface of the earth in °C (<strong>T2M</strong>)</li>
+                      <li>The <strong>minimum air temperature</strong> at 2 meters above the surface of the earth in °C (<strong>T2M_MIN</strong>)</li>
+                      <li>The <strong>maximum air temperature</strong> at 2 meters above the surface of the earth in °C (<strong>T2M_MAX</strong>)</li>
+                    </ul>
+                  <p style='font-weight: 600;'>Precipitation Variable:</p>
+                    <ul>
+                      <li>The <strong>mean bias-corrected total precipitation</strong> at the surface of the earth in mm (<strong>PRECTOTCORR</strong>)</li>
+                    </ul>"), 
+                value = "Climate_Distribution_INFORMATION"), #...
+              #Card => ARGu.
+              id = "CLIMATE_Parallel_BOXPLOT_Card", #...
+              selected = "Climate_Distribution", #Selected Tab Panel
+              height = 635, #... => HEIGHT => !Full_Screen
+              full_screen = TRUE))), #Expand Card To Fit Screen Size
+        
+        ##### Responsive 12-Column Grid #####
+        # layout_columns(
+        #   #Responsive 12-Column Grid => MARGIN(s)+ | OVERFLOW+
+        #   style = "margin-top: 0px !important; margin-bottom: 0px !important; max-height: none !important; overflow: visible !important",
+        #   ##### ... #####
+        #   hidden( #Card => Hidden
+        #     div(id = "CLIMATE_KDECard", #Make ... Visible/Invisible
+        #         navset_card_tab(
+        #           #...
+        #           nav_panel(
+        #             title = "Climate Variable Densities – All Years (1990–2020)",
+        #             plotlyOutput("CLIMATE_KDE", width = "100%", height = "510px"), #...
+        #             #... => Source(s)
+        #             HTML("Sources: ..."), #...
+        #             value = "Climate_KDE"), #...
+        #           #...
+        #           nav_panel(
+        #             #BOOTSTRAP_ICON
+        #             bsicons::bs_icon(
+        #               name = "info-circle", #INFO ICON from https://icons.getbootstrap.com/
+        #               size = "20px"), #ICON => HEIGHT and WIDTH
+        #             #...
+        #             HTML("<p>...</p>"),
+        #             value = "Climate_KDE_INFORMATION"), #...
+        #           #Card => ARGu.
+        #           id = "CLIMATE_KDE_Card", #...
+        #           selected = "Climate_KDE", #Selected Tab Panel
+        #           height = 635, #... => HEIGHT => !Full_Screen
+        #           full_screen = TRUE))), #Expand Card To Fit Screen Size
+        #   ##### ... #####
+        #   hidden( #Card => Hidden
+        #     div(id = "CLIMATE_KDE_FIVE_YEARsCard", #Make ... Visible/Invisible
+        #         navset_card_tab(
+        #           #...
+        #           nav_panel(
+        #             title = "Climate Variable Densities – 5-Year Periods (1990–2020)",
+        #             plotlyOutput("CLIMATE_KDE_FIVE_YEARs", width = "100%", height = "510px"), #...
+        #             #... => Source(s)
+        #             HTML("Sources: ..."), #...
+        #             value = "Climate_KDE_FIVE_YEARs"), #...
+        #           #...
+        #           nav_panel(
+        #             #BOOTSTRAP_ICON
+        #             bsicons::bs_icon(
+        #               name = "info-circle", #INFO ICON from https://icons.getbootstrap.com/
+        #               size = "20px"), #ICON => HEIGHT and WIDTH
+        #             #...
+        #             HTML("<p>...</p>"),
+        #             value = "Climate_KDE_FIVE_YEARs_INFORMATION"), #...
+        #           #Card => ARGu.
+        #           id = "CLIMATE_KDE_FIVE_YEARs_Card", #...
+        #           selected = "Climate_KDE_FIVE_YEARs", #Selected Tab Panel
+        #           height = 635, #... => HEIGHT => !Full_Screen
+        #           full_screen = TRUE))), #Expand Card To Fit Screen Size
+        #   ##### Columns #####
+        #   col_widths = c(6, 6)),
+        
+        ##### ... #####
+        hidden( #Card => Hidden
+          div(id = "CLIMATE_KDECard", #Make ... Visible/Invisible
+              navset_card_tab(
+                #...
+                nav_panel(
+                  title = "Climate Variable Densities – All Years (1990–2020)",
+                  plotlyOutput("CLIMATE_KDE", width = "100%", height = "510px"), #...
+                  #... => Source(s)
+                  HTML("
+                    <div style='font-size: 12px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;'>
+                      <span>Sources:</span>
+                      <a href='https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/data_access/' target='_blank'>Global Modeling and Assimilation Office (GMAO) - NASA</a>
+                    </div>"), #Link To MERRA-2 Data | Link To LandScan Data
+                  value = "Climate_KDE"), #...
+                #...
+                nav_panel(
+                  title = "Climate Variable Densities – 5-Year Periods (1990–2020)",
+                  plotlyOutput("CLIMATE_KDE_FIVE_YEARs", width = "100%", height = "510px"), #...
+                  #... => Source(s)
+                  HTML("
+                    <div style='font-size: 12px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;'>
+                      <span>Sources:</span>
+                      <a href='https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/data_access/' target='_blank'>Global Modeling and Assimilation Office (GMAO) - NASA</a>
+                    </div>"), #Link To MERRA-2 Data | Link To LandScan Data
+                  value = "Climate_KDE_FIVE_YEARs"), #...
+                #...
+                nav_panel(
+                  #BOOTSTRAP_ICON
+                  bsicons::bs_icon(
+                    name = "info-circle", #INFO ICON from https://icons.getbootstrap.com/
+                    size = "20px"), #ICON => HEIGHT and WIDTH
+                  #...
+                  HTML(
+                    "<p>To complement the parallel boxplots, <strong>kernel densities</strong> help show subtle <strong>shifts</strong> in the distribution of climate variables across time.</p>
+                    <p>We have a Probability Density Function (PDF) \\(f(x)\\) of a climate variable \\(X\\).</p>
+                    <p>Conditions:</p>
+                    <ul>
+                      <li>\\(f(x) \\geq 0, \\space \\forall x \\)</li>
+                      <li>\\( \\int_{-\\infty}^{+\\infty} f(u) \\, du = 1 \\)</li>
+                    </ul>
+                    <p>Data \\( \\{X_i \\space , i = 1, 2, \\dots, n\\} \\), where \\( X_i \\) iid \\( \\sim f(x) \\).</p>
+                    <p><strong>How can we estimate \\( f(x) \\)?</strong> We will use the kernel method to estimate \\( f(x) \\).</p>
+                    <p>Rosenblatt (1956) and Parzen (1962) \\( \\Rightarrow \\) \\( \\widehat{f}(x) = \\frac{1}{nh} \\sum_{i=1}^{n} K\\left(\\frac{x - X_i}{h}\\right) \\), where \\( n \\) is the number of observations, and \\( X_i \\) are the observed values of the climate variable.</p>
+                    <p>The kernel function \\( K \\) satisfies \\( K(u) \\geq 0, \\space \\forall u \\). We decide to use the <strong>Gaussian Kernel</strong> \\( \\Rightarrow \\) \\(K(u) = \\frac{1}{\\sqrt{2\\pi}} e^{-\\frac{1}{2}u^2}\\)</p>
+                    <p>For bandwidth selection, we decide to use a <strong>data-driven bandwidth selection rule</strong> over <strong>cross-validation</strong>, since calculation time for cross-validation increases with the number of observations. As a result, we choose <strong>Silverman's rule (1986)</strong> to compute the bandwidth \\( \\Rightarrow \\) \\(h_{Silverman} = 1.059 \\times \\min\\left(\\sigma, \\frac{q_3 - q_1}{1.349}\\right) n^{-\\frac{1}{5}}\\)"),
+                  value = "Climate_KDE_INFORMATION"), #...
+                #Card => ARGu.
+                id = "CLIMATE_KDE_Card", #...
+                selected = "Climate_KDE", #Selected Tab Panel
+                height = 635, #... => HEIGHT => !Full_Screen
+                full_screen = TRUE))), #Expand Card To Fit Screen Size
+        
+        ##### ... #####
+        hidden( #Card => Hidden
+          div(id = "CLIMATEEvolutionCard", #Make ... Visible/Invisible
+              navset_card_tab(
+                #...
+                nav_panel(
+                  title = "Climate Indicator(s) Evolution (1990-2020)",
+                  plotlyOutput("CLIMATE_Evolution", width = "100%", height = "510px"), #...
+                  #... => Source(s)
+                  HTML("
+                    <div style='font-size: 12px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;'>
+                      <span>Sources:</span>
+                      <a href='https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/data_access/' target='_blank'>Global Modeling and Assimilation Office (GMAO) - NASA</a>
+                      <span>|</span>
+                      <a href='https://landscan.ornl.gov/' target='_blank'>LandScan</a>
+                    </div>"), #Link To MERRA-2 Data | Link To LandScan Data
+                  value = "Climate_Evolution"), #...
+                #...
+                nav_panel(
+                  #BOOTSTRAP_ICON
+                  bsicons::bs_icon(
+                    name = "info-circle", #INFO ICON from https://icons.getbootstrap.com/
+                    size = "20px"), #ICON => HEIGHT and WIDTH
+                  #...
+                  HTML(
+                    "<h4 style='margin-bottom: 0px;'>Temperatures Variables</h4>
+                    <p>Climate normals are computed over a reference period (1981-2010).</p>
+                    <p>We consider 3 classical variables, with the difference from normal temperatures defined as the deviation between the mean annual temperatures and the normal annual temperatures, which is computed over the reference period (1981-2010):</p>
+                    <ul>
+                      <li><strong>T2M_Deviation</strong> \\( \\Rightarrow \\) Difference from normal annual temperatures for the variable <strong>T2M</strong></li>
+                      <li><strong>T2M_MIN_Deviation</strong> \\( \\Rightarrow \\) Difference from normal annual temperatures for the variable <strong>T2M_MIN</strong></li>
+                      <li><strong>T2M_MAX_Deviation</strong> \\( \\Rightarrow \\) Difference from normal annual temperatures for the variable <strong>T2M_MAX</strong></li>
+                    </ul>
+                    <p>We now consider less conventional variables, the first of which is a heatwave indicator derived from the <a href='https://doi.org/10.1038/sdata.2018.206' target='_blank'>GHWR multi-method toolbox</a>. This indicator is based on a constant temperature threshold approach, which defines a heatwave as an event where temperatures exceed a fixed threshold for an extended period of time. In this case, we define a heatwave as at least five consecutive days with temperatures above 35°C:</p>
+                    <ul>
+                      <li><strong>GWHR_Heatwave_35</strong> \\( \\Rightarrow \\) The number of days with at least five consecutive days of temperatures above 35°C</li>
+                    </ul>
+                    <p>We now consider another approach to detect heatwaves, where the temperature thresholds are based on local climate data. A heatwave is defined as an event where temperatures exceed a localized threshold, such as quantile 0.90, for several consecutive days. A heatwave occurs in hot periods, and to select a summer period for heatwaves, we add the condition that the maximum temperature must exceed 28°C. We use the same approach to detect warm spells, which can occur at any time of the year. We use different annual climate indicators for the duration, frequency and severity of extreme heat events:</p>
+                    <ul>
+                      <li><strong>WSD</strong> \\( \\Rightarrow \\) The warm spell duration based on <strong>T2M_MAX</strong></li>
+                      <li><strong>WSDI</strong> \\( \\Rightarrow \\) The warm spell duration index based on <strong>T2M_MAX</strong></li>
+                      <li><strong>WSEI</strong> \\( \\Rightarrow \\) The warm spell excess index based on <strong>T2M_MAX</strong></li>
+                      <li><strong>HWD</strong> \\( \\Rightarrow \\) The heat wave duration based on <strong>T2M</strong> with a constraint on <strong>T2M_MAX</strong> (&gt; 28°C)</li>
+                      <li><strong>HWF</strong> \\( \\Rightarrow \\) The heat wave frequency based on <strong>T2M</strong></li>
+                      <li><strong>HWEI</strong> \\( \\Rightarrow \\) The heat wave excess index based on <strong>T2M</strong></li>
+                    </ul>
+                    <p>At the cell level, these indicators are defined as follows:</p>
+                    <ul>
+                      <li><strong>WSD</strong> \\( \\Rightarrow \\) The duration of the longest warm spell</li>
+                      <li><strong>WSDI</strong> \\( \\Rightarrow \\) The count of days that fulfill the warm spell criteria for at least six consecutive days (&gt; quantile 0.90)</li>
+                      <li><strong>WSEI</strong> \\( \\Rightarrow \\) The average of maximum temperature excesses on days that meet the warm spell criteria (where the maximum temperature excess is defined as the absolute difference between the maximum temperature and the threshold)</li>
+                      <li><strong>HWD</strong> \\( \\Rightarrow \\) The duration of the longest heatwave</li>
+                      <li><strong>HWF</strong> \\( \\Rightarrow \\) The count of days that fulfill the heatwave criteria for at least three consecutive days (&gt; quantile 0.90)</li>
+                      <li><strong>HWEI</strong> \\( \\Rightarrow \\) The average of mean temperature excesses on days that meet the heatwave criteria (where the mean temperature excess is defined as the absolute difference between the mean temperature and the threshold)</li>
+                    </ul>
+                    <h4 style='margin-bottom: 0px;'>Precipitation Variables</h4>
+                    <p>We also consider the deviation between the annual precipitation and the normal annual precipitation, which is computed over the reference period (1981-2020):</p>
+                    <ul>
+                      <li><strong>Precipitation_Deviation</strong> \\( \\Rightarrow \\) The difference from normal annual precipitation for the variable <strong>PRECTOTCORR</strong></li>
+                    </ul>
+                    <p>We consider 3 other precipitation variables:</p>
+                    <ul>
+                      <li><strong>LCDD</strong> \\( \\Rightarrow \\) The longest consecutive dry days (with less than 1mm of precipitation) in an annual period</li>
+                      <li><strong>LCWD</strong> \\( \\Rightarrow \\) The longest consecutive wet days (with more than 1mm of precipitation) in an annual period</li>
+                      <li><strong>Max_Precipitation_5d</strong> \\( \\Rightarrow \\) The maximum total precipitation (in mm) that falls over a period of 5 consecutive days in an annual period (<a href='https://climateatlas.ca/variables' target='_blank'>Climate Atlas of Canada</a>)</li>
+                    </ul>"), 
+                  value = "Climate_Evolution_INFORMATION"), #...
+                #Card => ARGu.
+                id = "CLIMATE_Evolution_Card", #...
+                selected = "Climate_Evolution", #Selected Tab Panel
+                height = 635, #... => HEIGHT => !Full_Screen
+                full_screen = TRUE))), #Expand Card To Fit Screen Size
+
         ),
-    
+      
       ##### MIGRATION and CLIMATE #####
       nav_panel(title = "Migration and Climate", #tabPanel()
         #Contains Multiple Tabs
@@ -2222,7 +2708,17 @@ ui <- fluidPage(
         DATE = "14-16 December 2024", #PRESENTATION => DATE
         LOCATION = "London - United Kingdom of Great Britain and Northern Ireland", #PRESENTATION => LOCATION
         EVENT_LINK = "https://www.cmstatistics.org/CFECMStatistics2024/", #Link To EVENT
-        EVENT = "CFE-CMStatistics 2024 Conference") #EVENT => NAME
+        EVENT = "CFE-CMStatistics 2024 Conference"), #EVENT => NAME
+      ##### LAERE-2025-E-DARDATI #####
+      PRESENTATION_Card( #PRESENTATION Card Function
+        PRESENTATION = "Climate, Conflict and International Migration", #PRESENTATION => TITLE
+        SPEAKERs = "Evangelina A. Dardati", #SPEAKER(s) => NAME(s)
+        ORGANIZERs_LINK = "https://laere.org/en/home/", #Link To ORGANIZER
+        ORGANIZERs = "Latin American Association of Environmental and Natural Resource Economists (LAERE)", #ORGANIZER => NAME
+        DATE = "19-21 March 2025", #PRESENTATION => DATE
+        LOCATION = "Bogotá - Colombia", #PRESENTATION => LOCATION
+        EVENT_LINK = "https://laere.org/en/congress-2025/", #Link To EVENT
+        EVENT = "LAERE 2025 Congress"), #EVENT => NAME
       ),
     
     ##### EVENT(s) #####
@@ -2342,3 +2838,4 @@ ui <- fluidPage(
     )
 
   )
+
